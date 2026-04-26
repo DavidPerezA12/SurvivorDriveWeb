@@ -68,6 +68,7 @@ const world = {
   shoulderTexture: null,
   roadShoulders: [],
   obstaclePool: [],
+  debrisPool: [],
   propPool: [],
   pickupPool: [],
   projectilePool: [],
@@ -154,18 +155,18 @@ function setupThree() {
   world.pmrem = new THREE.PMREMGenerator(world.renderer);
   const room = new RoomEnvironment();
   world.envTexture = world.pmrem.fromScene(room, 0.0).texture;
-  world.scene.environment = world.envTexture;
+  // REMOVED world.scene.environment to prevent all objects from looking like they are in a white studio
   room.dispose();
 
-  world.scene.fog = new THREE.FogExp2("#d9a15f", 0.007);
+  world.scene.fog = new THREE.FogExp2("#9e7447", 0.007);
   world.scene.background = new THREE.Color("#120b08");
 
-  const ambient = new THREE.HemisphereLight("#ffd4a5", "#3f2415", 0.7);
+  const ambient = new THREE.HemisphereLight("#a88768", "#211108", 0.7);
   world.scene.add(ambient);
   world.lights.ambient = ambient;
 
-  // Luz de relleno más realista, azulada
-  const fill = new THREE.DirectionalLight("#8ba0b5", 0.2);
+  // Luz de relleno más oscura, azulada
+  const fill = new THREE.DirectionalLight("#606f7d", 0.2);
   fill.position.set(-20, 15, -10);
   world.scene.add(fill);
 
@@ -202,17 +203,24 @@ function setupThree() {
     terrainData.bumpMap.wrapT = THREE.RepeatWrapping;
     terrainData.bumpMap.repeat.set(8, 20);
   }
+  
+  if (terrainData.roughnessMap) {
+    terrainData.roughnessMap.wrapS = THREE.RepeatWrapping;
+    terrainData.roughnessMap.wrapT = THREE.RepeatWrapping;
+    terrainData.roughnessMap.repeat.set(8, 20);
+  }
 
   const sandMaterial = new THREE.MeshStandardMaterial({
     color: "#d48a4f",
     map: terrainData.map,
     bumpMap: terrainData.bumpMap,
-    bumpScale: 0.15,
+    roughnessMap: terrainData.roughnessMap,
+    bumpScale: 0.35,
     roughness: 0.92,
-    metalness: 0.02,
+    metalness: 0.05,
   });
 
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(450, 600), sandMaterial);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(450, 600, 32, 32), sandMaterial);
   ground.rotation.x = -Math.PI / 2;
   ground.position.z = 150;
   ground.receiveShadow = true;
@@ -229,17 +237,24 @@ function setupThree() {
     roadData.bumpMap.wrapT = THREE.RepeatWrapping;
     roadData.bumpMap.repeat.set(1, 20);
   }
+  
+  if (roadData.roughnessMap) {
+    roadData.roughnessMap.wrapS = THREE.RepeatWrapping;
+    roadData.roughnessMap.wrapT = THREE.RepeatWrapping;
+    roadData.roughnessMap.repeat.set(1, 20);
+  }
 
   const roadMaterial = new THREE.MeshStandardMaterial({
     color: "#f6f1e8",
     map: roadData.map,
     bumpMap: roadData.bumpMap,
-    bumpScale: 0.08,
+    roughnessMap: roadData.roughnessMap,
+    bumpScale: 0.15,
     roughness: 0.85,
-    metalness: 0.05,
+    metalness: 0.1,
   });
 
-  const road = new THREE.Mesh(new THREE.PlaneGeometry(9.4, 600), roadMaterial);
+  const road = new THREE.Mesh(new THREE.PlaneGeometry(9.4, 600, 16, 64), roadMaterial);
   road.rotation.x = -Math.PI / 2;
   road.position.set(0, 0.03, 150);
   road.receiveShadow = true;
@@ -256,18 +271,25 @@ function setupThree() {
     shoulderData.bumpMap.wrapT = THREE.RepeatWrapping;
     shoulderData.bumpMap.repeat.set(1, 20);
   }
+  
+  if (shoulderData.roughnessMap) {
+    shoulderData.roughnessMap.wrapS = THREE.RepeatWrapping;
+    shoulderData.roughnessMap.wrapT = THREE.RepeatWrapping;
+    shoulderData.roughnessMap.repeat.set(1, 20);
+  }
 
   const shoulderMaterial = new THREE.MeshStandardMaterial({
-    color: "#dfaa74",
+    color: "#6f553a",
     map: shoulderData.map,
     bumpMap: shoulderData.bumpMap,
-    bumpScale: 0.12,
+    roughnessMap: shoulderData.roughnessMap,
+    bumpScale: 0.25,
     roughness: 0.95,
     metalness: 0.02,
   });
 
   world.roadShoulders = [-5.55, 5.55].map((x) => {
-    const shoulder = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 600), shoulderMaterial);
+    const shoulder = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 600, 4, 64), shoulderMaterial);
     shoulder.rotation.x = -Math.PI / 2;
     shoulder.position.set(x, 0.02, 150);
     shoulder.receiveShadow = true;
@@ -279,10 +301,13 @@ function setupThree() {
   world.roadSurface = road;
   world.roadTexture = roadData.map;
   world.roadBumpTexture = roadData.bumpMap;
+  world.roadRoughnessTexture = roadData.roughnessMap;
   world.terrainTexture = terrainData.map;
   world.terrainBumpTexture = terrainData.bumpMap;
+  world.terrainRoughnessTexture = terrainData.roughnessMap;
   world.shoulderTexture = shoulderData.map;
   world.shoulderBumpTexture = shoulderData.bumpMap;
+  world.shoulderRoughnessTexture = shoulderData.roughnessMap;
   world.materials.ground = sandMaterial;
   world.materials.road = roadMaterial;
   world.materials.shoulder = shoulderMaterial;
@@ -358,7 +383,8 @@ function setupThree() {
     { name: "tree", path: "/models/tree.fbx", scale: 0.012, rotationY: 0, color: "#2d3826", metalness: 0.0 },
     { name: "building", path: "/models/house.fbx", scale: 0.012, rotationY: 0, color: "#7a6e60", metalness: 0.1 },
     { name: "wreck", path: "/models/wreck.fbx", scale: 0.007, rotationY: Math.PI * 0.5, color: "#2c2a30", metalness: 0.7 },
-    { name: "scrap", path: "/models/barrel.fbx", scale: 0.02, rotationY: 0, color: "#4a2d26", metalness: 0.4 }
+    { name: "scrap", path: "/models/barrel.fbx", scale: 0.02, rotationY: 0, color: "#4a2d26", metalness: 0.4 },
+    { name: "crate", path: "/models/crate.fbx", scale: 0.012, rotationY: 0, color: "#5d4037", metalness: 0.0 }
   ];
   
   fbxList.forEach(item => {
@@ -469,12 +495,13 @@ function createCar() {
     roughness: 0.2,
     clearcoat: 1.0,
     clearcoatRoughness: 0.1,
+    envMap: world.envTexture,
     envMapIntensity: 2.0,
   });
   
-  const darkMetal = new THREE.MeshStandardMaterial({color: "#111", roughness: 0.8, metalness: 0.7});
-  const carbonFiber = new THREE.MeshStandardMaterial({color: "#1a1a1c", roughness: 0.5, metalness: 0.6, envMapIntensity: 1.5});
-  const glassMaterial = new THREE.MeshPhysicalMaterial({color: "#010101", metalness: 0.2, roughness: 0.0, transmission: 0.98, ior: 1.6, transparent: true});
+  const darkMetal = new THREE.MeshStandardMaterial({color: "#111", roughness: 0.8, metalness: 0.7, envMap: world.envTexture, envMapIntensity: 1.0});
+  const carbonFiber = new THREE.MeshStandardMaterial({color: "#1a1a1c", roughness: 0.5, metalness: 0.6, envMap: world.envTexture, envMapIntensity: 1.5});
+  const glassMaterial = new THREE.MeshPhysicalMaterial({color: "#010101", metalness: 0.2, roughness: 0.0, transmission: 0.98, ior: 1.6, transparent: true, envMap: world.envTexture, envMapIntensity: 2.0});
   const engineGlow = new THREE.MeshStandardMaterial({color: "#ffaa00", emissive: "#ff4400", emissiveIntensity: 4.0});
   const tailLampMaterial = new THREE.MeshStandardMaterial({color: "#aa0000", emissive: "#ff0500", emissiveIntensity: 5.0});
   const drlMaterial = new THREE.MeshStandardMaterial({color: "#ffffff", emissive: "#ddffff", emissiveIntensity: 6.0});
@@ -883,11 +910,12 @@ function resetRun(biome = "desert") {
 }
 
 function clearPools() {
-  for (const mesh of [...world.obstaclePool, ...(world.propPool||[]), ...world.pickupPool, ...world.projectilePool, ...world.particles]) {
+  for (const mesh of [...world.obstaclePool, ...world.debrisPool, ...(world.propPool||[]), ...world.pickupPool, ...world.projectilePool, ...world.particles]) {
     if (mesh.userData?.marker) world.scene.remove(mesh.userData.marker);
     world.scene.remove(mesh);
   }
   world.obstaclePool = [];
+  world.debrisPool = [];
   (world.propPool||[]).forEach(p => world.scene.remove(p));
   world.propPool = [];
   world.pickupPool = [];
@@ -1135,8 +1163,8 @@ function updateEnvironment(dt) {
   }
 
   atmosphere.style.background = `
-    linear-gradient(180deg, rgba(0, 0, 0, ${0.06 + env.weatherStrength * 0.1}), rgba(7, 4, 3, ${0.2 + (1 - daylight) * 0.16})),
-    radial-gradient(circle at 50% 10%, rgba(255, 216, 175, ${0.06 + daylight * 0.12}), transparent 32%)
+    linear-gradient(180deg, rgba(0, 0, 0, ${0.1 + env.weatherStrength * 0.15}), rgba(7, 4, 3, ${0.25 + (1 - daylight) * 0.2})),
+    radial-gradient(circle at 50% 10%, rgba(180, 110, 60, ${0.04 + daylight * 0.08}), transparent 32%)
   `;
 
   if (world.run) {
@@ -1418,14 +1446,17 @@ function moveWorld(dt, speedFactor) {
   if (world.roadTexture) {
     world.roadTexture.offset.y -= amount / 24;
     if (world.roadBumpTexture) world.roadBumpTexture.offset.y -= amount / 24;
+    if (world.roadRoughnessTexture) world.roadRoughnessTexture.offset.y -= amount / 24;
   }
   if (world.terrainTexture) {
     world.terrainTexture.offset.y -= amount / 120;
     if (world.terrainBumpTexture) world.terrainBumpTexture.offset.y -= amount / 120;
+    if (world.terrainRoughnessTexture) world.terrainRoughnessTexture.offset.y -= amount / 120;
   }
   if (world.shoulderTexture) {
     world.shoulderTexture.offset.y -= amount / 24;
     if (world.shoulderBumpTexture) world.shoulderBumpTexture.offset.y -= amount / 24;
+    if (world.shoulderRoughnessTexture) world.shoulderRoughnessTexture.offset.y -= amount / 24;
   }
 
   for (const band of world.dustBands) {
@@ -1492,7 +1523,7 @@ function recycleEnvironmentObject(obj, initial, minX, maxX, minZ, maxZ) {
 }
 
 function createTerrainTexture() {
-  const size = 512;
+  const size = 1024;
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = size;
@@ -1503,42 +1534,63 @@ function createTerrainTexture() {
   bumpCanvas.height = size;
   const bCtx = bumpCanvas.getContext("2d");
 
-  // Fondo base color y ruido
-  ctx.fillStyle = "#c98d52";
+  const roughCanvas = document.createElement("canvas");
+  roughCanvas.width = size;
+  roughCanvas.height = size;
+  const rCtx = roughCanvas.getContext("2d");
+
+  // Base colors
+  ctx.fillStyle = "#c2834b";
   ctx.fillRect(0, 0, size, size);
   bCtx.fillStyle = "#808080";
   bCtx.fillRect(0, 0, size, size);
+  rCtx.fillStyle = "#e6e6e6"; // Mostly rough
+  rCtx.fillRect(0, 0, size, size);
 
-  for (let i = 0; i < 15000; i += 1) {
-    const a = 0.03 + Math.random() * 0.15;
-    ctx.fillStyle = `rgba(${140 + Math.random() * 80}, ${90 + Math.random() * 60}, ${40 + Math.random() * 40}, ${a})`;
-    const x = Math.random() * size;
-    const y = Math.random() * size;
-    const w = 1 + Math.random() * 4;
-    const h = 1 + Math.random() * 4;
-    ctx.fillRect(x, y, w, h);
-    
-    const bv = Math.floor(60 + Math.random() * 135);
-    bCtx.fillStyle = `rgb(${bv}, ${bv}, ${bv})`;
-    bCtx.fillRect(x, y, w, h);
+  // Fractal noise for terrain dirt/sand
+  for (let layer = 0; layer < 4; layer++) {
+    const scale = Math.pow(2, layer);
+    const count = 15000 * scale;
+    for (let i = 0; i < count; i++) {
+      const x = Math.random() * size;
+      const y = Math.random() * size;
+      const w = (2 + Math.random() * 5) / scale;
+      const h = (2 + Math.random() * 5) / scale;
+      
+      const val = Math.random();
+      const a = 0.05 + val * 0.1;
+      
+      ctx.fillStyle = `rgba(${120 + val * 100}, ${70 + val * 80}, ${30 + val * 60}, ${a})`;
+      ctx.fillRect(x, y, w, h);
+      
+      const bv = Math.floor(80 + val * 100);
+      bCtx.fillStyle = `rgba(${bv}, ${bv}, ${bv}, ${0.3 + a})`;
+      bCtx.fillRect(x, y, w, h);
+
+      // Random pebbles/rocks make spots less rough (shinier) or more rough
+      if (val > 0.9) {
+        rCtx.fillStyle = `rgba(150, 150, 150, 0.8)`;
+        rCtx.fillRect(x, y, w, h);
+      }
+    }
   }
 
-  // Ondas de dunas
-  for (let w = 0; w < 6; w += 1) {
+  // Dune waves (wind ripples)
+  for (let w = 0; w < 15; w += 1) {
     const sx = Math.random() * size;
     const sy = Math.random() * size;
-    ctx.strokeStyle = `rgba(50, 36, 22, ${0.1 + Math.random() * 0.1})`;
-    ctx.lineWidth = 1 + Math.random() * 1.5;
-    bCtx.strokeStyle = `rgba(40, 40, 40, ${0.4 + Math.random() * 0.3})`;
-    bCtx.lineWidth = 1.5 + Math.random() * 2;
+    ctx.strokeStyle = `rgba(60, 40, 20, ${0.1 + Math.random() * 0.15})`;
+    ctx.lineWidth = 2 + Math.random() * 3;
+    bCtx.strokeStyle = `rgba(30, 30, 30, ${0.5 + Math.random() * 0.3})`;
+    bCtx.lineWidth = 3 + Math.random() * 4;
     
     ctx.beginPath();
     bCtx.beginPath();
-    for (let s = 0; s < 24; s += 1) {
-      const ang = s * 0.25 + w;
-      const r = 8 + s * 2.5;
+    for (let s = 0; s < 30; s += 1) {
+      const ang = s * 0.2 + w;
+      const r = 10 + s * 4;
       const px = sx + Math.cos(ang) * r;
-      const py = sy + Math.sin(ang * 0.4) * r * 0.4;
+      const py = sy + Math.sin(ang * 0.5) * r * 0.5;
       if (s === 0) {
         ctx.moveTo(px, py);
         bCtx.moveTo(px, py);
@@ -1555,55 +1607,13 @@ function createTerrainTexture() {
   map.colorSpace = THREE.SRGBColorSpace;
   const bumpMap = new THREE.CanvasTexture(bumpCanvas);
   bumpMap.colorSpace = THREE.NoColorSpace;
-  return { map, bumpMap };
+  const roughnessMap = new THREE.CanvasTexture(roughCanvas);
+  roughnessMap.colorSpace = THREE.NoColorSpace;
+  return { map, bumpMap, roughnessMap };
 }
 
 function createShoulderTexture() {
   const sizeX = 256;
-  const sizeY = 512;
-  const canvas = document.createElement("canvas");
-  canvas.width = sizeX;
-  canvas.height = sizeY;
-  const ctx = canvas.getContext("2d");
-
-  const bumpCanvas = document.createElement("canvas");
-  bumpCanvas.width = sizeX;
-  bumpCanvas.height = sizeY;
-  const bCtx = bumpCanvas.getContext("2d");
-
-  const edge = ctx.createLinearGradient(0, 0, sizeX, 0);
-  edge.addColorStop(0, "#a9784a");
-  edge.addColorStop(0.22, "#deb08a");
-  edge.addColorStop(0.5, "#e8c9a4");
-  edge.addColorStop(0.78, "#deb08a");
-  edge.addColorStop(1, "#a9784a");
-  ctx.fillStyle = edge;
-  ctx.fillRect(0, 0, sizeX, sizeY);
-
-  bCtx.fillStyle = "#808080";
-  bCtx.fillRect(0, 0, sizeX, sizeY);
-
-  for (let i = 0; i < 800; i += 1) {
-    ctx.fillStyle = `rgba(255, 255, 255, ${Math.random() * 0.08})`;
-    const x = Math.random() * sizeX;
-    const y = Math.random() * sizeY;
-    const w = 2 + Math.random() * 5;
-    const h = 4 + Math.random() * 18;
-    ctx.fillRect(x, y, w, h);
-    
-    bCtx.fillStyle = `rgba(200, 200, 200, ${0.4 + Math.random() * 0.4})`;
-    bCtx.fillRect(x, y, w, h);
-  }
-
-  const map = new THREE.CanvasTexture(canvas);
-  map.colorSpace = THREE.SRGBColorSpace;
-  const bumpMap = new THREE.CanvasTexture(bumpCanvas);
-  bumpMap.colorSpace = THREE.NoColorSpace;
-  return { map, bumpMap };
-}
-
-function createRoadTexture() {
-  const sizeX = 512;
   const sizeY = 1024;
   const canvas = document.createElement("canvas");
   canvas.width = sizeX;
@@ -1615,103 +1625,256 @@ function createRoadTexture() {
   bumpCanvas.height = sizeY;
   const bCtx = bumpCanvas.getContext("2d");
 
-  ctx.fillStyle = "#3a312d";
+  const roughCanvas = document.createElement("canvas");
+  roughCanvas.width = sizeX;
+  roughCanvas.height = sizeY;
+  const rCtx = roughCanvas.getContext("2d");
+
+  // Transition from road edge to dirt
+  const edge = ctx.createLinearGradient(0, 0, sizeX, 0);
+  edge.addColorStop(0, "#8a6344");
+  edge.addColorStop(0.3, "#bd926f");
+  edge.addColorStop(0.7, "#d1a784");
+  edge.addColorStop(1, "#9e6f4a");
+  ctx.fillStyle = edge;
   ctx.fillRect(0, 0, sizeX, sizeY);
+
   bCtx.fillStyle = "#808080";
   bCtx.fillRect(0, 0, sizeX, sizeY);
+  
+  rCtx.fillStyle = "#e0e0e0";
+  rCtx.fillRect(0, 0, sizeX, sizeY);
 
-  const edgeGradient = ctx.createLinearGradient(0, 0, sizeX, 0);
-  edgeGradient.addColorStop(0, "#6d5847");
-  edgeGradient.addColorStop(0.14, "#3a312d");
-  edgeGradient.addColorStop(0.86, "#3a312d");
-  edgeGradient.addColorStop(1, "#6d5847");
-  ctx.fillStyle = edgeGradient;
-  ctx.fillRect(0, 0, sizeX, sizeY);
-
-  // Linea central
-  ctx.strokeStyle = "#cab89f";
-  ctx.lineWidth = 14;
-  ctx.setLineDash([72, 56]);
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  ctx.moveTo(sizeX / 2, -40);
-  ctx.lineTo(sizeX / 2, sizeY + 40);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  // Borde
-  ctx.strokeStyle = "rgba(255, 223, 181, 0.48)";
-  ctx.lineWidth = 8;
-  ctx.beginPath();
-  ctx.moveTo(24, 0);
-  ctx.lineTo(24, sizeY);
-  ctx.moveTo(sizeX - 24, 0);
-  ctx.lineTo(sizeX - 24, sizeY);
-  ctx.stroke();
-
-  // Ruido y baches
-  for (let i = 0; i < 800; i += 1) {
-    const isDark = Math.random() > 0.5;
-    ctx.fillStyle = isDark ? `rgba(0, 0, 0, ${Math.random() * 0.15})` : `rgba(255, 255, 255, ${Math.random() * 0.05})`;
+  // Gravel, dirt, small rocks
+  for (let i = 0; i < 3000; i += 1) {
+    const isRock = Math.random() > 0.8;
+    ctx.fillStyle = isRock ? `rgba(60, 50, 40, ${Math.random() * 0.4})` : `rgba(255, 230, 200, ${Math.random() * 0.15})`;
     const x = Math.random() * sizeX;
     const y = Math.random() * sizeY;
-    const w = 1 + Math.random() * 8;
-    const h = 2 + Math.random() * 16;
+    const w = 2 + Math.random() * 6;
+    const h = 3 + Math.random() * 12;
     ctx.fillRect(x, y, w, h);
     
-    bCtx.fillStyle = isDark ? `rgba(80, 80, 80, 0.8)` : `rgba(200, 200, 200, 0.6)`;
+    bCtx.fillStyle = isRock ? `rgba(180, 180, 180, 0.9)` : `rgba(120, 120, 120, 0.5)`;
     bCtx.fillRect(x, y, w, h);
+
+    if (isRock) {
+      rCtx.fillStyle = "rgba(100, 100, 100, 0.8)";
+      rCtx.fillRect(x, y, w, h);
+    }
   }
 
-  // Grietas realistas
-  ctx.globalAlpha = 0.35;
-  ctx.strokeStyle = "#120f0d";
-  bCtx.globalAlpha = 0.8;
-  bCtx.strokeStyle = "#303030";
-  
-  for (let c = 0; c < 15; c += 1) {
-    let x = Math.random() * sizeX;
-    let y = -20 + Math.random() * sizeY;
-    ctx.lineWidth = 0.8 + Math.random() * 1.5;
-    bCtx.lineWidth = ctx.lineWidth;
-    
-    ctx.beginPath();
-    bCtx.beginPath();
-    ctx.moveTo(x, y);
-    bCtx.moveTo(x, y);
-    
-    for (let s = 0; s < 12; s += 1) {
-      x += (Math.random() - 0.5) * 25 + 5;
-      y += (Math.random() - 0.5) * 15;
-      ctx.lineTo(x, y);
-      bCtx.lineTo(x, y);
-      // Ramificaciones
-      if (Math.random() > 0.6) {
-        let bx = x;
-        let by = y;
-        ctx.moveTo(bx, by);
-        bCtx.moveTo(bx, by);
-        for(let bs = 0; bs < 4; bs++) {
-          bx += (Math.random() - 0.5) * 15;
-          by += (Math.random() - 0.5) * 15;
-          ctx.lineTo(bx, by);
-          bCtx.lineTo(bx, by);
-        }
-        ctx.moveTo(x, y);
-        bCtx.moveTo(x, y);
-      }
-    }
-    ctx.stroke();
-    bCtx.stroke();
+  // Faint tyre tracks leaving the road
+  ctx.fillStyle = "rgba(20, 15, 10, 0.15)";
+  bCtx.fillStyle = "rgba(40, 40, 40, 0.2)";
+  rCtx.fillStyle = "rgba(80, 80, 80, 0.3)";
+  for (let i = 0; i < 4; i++) {
+    const trackX = 40 + Math.random() * 100;
+    ctx.fillRect(trackX, 0, 12, sizeY);
+    bCtx.fillRect(trackX, 0, 12, sizeY);
+    rCtx.fillRect(trackX, 0, 12, sizeY);
   }
-  ctx.globalAlpha = 1;
-  bCtx.globalAlpha = 1;
 
   const map = new THREE.CanvasTexture(canvas);
   map.colorSpace = THREE.SRGBColorSpace;
   const bumpMap = new THREE.CanvasTexture(bumpCanvas);
   bumpMap.colorSpace = THREE.NoColorSpace;
-  return { map, bumpMap };
+  const roughnessMap = new THREE.CanvasTexture(roughCanvas);
+  roughnessMap.colorSpace = THREE.NoColorSpace;
+  return { map, bumpMap, roughnessMap };
+}
+
+function createRoadTexture() {
+  const sizeX = 1024;
+  const sizeY = 2048;
+  const canvas = document.createElement("canvas");
+  canvas.width = sizeX;
+  canvas.height = sizeY;
+  const ctx = canvas.getContext("2d");
+
+  const bumpCanvas = document.createElement("canvas");
+  bumpCanvas.width = sizeX;
+  bumpCanvas.height = sizeY;
+  const bCtx = bumpCanvas.getContext("2d");
+
+  const roughCanvas = document.createElement("canvas");
+  roughCanvas.width = sizeX;
+  roughCanvas.height = sizeY;
+  const rCtx = roughCanvas.getContext("2d");
+
+  // Base asphalt
+  ctx.fillStyle = "#2c2522";
+  ctx.fillRect(0, 0, sizeX, sizeY);
+  bCtx.fillStyle = "#808080";
+  bCtx.fillRect(0, 0, sizeX, sizeY);
+  rCtx.fillStyle = "#b0b0b0"; // Standard asphalt roughness
+  rCtx.fillRect(0, 0, sizeX, sizeY);
+
+  // Worn out edges
+  const edgeGradient = ctx.createLinearGradient(0, 0, sizeX, 0);
+  edgeGradient.addColorStop(0, "#4a3e35");
+  edgeGradient.addColorStop(0.12, "#2c2522");
+  edgeGradient.addColorStop(0.88, "#2c2522");
+  edgeGradient.addColorStop(1, "#4a3e35");
+  ctx.fillStyle = edgeGradient;
+  ctx.fillRect(0, 0, sizeX, sizeY);
+
+  // Asphalt macro-texture and noise
+  for (let i = 0; i < 8000; i += 1) {
+    const isDark = Math.random() > 0.5;
+    ctx.fillStyle = isDark ? `rgba(15, 10, 10, ${Math.random() * 0.2})` : `rgba(200, 200, 200, ${Math.random() * 0.08})`;
+    const x = Math.random() * sizeX;
+    const y = Math.random() * sizeY;
+    const w = 2 + Math.random() * 12;
+    const h = 4 + Math.random() * 20;
+    ctx.fillRect(x, y, w, h);
+    
+    bCtx.fillStyle = isDark ? `rgba(60, 60, 60, 0.7)` : `rgba(160, 160, 160, 0.5)`;
+    bCtx.fillRect(x, y, w, h);
+
+    if (isDark) {
+      rCtx.fillStyle = `rgba(140, 140, 140, 0.5)`;
+      rCtx.fillRect(x, y, w, h);
+    }
+  }
+
+  // Center line (worn out)
+  ctx.strokeStyle = "rgba(200, 180, 150, 0.85)";
+  ctx.lineWidth = 24;
+  ctx.setLineDash([120, 100]);
+  ctx.lineCap = "butt";
+  ctx.beginPath();
+  ctx.moveTo(sizeX / 2, -50);
+  ctx.lineTo(sizeX / 2, sizeY + 50);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  
+  // Center line bump and roughness
+  bCtx.strokeStyle = "rgba(180, 180, 180, 0.8)";
+  bCtx.lineWidth = 24;
+  bCtx.setLineDash([120, 100]);
+  bCtx.beginPath();
+  bCtx.moveTo(sizeX / 2, -50);
+  bCtx.lineTo(sizeX / 2, sizeY + 50);
+  bCtx.stroke();
+  bCtx.setLineDash([]);
+
+  rCtx.strokeStyle = "rgba(100, 100, 100, 0.9)"; // Paint is smoother
+  rCtx.lineWidth = 24;
+  rCtx.setLineDash([120, 100]);
+  rCtx.beginPath();
+  rCtx.moveTo(sizeX / 2, -50);
+  rCtx.lineTo(sizeX / 2, sizeY + 50);
+  rCtx.stroke();
+  rCtx.setLineDash([]);
+
+  // Side lines
+  ctx.strokeStyle = "rgba(255, 223, 181, 0.55)";
+  ctx.lineWidth = 14;
+  ctx.beginPath();
+  ctx.moveTo(40, 0);
+  ctx.lineTo(40, sizeY);
+  ctx.moveTo(sizeX - 40, 0);
+  ctx.lineTo(sizeX - 40, sizeY);
+  ctx.stroke();
+
+  // Skid marks (dark, low bump, smooth roughness)
+  ctx.fillStyle = "rgba(10, 8, 8, 0.6)";
+  rCtx.fillStyle = "rgba(60, 60, 60, 0.8)"; // Rubbery/smooth
+  for (let k = 0; k < 6; k++) {
+    const startX = 150 + Math.random() * (sizeX - 300);
+    const width = 16 + Math.random() * 8;
+    ctx.fillRect(startX, Math.random() * sizeY, width, 100 + Math.random() * 400);
+    rCtx.fillRect(startX, Math.random() * sizeY, width, 100 + Math.random() * 400);
+  }
+
+  // Oil stains (dark, very smooth/shiny)
+  for (let o = 0; o < 15; o++) {
+    const ox = Math.random() * sizeX;
+    const oy = Math.random() * sizeY;
+    const or = 20 + Math.random() * 40;
+    
+    const grad = ctx.createRadialGradient(ox, oy, 0, ox, oy, or);
+    grad.addColorStop(0, "rgba(5, 5, 5, 0.85)");
+    grad.addColorStop(1, "rgba(5, 5, 5, 0)");
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(ox, oy, or, 0, Math.PI * 2);
+    ctx.fill();
+
+    const rGrad = rCtx.createRadialGradient(ox, oy, 0, ox, oy, or);
+    rGrad.addColorStop(0, "rgba(20, 20, 20, 0.9)"); // Very shiny
+    rGrad.addColorStop(1, "rgba(176, 176, 176, 0)");
+    rCtx.fillStyle = rGrad;
+    rCtx.beginPath();
+    rCtx.arc(ox, oy, or, 0, Math.PI * 2);
+    rCtx.fill();
+  }
+
+  // Realistic cracks
+  ctx.globalAlpha = 0.6;
+  ctx.strokeStyle = "#0a0807";
+  bCtx.globalAlpha = 0.9;
+  bCtx.strokeStyle = "#202020";
+  rCtx.globalAlpha = 0.9;
+  rCtx.strokeStyle = "#ffffff"; // Cracks are rough
+  
+  for (let c = 0; c < 35; c += 1) {
+    let x = Math.random() * sizeX;
+    let y = -50 + Math.random() * sizeY;
+    const lw = 1 + Math.random() * 2.5;
+    ctx.lineWidth = lw;
+    bCtx.lineWidth = lw;
+    rCtx.lineWidth = lw;
+    
+    ctx.beginPath();
+    bCtx.beginPath();
+    rCtx.beginPath();
+    ctx.moveTo(x, y);
+    bCtx.moveTo(x, y);
+    rCtx.moveTo(x, y);
+    
+    for (let s = 0; s < 18; s += 1) {
+      x += (Math.random() - 0.5) * 40 + 5;
+      y += (Math.random() - 0.5) * 25;
+      ctx.lineTo(x, y);
+      bCtx.lineTo(x, y);
+      rCtx.lineTo(x, y);
+      
+      // Branching
+      if (Math.random() > 0.75) {
+        let bx = x;
+        let by = y;
+        ctx.moveTo(bx, by);
+        bCtx.moveTo(bx, by);
+        rCtx.moveTo(bx, by);
+        for(let bs = 0; bs < 6; bs++) {
+          bx += (Math.random() - 0.5) * 20;
+          by += (Math.random() - 0.5) * 20;
+          ctx.lineTo(bx, by);
+          bCtx.lineTo(bx, by);
+          rCtx.lineTo(bx, by);
+        }
+        ctx.moveTo(x, y);
+        bCtx.moveTo(x, y);
+        rCtx.moveTo(x, y);
+      }
+    }
+    ctx.stroke();
+    bCtx.stroke();
+    rCtx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  bCtx.globalAlpha = 1;
+  rCtx.globalAlpha = 1;
+
+  const map = new THREE.CanvasTexture(canvas);
+  map.colorSpace = THREE.SRGBColorSpace;
+  const bumpMap = new THREE.CanvasTexture(bumpCanvas);
+  bumpMap.colorSpace = THREE.NoColorSpace;
+  const roughnessMap = new THREE.CanvasTexture(roughCanvas);
+  roughnessMap.colorSpace = THREE.NoColorSpace;
+  return { map, bumpMap, roughnessMap };
 }
 
 
@@ -1720,16 +1883,19 @@ function spawnProp() {
   const isLeft = Math.random() > 0.5;
   const randType = Math.random();
   let kind = "rock";
-  if (randType > 0.9) kind = "billboard";
-  else if (randType > 0.6) kind = "building";
+  if (randType > 0.95) kind = "castle";
+  else if (randType > 0.85) kind = "billboard";
+  else if (randType > 0.55) kind = "building";
   else if (randType > 0.3) kind = "tree";
 
   const prop = createPropMesh(kind);
   const zDist = 120 + Math.random() * 80;
-  const xDist = (15 + Math.random() * 45) * (isLeft ? -1 : 1);
+  const xDist = (kind === "castle" ? 25 + Math.random() * 20 : 15 + Math.random() * 45) * (isLeft ? -1 : 1);
   prop.position.set(xDist, 0, zDist);
   
-  if (kind === "building") {
+  if (kind === "castle") {
+    // Already scaled inside createPropMesh or here
+  } else if (kind === "building") {
     prop.scale.set(1 + Math.random()*2, 1 + Math.random()*3, 1 + Math.random()*2);
   } else if (kind === "tree") {
     prop.scale.set(0.8 + Math.random(), 0.8 + Math.random()*1.5, 0.8 + Math.random());
@@ -1834,6 +2000,36 @@ function createPropMesh(kind) {
     board.castShadow = true;
     group.add(board);
 
+  } else if (kind === "castle") {
+    const castleMat = new THREE.MeshStandardMaterial({ color: "#666", roughness: 0.9, metalness: 0.1 });
+    const towerGeo = new THREE.CylinderGeometry(2, 2.2, 10, 8);
+    
+    // Four corner towers
+    for (let i = 0; i < 4; i++) {
+      const t = new THREE.Mesh(towerGeo, castleMat);
+      t.position.set(i < 2 ? 6 : -6, 5, i % 2 === 0 ? 6 : -6);
+      t.castShadow = t.receiveShadow = true;
+      group.add(t);
+      
+      // Battlements
+      const battGeo = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+      for (let j = 0; j < 8; j++) {
+        const b = new THREE.Mesh(battGeo, castleMat);
+        const ang = (j / 8) * Math.PI * 2;
+        b.position.set(t.position.x + Math.cos(ang) * 2, 10.4, t.position.z + Math.sin(ang) * 2);
+        group.add(b);
+      }
+    }
+    
+    // Walls
+    const wallGeo = new THREE.BoxGeometry(10, 7, 1);
+    const w1 = new THREE.Mesh(wallGeo, castleMat); w1.position.set(0, 3.5, 6); group.add(w1);
+    const w2 = new THREE.Mesh(wallGeo, castleMat); w2.position.set(0, 3.5, -6); group.add(w2);
+    const w3 = new THREE.Mesh(wallGeo, castleMat); w3.position.set(6, 3.5, 0); w3.rotation.y = Math.PI/2; group.add(w3);
+    const w4 = new THREE.Mesh(wallGeo, castleMat); w4.position.set(-6, 3.5, 0); w4.rotation.y = Math.PI/2; group.add(w4);
+    
+    group.scale.set(1.5, 1.5, 1.5);
+    
   } else if (kind === "rock") {
     const mat = new THREE.MeshStandardMaterial({ color: "#555", roughness: 0.9, flatShading: true });
     for(let i=0; i<3; i++) {
@@ -1865,15 +2061,11 @@ function spawnObstacle() {
     obstacle.position.set(randomLane(), obstacle.userData.height, 38 + Math.random() * 18);
   }
 
-  if (obstacle.userData.isMutant) {
-      obstacle.position.x += obstacle.userData.moveSpeed * dt;
-      if (obstacle.position.x > 5 || obstacle.position.x < -5) obstacle.userData.moveSpeed *= -1;
-    }
-    if (obstacle.userData.isEnemy) {
+  if (obstacle.userData.isEnemy) {
     obstacle.userData.laneTarget = obstacle.position.x;
   }
   applyObstacleOrientation3D(obstacle, kind);
-  obstacle.userData.marker = createLaneMarker(obstacle.position.x, obstacle.position.z, kind);
+  obstacle.userData.marker = createFootprintMarker(obstacle, kind);
   world.scene.add(obstacle);
   world.scene.add(obstacle.userData.marker);
   world.obstaclePool.push(obstacle);
@@ -1888,99 +2080,6 @@ function applyObstacleOrientation3D(obstacle, kind) {
   if (kind === "barrier") {
     obstacle.rotation.set(0, (Math.random() - 0.5) * 0.08, 0);
     return;
-  }
-  
-  if (kind === "mutant") {
-    const group = new THREE.Group();
-    const skinMat = new THREE.MeshStandardMaterial({color: "#4a7c59", roughness: 0.8});
-    
-    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.35, 0.6, 4, 8), skinMat);
-    body.position.y = 0.7;
-    body.castShadow = true;
-    group.add(body);
-    
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), skinMat);
-    head.position.y = 1.45;
-    head.castShadow = true;
-    group.add(head);
-    
-    const eyeMat = new THREE.MeshBasicMaterial({color: "#ff0000"});
-    const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.05, 0.1), eyeMat);
-    eyeL.position.set(0.12, 1.5, 0.25);
-    group.add(eyeL);
-    const eyeR = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.05, 0.1), eyeMat);
-    eyeR.position.set(-0.12, 1.5, 0.25);
-    group.add(eyeR);
-
-    const armGeo = new THREE.CapsuleGeometry(0.12, 0.5, 4, 8);
-    const lArm = new THREE.Mesh(armGeo, skinMat);
-    lArm.position.set(0.45, 0.9, 0);
-    lArm.rotation.z = -Math.PI/6;
-    lArm.rotation.x = -Math.PI/8;
-    lArm.castShadow = true;
-    group.add(lArm);
-    
-    const rArm = new THREE.Mesh(armGeo, skinMat);
-    rArm.position.set(-0.45, 0.9, 0);
-    rArm.rotation.z = Math.PI/6;
-    rArm.rotation.x = -Math.PI/8;
-    rArm.castShadow = true;
-    group.add(rArm);
-
-    group.userData = {
-      type: "obstacle",
-      isEnemy: false,
-      isMutant: true,
-      damage: 15,
-      radius: 0.45,
-      collisionYMin: 0,
-      collisionYMax: 1.7,
-      rewardCoins: 5,
-      height: 0,
-      obstacleSpin: "none",
-      moveSpeed: (Math.random() - 0.5) * 3.5
-    };
-    return group;
-  }
-  
-  if (kind === "ramp") {
-    const group = new THREE.Group();
-    
-    const rampMat = new THREE.MeshStandardMaterial({color: "#4a4a4a", roughness: 0.7, metalness: 0.4});
-    const surf = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.15, 4.5), rampMat);
-    surf.rotation.x = Math.PI / 9; // Approx 20 degrees
-    surf.position.y = 0.7;
-    surf.castShadow = true;
-    surf.receiveShadow = true;
-    group.add(surf);
-
-    const strutMat = new THREE.MeshStandardMaterial({color: "#222", roughness: 0.9});
-    const strutGeo = new THREE.CylinderGeometry(0.1, 0.1, 1.4, 4);
-    const strut1 = new THREE.Mesh(strutGeo, strutMat);
-    strut1.position.set(1.4, 0.7, -1.8);
-    group.add(strut1);
-    const strut2 = new THREE.Mesh(strutGeo, strutMat);
-    strut2.position.set(-1.4, 0.7, -1.8);
-    group.add(strut2);
-
-    const stripeMat = new THREE.MeshBasicMaterial({color: "#ffaa00"});
-    for(let i=0; i<4; i++) {
-        const stripe = new THREE.Mesh(new THREE.BoxGeometry(3.25, 0.16, 0.2), stripeMat);
-        stripe.position.set(0, surf.position.y + (i-1.5)*0.35, (i-1.5)*1.1);
-        stripe.rotation.x = Math.PI / 9;
-        group.add(stripe);
-    }
-
-    group.userData = {
-      type: "obstacle",
-      isRamp: true,
-      radius: 1.6,
-      collisionYMin: 0,
-      collisionYMax: 1.4,
-      height: 0,
-      obstacleSpin: "none"
-    };
-    return group;
   }
 
   if (kind === "raider") {
@@ -2039,16 +2138,30 @@ function spawnPickupAt(type, x, z, y = 1.2) {
   };
 
   const config = configs[type];
-  const mesh = new THREE.Mesh(
-    config.geometry,
-    new THREE.MeshStandardMaterial({
-      color: config.color,
-      emissive: config.color,
-      emissiveIntensity: 0.8,
-      roughness: 0.25,
-      metalness: 0.4,
-    }),
-  );
+  let mesh;
+  if ((type === "ammo" || type === "repair") && world.assets.models["crate"]) {
+    mesh = world.assets.models["crate"].clone();
+    // Color it appropriately
+    mesh.traverse(c => {
+      if(c.isMesh) {
+        c.material = c.material.clone();
+        c.material.color.set(config.color);
+        c.material.emissive.set(config.color);
+        c.material.emissiveIntensity = 0.4;
+      }
+    });
+  } else {
+    mesh = new THREE.Mesh(
+      config.geometry,
+      new THREE.MeshStandardMaterial({
+        color: config.color,
+        emissive: config.color,
+        emissiveIntensity: 0.8,
+        roughness: 0.25,
+        metalness: 0.4,
+      }),
+    );
+  }
   mesh.position.set(x, y, z);
   mesh.userData = {
     type,
@@ -2067,6 +2180,26 @@ function removeObstacle(obstacle) {
   world.scene.remove(obstacle);
 }
 
+function transformToDebris(obstacle) {
+  // Remove from obstacle pool but keep in scene
+  world.obstaclePool = world.obstaclePool.filter(o => o !== obstacle);
+  if (obstacle.userData.marker) {
+    world.scene.remove(obstacle.userData.marker);
+    obstacle.userData.marker = null;
+  }
+
+  // Add physics properties
+  obstacle.userData.vx = (Math.random() - 0.5) * 15;
+  obstacle.userData.vy = 8 + Math.random() * 12;
+  obstacle.userData.vz = 15 + Math.random() * 20;
+  obstacle.userData.rvx = (Math.random() - 0.5) * 8;
+  obstacle.userData.rvy = (Math.random() - 0.5) * 8;
+  obstacle.userData.rvz = (Math.random() - 0.5) * 8;
+  obstacle.userData.life = 2.0;
+
+  world.debrisPool.push(obstacle);
+}
+
 function destroyObstacle(obstacle, rewardPlayer = false) {
   const impactPoint = obstacle.position.clone();
   createBurst(impactPoint, obstacle.userData.isEnemy ? "#ff6d5e" : "#ff8b5e", obstacle.userData.isEnemy ? 18 : 12);
@@ -2081,7 +2214,7 @@ function destroyObstacle(obstacle, rewardPlayer = false) {
     }
   }
 
-  removeObstacle(obstacle);
+  transformToDebris(obstacle);
 }
 
 function spawnEnemyProjectile(obstacle) {
@@ -2115,7 +2248,6 @@ function updateEntities(dt) {
 
   world.obstaclePool = world.obstaclePool.filter((obstacle) => {
     obstacle.position.z -= speed * (obstacle.userData.isEnemy ? 0.82 : 1);
-    if (obstacle.userData.marker) obstacle.userData.marker.position.z = obstacle.position.z;
     if (obstacle.userData.isEnemy) {
       obstacle.rotation.y += dt * 1.15;
       obstacle.rotation.z += Math.sin(performance.now() * 0.002 + obstacle.position.z * 0.08) * dt * 0.12;
@@ -2132,7 +2264,6 @@ function updateEntities(dt) {
         obstacle.userData.laneTarget = randomLane();
       }
       obstacle.position.x += (obstacle.userData.laneTarget - obstacle.position.x) * dt * 2.1;
-      if (obstacle.userData.marker) obstacle.userData.marker.position.x = obstacle.position.x;
 
       const sameLane = Math.abs(obstacle.position.x - run.x) < 1.2;
       const inRange = obstacle.position.z > 10 && obstacle.position.z < 27;
@@ -2140,6 +2271,13 @@ function updateEntities(dt) {
         spawnEnemyProjectile(obstacle);
         obstacle.userData.shotCooldown = 1.25 + Math.random() * 1.4;
       }
+    }
+
+    if (obstacle.userData.marker) {
+      const m = obstacle.userData.marker;
+      m.position.x = obstacle.position.x;
+      m.position.z = obstacle.position.z;
+      m.rotation.y = obstacle.rotation.y;
     }
 
     if (obstacle.position.z < -12) {
@@ -2154,10 +2292,30 @@ function updateEntities(dt) {
         createBurst(obstacle.position, "#ff7b54", 10);
         beep(80, 0.09, "sawtooth");
       }
-      removeObstacle(obstacle);
+      transformToDebris(obstacle);
       return false;
     }
 
+    return true;
+  });
+
+  // Physics Debris
+  world.debrisPool = world.debrisPool.filter((debris) => {
+    debris.position.x += debris.userData.vx * dt;
+    debris.position.y += debris.userData.vy * dt;
+    debris.position.z += debris.userData.vz * dt - speed;
+    debris.userData.vy -= 30 * dt; // Gravity
+    
+    debris.rotation.x += debris.userData.rvx * dt;
+    debris.rotation.y += debris.userData.rvy * dt;
+    debris.rotation.z += debris.userData.rvz * dt;
+    
+    debris.userData.life -= dt;
+    
+    if (debris.position.y < -5 || debris.userData.life <= 0) {
+      world.scene.remove(debris);
+      return false;
+    }
     return true;
   });
 
@@ -2254,6 +2412,39 @@ function collidesWithCar(x, z, radius, y = 1.1, verticalRadius = 1.8) {
   return dx < 1.25 + radius && dz < 2.2 + radius && dy < verticalRadius;
 }
 
+/** Distancia al cuadrado del punto (px,pz) al borde exterior del AABB centrado en (cx,cz) con medias hx,hz. */
+function pointToObstacleFootprintDistSq(px, pz, cx, cz, halfX, halfZ) {
+  const dx = Math.max(0, Math.abs(px - cx) - halfX);
+  const dz = Math.max(0, Math.abs(pz - cz) - halfZ);
+  return dx * dx + dz * dz;
+}
+
+/** Pulso incendiario: punto de origen frente al coche vs huella del obstáculo (rect o círculo). */
+function firePulseTouchesObstacle(obstacle, run, fireReach, originZ = 1.5) {
+  const px = run.x;
+  const pz = originZ;
+  const ox = obstacle.position.x;
+  const oz = obstacle.position.z;
+  if (obstacle.userData.collisionFootprint === "circle") {
+    const r =
+      obstacle.userData.collisionRadius ??
+      Math.max(obstacle.userData.collisionHalfX ?? 1, obstacle.userData.collisionHalfZ ?? 1);
+    return Math.hypot(ox - px, oz - pz) <= fireReach + r;
+  }
+  const hx = obstacle.userData.collisionHalfX ?? obstacle.userData.radius ?? 1;
+  const hz = obstacle.userData.collisionHalfZ ?? obstacle.userData.radius ?? 1;
+  return pointToObstacleFootprintDistSq(px, pz, ox, oz, hx, hz) <= fireReach * fireReach;
+}
+
+/** Coche como AABB en XZ centrado en (run.x, carZ). */
+function circleIntersectsCarAabb(cx, cz, radius, run, carZ = 1.2, carHalfX = 0.85, carHalfZ = 2.2) {
+  const nx = Math.max(run.x - carHalfX, Math.min(cx, run.x + carHalfX));
+  const nz = Math.max(carZ - carHalfZ, Math.min(cz, carZ + carHalfZ));
+  const dx = cx - nx;
+  const dz = cz - nz;
+  return dx * dx + dz * dz <= radius * radius;
+}
+
 /**
  * Colisión obstáculo–coche en 3D: límites Y son offsets respecto a obstacle.position.y
  * (ancla del grupo/malla en el suelo o centro coherente con la geometría).
@@ -2263,11 +2454,20 @@ function obstacleHitsCar(obstacle) {
   if (!run) return false;
   const x = obstacle.position.x;
   const z = obstacle.position.z;
-  const radius = obstacle.userData.radius;
+  const halfX = obstacle.userData.collisionHalfX ?? obstacle.userData.radius ?? 1;
+  const halfZ = obstacle.userData.collisionHalfZ ?? obstacle.userData.radius ?? 1;
+  const carZ = 1.2;
   const dx = Math.abs(x - run.x);
-  const dz = Math.abs(z - 1.2);
-  // Improved collision: tighter X bounding to match actual car width (1.6 / 2 = 0.8)
-  if (dx >= 0.85 + radius || dz >= 2.2 + radius) return false;
+  const dz = Math.abs(z - carZ);
+  let xzOverlap;
+  if (obstacle.userData.collisionFootprint === "circle") {
+    const rObs = obstacle.userData.collisionRadius ?? Math.max(halfX, halfZ);
+    xzOverlap = circleIntersectsCarAabb(x, z, rObs, run, carZ);
+  } else {
+    if (dx >= 0.85 + halfX || dz >= 2.2 + halfZ) return false;
+    xzOverlap = true;
+  }
+  if (!xzOverlap) return false;
 
   const carBase = 0.1 + run.y;
   const carLow = carBase + 0.02;
@@ -2317,10 +2517,9 @@ function useFire() {
 
   createShockwave(launchPoint, "#ffb36a", 0.4, 2.8, 0.28);
 
+  const fireReach = radius * 2.2;
   for (const obstacle of world.obstaclePool) {
-    const dx = obstacle.position.x - run.x;
-    const dz = obstacle.position.z - 1.5;
-    if (Math.hypot(dx, dz) <= radius * 2.2) {
+    if (firePulseTouchesObstacle(obstacle, run, fireReach, 1.5)) {
       const impactPoint = obstacle.position.clone();
       createMissileTrail(launchPoint, impactPoint, "#ffb36a");
       destroyObstacle(obstacle, true);
@@ -2796,7 +2995,8 @@ function createObstacleMesh(kind) {
       type: "enemy",
       isEnemy: true,
       damage: 22,
-      radius: 1.2,
+      collisionHalfX: 1.02,
+      collisionHalfZ: 1.78,
       height: 0.06,
       collisionYMin: 0,
       collisionYMax: hullTop,
@@ -2811,30 +3011,38 @@ function createObstacleMesh(kind) {
 
   if (kind === "tower") {
     const group = new THREE.Group();
-    const baseGeo = new THREE.CylinderGeometry(1.4, 1.6, 3.8, 8);
-    const base = new THREE.Mesh(baseGeo, rustMat);
-    base.position.set(0, 1.9, 0);
-    
-    const topGeo = new THREE.CylinderGeometry(1.6, 1.4, 0.8, 8);
-    const top = new THREE.Mesh(topGeo, darkMetal);
-    top.position.set(0, 4.2, 0);
+    if (world.assets.models["tower"]) {
+      const clone = world.assets.models["tower"].clone();
+      group.add(clone);
+    } else {
+      const baseGeo = new THREE.CylinderGeometry(1.4, 1.6, 3.8, 8);
+      const base = new THREE.Mesh(baseGeo, rustMat);
+      base.position.set(0, 1.9, 0);
 
-    const spikeGeo = new THREE.ConeGeometry(0.1, 0.6, 4);
-    for(let i=0; i<8; i++){
-      const spike = new THREE.Mesh(spikeGeo, darkMetal);
-      spike.position.set(Math.cos(i*Math.PI/4)*1.5, 4.7, Math.sin(i*Math.PI/4)*1.5);
-      group.add(spike);
+      const topGeo = new THREE.CylinderGeometry(1.6, 1.4, 0.8, 8);
+      const top = new THREE.Mesh(topGeo, darkMetal);
+      top.position.set(0, 4.2, 0);
+
+      const spikeGeo = new THREE.ConeGeometry(0.1, 0.6, 4);
+      for(let i=0; i<8; i++){
+        const spike = new THREE.Mesh(spikeGeo, darkMetal);
+        spike.position.set(Math.cos(i*Math.PI/4)*1.5, 4.7, Math.sin(i*Math.PI/4)*1.5);
+        group.add(spike);
+      }
+
+      group.add(base, top);
+      group.traverse(c => { if(c.isMesh) c.castShadow = c.receiveShadow = true; });
     }
-
-    group.add(base, top);
-    group.traverse(c => { if(c.isMesh) c.castShadow = c.receiveShadow = true; });
 
     const half = 1.9;
     group.userData = {
       type: "obstacle",
       obstacleSpin: "none",
-      damage: 24,
-      radius: 1.4,
+      damage: 35, // Castles hurt more
+      collisionHalfX: 1.8,
+      collisionHalfZ: 1.8,
+      collisionFootprint: "circle",
+      collisionRadius: 1.85,
       height: half,
       collisionYMin: -half,
       collisionYMax: half,
@@ -2873,7 +3081,8 @@ function createObstacleMesh(kind) {
       type: "obstacle",
       obstacleSpin: "barrier",
       damage: 18,
-      radius: 1.45,
+      collisionHalfX: 1.6,
+      collisionHalfZ: 0.8,
       height: half,
       collisionYMin: -half,
       collisionYMax: half,
@@ -2883,44 +3092,49 @@ function createObstacleMesh(kind) {
 
   if (kind === "wreck") {
     const group = new THREE.Group();
-    const body = new THREE.Mesh(
-      new THREE.BoxGeometry(2.3, 0.7, 3.2),
-      new THREE.MeshStandardMaterial({ color: "#4a4546", roughness: 0.92, metalness: 0.5 }),
-    );
-    const cabin = new THREE.Mesh(
-      new THREE.BoxGeometry(1.1, 0.55, 1.3),
-      new THREE.MeshStandardMaterial({ color: "#222127", roughness: 0.85 }),
-    );
-    cabin.position.set(-0.15, 0.6, -0.15);
-    
-    // Rueda suelta
-    const wheelGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.25, 12);
-    wheelGeo.rotateZ(Math.PI / 2);
-    const wheel = new THREE.Mesh(wheelGeo, tireMat);
-    wheel.position.set(1.4, 0, 1.2);
-    wheel.rotation.set(0.2, 0.5, 0.1);
+    if (world.assets.models["wreck"]) {
+      const clone = world.assets.models["wreck"].clone();
+      group.add(clone);
+    } else {
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(2.3, 0.7, 3.2),
+        new THREE.MeshStandardMaterial({ color: "#4a4546", roughness: 0.92, metalness: 0.5 }),
+      );
+      const cabin = new THREE.Mesh(
+        new THREE.BoxGeometry(1.1, 0.55, 1.3),
+        new THREE.MeshStandardMaterial({ color: "#222127", roughness: 0.85 }),
+      );
+      cabin.position.set(-0.15, 0.6, -0.15);
 
-    const glow = new THREE.Mesh(
-      new THREE.BoxGeometry(0.9, 0.08, 0.28),
-      new THREE.MeshStandardMaterial({ color: "#ff8d6d", emissive: "#ff5d38", emissiveIntensity: 1.6 }),
-    );
-    glow.position.set(0, 0.18, 1.42);
-    body.rotation.set(0.1, 0.1, -0.1);
-    group.add(body, cabin, wheel, glow);
-    group.traverse(c => { if(c.isMesh) c.castShadow = c.receiveShadow = true; });
-    
+      // Rueda suelta
+      const wheelGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.25, 12);
+      wheelGeo.rotateZ(Math.PI / 2);
+      const wheel = new THREE.Mesh(wheelGeo, tireMat);
+      wheel.position.set(1.4, 0, 1.2);
+      wheel.rotation.set(0.2, 0.5, 0.1);
+
+      const glow = new THREE.Mesh(
+        new THREE.BoxGeometry(0.9, 0.08, 0.28),
+        new THREE.MeshStandardMaterial({ color: "#ff8d6d", emissive: "#ff5d38", emissiveIntensity: 1.6 }),
+      );
+      glow.position.set(0, 0.18, 1.42);
+      body.rotation.set(0.1, 0.1, -0.1);
+      group.add(body, cabin, wheel, glow);
+      group.traverse(c => { if(c.isMesh) c.castShadow = c.receiveShadow = true; });
+    }
+
     group.userData = {
       type: "obstacle",
       obstacleSpin: "wreck",
       damage: 20,
-      radius: 1.35,
+      collisionHalfX: 1.3,
+      collisionHalfZ: 1.8,
       height: 0.48,
       collisionYMin: -0.45,
-      collisionYMax: 0.95,
+      collisionYMax: 1.2,
     };
     return group;
   }
-
   // Scrap (basura metálica)
   const groupScrap = new THREE.Group();
   const scrapR = 1.15;
@@ -2943,7 +3157,8 @@ function createObstacleMesh(kind) {
     type: "obstacle",
     obstacleSpin: "scrap",
     damage: 16,
-    radius: 0.75,
+    collisionHalfX: 1.12,
+    collisionHalfZ: 1.12,
     height: scrapR + 0.04,
     collisionYMin: -scrapR,
     collisionYMax: scrapR,
@@ -2951,22 +3166,43 @@ function createObstacleMesh(kind) {
   return groupScrap;
 }
 
-function createLaneMarker(x, z, kind) {
+/** Contorno en el suelo alineado con la huella de colisión (no un donut genérico). */
+function createFootprintMarker(obstacle, kind) {
+  const ud = obstacle.userData;
   const color =
     kind === "tower" ? "#ff6b47" : kind === "barrier" ? "#ffb84d" : kind === "raider" ? "#ff4d72" : "#ff8c61";
-  const marker = new THREE.Mesh(
-    new THREE.RingGeometry(0.75, 1.1, 32),
-    new THREE.MeshBasicMaterial({
-      color,
-      transparent: true,
-      opacity: 0.5,
-      depthWrite: false,
-      side: THREE.DoubleSide,
-    }),
-  );
-  marker.rotation.x = -Math.PI / 2;
-  marker.position.set(x, 0.06, z);
-  return marker;
+  const mat = new THREE.LineBasicMaterial({
+    color,
+    transparent: true,
+    opacity: 0.62,
+    depthWrite: false,
+  });
+  const y = 0.06;
+  const group = new THREE.Group();
+  group.position.set(obstacle.position.x, 0, obstacle.position.z);
+
+  if (ud.collisionFootprint === "circle") {
+    const r = ud.collisionRadius ?? Math.max(ud.collisionHalfX ?? 1, ud.collisionHalfZ ?? 1);
+    const segs = 28;
+    const pts = [];
+    for (let i = 0; i <= segs; i += 1) {
+      const a = (i / segs) * Math.PI * 2;
+      pts.push(new THREE.Vector3(Math.cos(a) * r, y, Math.sin(a) * r));
+    }
+    group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mat));
+  } else {
+    const hx = ud.collisionHalfX ?? ud.radius ?? 1;
+    const hz = ud.collisionHalfZ ?? ud.radius ?? 1;
+    const rect = [
+      new THREE.Vector3(-hx, y, -hz),
+      new THREE.Vector3(hx, y, -hz),
+      new THREE.Vector3(hx, y, hz),
+      new THREE.Vector3(-hx, y, hz),
+      new THREE.Vector3(-hx, y, -hz),
+    ];
+    group.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(rect), mat));
+  }
+  return group;
 }
 
 function applyRoadsideShadows(node) {
@@ -2980,14 +3216,18 @@ function applyRoadsideShadows(node) {
 }
 
 function createDune() {
-  const geo = new THREE.SphereGeometry(1.5, 32, 16);
+  const geo = new THREE.SphereGeometry(1.8, 48, 24);
   const pos = geo.attributes.position;
   for (let i = 0; i < pos.count; i++) {
     const y = pos.getY(i);
-    if (y > 0) {
-      pos.setX(i, pos.getX(i) + (Math.random() - 0.5) * 0.2);
-      pos.setZ(i, pos.getZ(i) + (Math.random() - 0.5) * 0.2);
-      pos.setY(i, y + (Math.random() - 0.5) * 0.15);
+    if (y > -0.2) {
+      const x = pos.getX(i);
+      const z = pos.getZ(i);
+      // Fractal displacement
+      const disp = Math.sin(x * 2) * Math.cos(z * 2) * 0.15 + Math.sin(x * 5) * 0.05;
+      pos.setX(i, x + (Math.random() - 0.5) * 0.1 + disp * 0.5);
+      pos.setZ(i, z + (Math.random() - 0.5) * 0.1 + disp * 0.5);
+      pos.setY(i, y + (Math.random() - 0.5) * 0.1 + disp);
     }
   }
   geo.computeVertexNormals();
@@ -2995,38 +3235,42 @@ function createDune() {
   const mesh = new THREE.Mesh(
     geo,
     new THREE.MeshStandardMaterial({
-      color: new THREE.Color().setHSL(0.07 + Math.random() * 0.02, 0.45 + Math.random() * 0.1, 0.4 + Math.random() * 0.1),
+      color: new THREE.Color().setHSL(0.06 + Math.random() * 0.03, 0.45 + Math.random() * 0.15, 0.35 + Math.random() * 0.15),
       roughness: 0.95,
       bumpMap: world.terrainBumpTexture,
-      bumpScale: 0.08,
+      roughnessMap: world.terrainRoughnessTexture,
+      bumpScale: 0.12,
     }),
   );
   mesh.receiveShadow = true;
   mesh.castShadow = true;
-  mesh.userData = { isDune: true, baseY: -0.1 };
+  mesh.userData = { isDune: true, baseY: -0.25 };
   return mesh;
 }
 
 function createScatteredBoulder() {
   const root = new THREE.Group();
-  const mRock = new THREE.MeshStandardMaterial({ 
-    color: "#785844", 
-    roughness: 0.98,
+  const mRock = new THREE.MeshStandardMaterial({
+    color: "#6b503e",
+    roughness: 0.9,
+    metalness: 0.05,
     bumpMap: world.terrainBumpTexture,
-    bumpScale: 0.15
+    roughnessMap: world.terrainRoughnessTexture,
+    bumpScale: 0.25
   });
-  
-  const n = 1 + Math.floor(Math.random() * 2);
+
+  const n = 1 + Math.floor(Math.random() * 3);
   for (let b = 0; b < n; b += 1) {
-    const r = 0.5 + Math.random() * 1.2;
-    const geo = new THREE.IcosahedronGeometry(r, 2);
+    const r = 0.5 + Math.random() * 1.5;
+    const geo = new THREE.IcosahedronGeometry(r, 3);
     const pos = geo.attributes.position;
     for (let i = 0; i < pos.count; i++) {
+      const val = Math.random();
       pos.setXYZ(
         i,
-        pos.getX(i) * (0.8 + Math.random() * 0.4),
-        pos.getY(i) * (0.8 + Math.random() * 0.4),
-        pos.getZ(i) * (0.8 + Math.random() * 0.4)
+        pos.getX(i) * (1 + val * 0.15),
+        pos.getY(i) * (1 + val * 0.2),
+        pos.getZ(i) * (1 + val * 0.15)
       );
     }
     geo.computeVertexNormals();
