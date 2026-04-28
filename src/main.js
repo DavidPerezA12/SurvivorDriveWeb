@@ -1375,13 +1375,72 @@ function updateRun(dt) {
 
   // ── 10. Particles ─────────────────────────────────────────────────────────
   const dustRate = run.grounded
-    ? run.speed * 0.35 + (run.skidding ? run.speed * 1.2 : 0)
+    ? run.speed * 0.45 + (run.skidding ? run.speed * 1.6 : 0)
     : 0;
   if (Math.random() < dt * dustRate) spawnDustMote(world);
-  if (run.skidding && Math.random() < dt * 12) spawnSkidMark(world);
+  if (run.skidding && Math.random() < dt * 14) spawnSkidMark(world);
+
+  // Exhaust smoke / trail from car rear
+  if (run.grounded && run.speedFactor > 0.3 && Math.random() < dt * run.speedFactor * 10) {
+    const exhaustColor = run.speedFactor > 0.85 ? "#222" : "#444";
+    const exhaust = new THREE.Mesh(
+      new THREE.SphereGeometry(0.06 + Math.random() * 0.08, 4, 4),
+      new THREE.MeshBasicMaterial({
+        color: exhaustColor,
+        transparent: true,
+        opacity: 0.35,
+        depthWrite: false,
+      }),
+    );
+    const side = Math.random() > 0.5 ? 1 : -1;
+    exhaust.position.set(
+      run.x + side * 0.55,
+      run.y + 0.25 + Math.random() * 0.15,
+      -0.8 - Math.random() * 0.3,
+    );
+    exhaust.userData = {
+      velocity: new THREE.Vector3((Math.random() - 0.5) * 0.5, 0.4 + Math.random() * 0.5, -2 - Math.random() * 2),
+      fade: 1.2 + Math.random() * 0.8,
+      grow: 1.5,
+    };
+    world.scene.add(exhaust);
+    world.particles.push(exhaust);
+  }
+
+  // Spark particles on hard collision or skid
+  if (run.skidding && Math.abs(run.lateralVel) > 3 && Math.random() < dt * 8) {
+    for (let s = 0; s < 2 + Math.floor(Math.random() * 3); s++) {
+      const spark = new THREE.Mesh(
+        new THREE.BoxGeometry(0.03, 0.03, 0.03),
+        new THREE.MeshBasicMaterial({
+          color: "#ffaa44",
+          transparent: true,
+          opacity: 1,
+          blending: THREE.AdditiveBlending,
+        }),
+      );
+      const side = Math.random() > 0.5 ? 1 : -1;
+      spark.position.set(
+        run.x + side * 0.9,
+        0.1,
+        0.2 + Math.random() * 0.3,
+      );
+      spark.userData = {
+        velocity: new THREE.Vector3(
+          (Math.random() - 0.5) * 4 + side * -1.5,
+          2 + Math.random() * 4,
+          -run.speed * 0.3 + Math.random() * 2,
+        ),
+        fade: 2.5,
+        gravity: true,
+      };
+      world.scene.add(spark);
+      world.particles.push(spark);
+    }
+  }
 
   // Speed streak / jet stream
-  if (run.speedFactor > 0.85 && Math.random() < dt * 15) {
+  if (run.speedFactor > 0.85 && Math.random() < dt * 18) {
     const streak = new THREE.Mesh(
       new THREE.BoxGeometry(0.05, 0.05, 2 + Math.random() * 4),
       new THREE.MeshBasicMaterial({
@@ -1757,7 +1816,7 @@ function recycleFarBackdrop(root, initial = false) {
 function createRoadDetail() {
   const type = Math.random();
   let mesh;
-  if (type > 0.96) {
+  if (type > 0.98) {
     // Animal carcass / roadkill (small bump on road)
     const carcGroup = new THREE.Group();
     const furMat = new THREE.MeshStandardMaterial({ color: "#3d3028", roughness: 1 });
@@ -1770,7 +1829,7 @@ function createRoadDetail() {
     carcGroup.add(body, tail);
     mesh = carcGroup;
     mesh.userData.is3D = true;
-  } else if (type > 0.94) {
+  } else if (type > 0.955) {
     // Pothole depression (3D indentation on road)
     const potGroup = new THREE.Group();
     const darkFill = new THREE.Mesh(
@@ -1788,7 +1847,7 @@ function createRoadDetail() {
     potGroup.add(darkFill, rim);
     mesh = potGroup;
     mesh.userData.is3D = true;
-  } else if (type > 0.88) {
+  } else if (type > 0.93) {
     // Highway Reflector (Stud)
     const group = new THREE.Group();
     const body = new THREE.Mesh(
@@ -1807,7 +1866,7 @@ function createRoadDetail() {
     group.add(body, reflector);
     mesh = group;
     mesh.userData.isReflector = true;
-  } else if (type > 0.78) {
+  } else if (type > 0.885) {
     // Manhole cover (round metal plate in road)
     const coverGroup = new THREE.Group();
     const disc = new THREE.Mesh(
@@ -1830,18 +1889,77 @@ function createRoadDetail() {
     coverGroup.add(disc, innerDetail, bar1, bar2);
     mesh = coverGroup;
     mesh.userData.is3D = true;
-  } else if (type > 0.8) {
+  } else if (type > 0.85) {
     // Rusted Metal Plate
     const mat = new THREE.MeshStandardMaterial({ color: "#3a2a22", metalness: 0.8, roughness: 0.9 });
     mesh = new THREE.Mesh(new THREE.BoxGeometry(1.2 + Math.random(), 0.04, 1.2 + Math.random()), mat);
     mesh.rotation.y = Math.random() * Math.PI;
     mesh.userData.is3D = true;
-  } else if (type > 0.7) {
+  } else if (type > 0.81) {
     // Tire Shred / Debris
     const mat = new THREE.MeshStandardMaterial({ color: "#111", roughness: 0.9 });
     mesh = new THREE.Mesh(new THREE.BoxGeometry(0.8 + Math.random(), 0.1, 0.2 + Math.random() * 0.3), mat);
     mesh.rotation.y = Math.random() * Math.PI;
     mesh.userData.is3D = true;
+  } else if (type > 0.78) {
+    // Broken glass shards
+    const glassMat = new THREE.MeshStandardMaterial({ color: "#ccddee", roughness: 0.1, transparent: true, opacity: 0.35, metalness: 0.3 });
+    const shardGroup = new THREE.Group();
+    for (let g = 0; g < 3 + Math.floor(Math.random() * 5); g++) {
+      const shard = new THREE.Mesh(new THREE.BoxGeometry(0.05 + Math.random() * 0.12, 0.02, 0.05 + Math.random() * 0.1), glassMat);
+      shard.position.set((Math.random() - 0.5) * 0.6, 0.02, (Math.random() - 0.5) * 0.6);
+      shard.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+      shardGroup.add(shard);
+    }
+    mesh = shardGroup;
+    mesh.userData.is3D = true;
+  } else if (type > 0.75) {
+    // Loose cable / wire on road
+    const wireMat = new THREE.MeshStandardMaterial({ color: "#222", metalness: 0.6, roughness: 0.4 });
+    const cable = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 1.2 + Math.random() * 1.5, 4), wireMat);
+    cable.rotation.z = Math.PI / 2;
+    cable.rotation.y = Math.random() * Math.PI;
+    cable.position.y = 0.03;
+    mesh = cable;
+    mesh.userData.is3D = true;
+  } else if (type > 0.72) {
+    // Nail / spike strip remnant
+    const spikeGroup = new THREE.Group();
+    const stripMat = new THREE.MeshStandardMaterial({ color: "#1a1a1a", roughness: 0.9 });
+    const strip = new THREE.Mesh(new THREE.BoxGeometry(0.8 + Math.random() * 0.6, 0.03, 0.15), stripMat);
+    spikeGroup.add(strip);
+    for (let s = 0; s < 4 + Math.floor(Math.random() * 4); s++) {
+      const spike = new THREE.Mesh(new THREE.ConeGeometry(0.015, 0.06, 4), new THREE.MeshStandardMaterial({ color: "#555", metalness: 0.8 }));
+      spike.position.set(-0.35 + s * 0.18, 0.04, 0);
+      spikeGroup.add(spike);
+    }
+    mesh = spikeGroup;
+    mesh.userData.is3D = true;
+  } else if (type > 0.69) {
+    // Oil puddle with slight reflection (darker, shinier)
+    const puddleMat = new THREE.MeshStandardMaterial({
+      color: "#0a0a0a",
+      roughness: 0.15,
+      metalness: 0.4,
+      transparent: true,
+      opacity: 0.75,
+      depthWrite: false,
+    });
+    mesh = new THREE.Mesh(new THREE.CircleGeometry(0.3 + Math.random() * 0.7, 10), puddleMat);
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.userData.isPuddle = true;
+  } else if (type > 0.66) {
+    // Burned rubber skid mark (dark streak)
+    const skidMat = new THREE.MeshStandardMaterial({
+      color: "#0d0d0d",
+      roughness: 0.95,
+      transparent: true,
+      opacity: 0.6,
+      depthWrite: false,
+    });
+    mesh = new THREE.Mesh(new THREE.PlaneGeometry(0.25 + Math.random() * 0.3, 1.5 + Math.random() * 3.5), skidMat);
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.rotation.z = Math.random() * Math.PI;
   } else {
     const mat = new THREE.MeshStandardMaterial({
       color: "#111",
@@ -1850,13 +1968,13 @@ function createRoadDetail() {
       depthWrite: false,
       roughness: 1.0,
     });
-    if (type > 0.45) {
+    if (type > 0.4) {
       // Crack
       mesh = new THREE.Mesh(
         new THREE.PlaneGeometry(0.4 + Math.random() * 0.6, 2 + Math.random() * 3),
         mat,
       );
-    } else if (type > 0.2) {
+    } else if (type > 0.18) {
       // Oil stain
       mesh = new THREE.Mesh(
         new THREE.CircleGeometry(0.5 + Math.random() * 0.5, 8),
@@ -3640,6 +3758,13 @@ function updateEntities(dt) {
       if (data.drag) {
         data.velocity.multiplyScalar(Math.max(0, 1 - data.drag * dt));
       }
+      if (data.gravity) {
+        data.velocity.y -= 18 * dt;
+      }
+      if (data.grow) {
+        const scale = 1 + dt * data.grow;
+        particle.scale.multiplyScalar(scale);
+      }
     }
 
     if (particle.userData.vx !== undefined) {
@@ -3918,98 +4043,126 @@ function createObstacleMesh(kind) {
 
   if (kind === "raider") {
     const group = new THREE.Group();
+    const variant = Math.floor(Math.random() * 3); // 0=standard, 1=heavy, 2=light
+    const vScale = variant === 1 ? 1.15 : variant === 2 ? 0.92 : 1.0;
+    const bodyColor = variant === 1 ? "#3d3028" : variant === 2 ? "#5a4538" : "#4d3a2e";
+    const armorColor = variant === 1 ? "#2a2520" : variant === 2 ? "#555" : "#222";
+    const vRustMat = new THREE.MeshStandardMaterial({ color: bodyColor, roughness: 0.95, metalness: 0.4 });
+    const vDarkMetal = new THREE.MeshStandardMaterial({ color: armorColor, roughness: 0.8, metalness: 0.6 });
+
     if (world.assets.models["raider"]) {
       const clone = world.assets.models["raider"].clone();
       group.add(clone);
     } else {
       // Chasis
       const body = new THREE.Mesh(
-        new THREE.BoxGeometry(1.85, 0.6, 3.4),
-        rustMat,
+        new THREE.BoxGeometry(1.85 * vScale, 0.6 * vScale, 3.4 * vScale),
+        vRustMat,
       );
-      body.position.set(0, 0.5, 0);
+      body.position.set(0, 0.5 * vScale, 0);
 
       // Cabina
       const cabin = new THREE.Mesh(
-        new THREE.BoxGeometry(1.2, 0.7, 1.2),
-        darkMetal,
+        new THREE.BoxGeometry(1.2 * vScale, 0.7 * vScale, 1.2 * vScale),
+        vDarkMetal,
       );
-      cabin.position.set(0, 1.15, -0.2);
+      cabin.position.set(0, 1.15 * vScale, -0.2 * vScale);
 
       // Rammer frontal
       const rammer = new THREE.Mesh(
-        new THREE.BoxGeometry(2.0, 0.3, 0.5),
-        darkMetal,
+        new THREE.BoxGeometry((variant === 1 ? 2.3 : 2.0) * vScale, 0.3 * vScale, 0.5 * vScale),
+        vDarkMetal,
       );
-      rammer.position.set(0, 0.4, 1.8);
+      rammer.position.set(0, 0.4 * vScale, 1.8 * vScale);
 
       // Arma
       const gunBase = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.2, 0.2, 0.3, 8),
-        darkMetal,
+        new THREE.CylinderGeometry(0.2 * vScale, 0.2 * vScale, 0.3, 8),
+        vDarkMetal,
       );
-      gunBase.position.set(0, 1.6, -0.2);
+      gunBase.position.set(0, 1.6 * vScale, -0.2 * vScale);
       const gun = new THREE.Mesh(
         new THREE.BoxGeometry(0.15, 0.15, 1.4),
         new THREE.MeshStandardMaterial({
-          color: "#ffb36a",
-          emissive: "#ff8c47",
+          color: variant === 2 ? "#ff6644" : "#ffb36a",
+          emissive: variant === 2 ? "#ff4422" : "#ff8c47",
           emissiveIntensity: 0.8,
         }),
       );
-      gun.position.set(0, 1.7, 0.4);
+      gun.position.set(0, 1.7 * vScale, 0.4 * vScale);
 
       // Ruedas
-      const wheelGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.3, 16);
+      const wR = (variant === 1 ? 0.48 : 0.4) * vScale;
+      const wheelGeo = new THREE.CylinderGeometry(wR, wR, 0.3, 16);
       wheelGeo.rotateZ(Math.PI / 2);
       const w1 = new THREE.Mesh(wheelGeo, tireMat);
-      w1.position.set(1.0, 0.4, 1.2);
+      w1.position.set(1.0 * vScale, wR, 1.2 * vScale);
       const w2 = new THREE.Mesh(wheelGeo, tireMat);
-      w2.position.set(-1.0, 0.4, 1.2);
+      w2.position.set(-1.0 * vScale, wR, 1.2 * vScale);
       const w3 = new THREE.Mesh(wheelGeo, tireMat);
-      w3.position.set(1.0, 0.4, -1.2);
+      w3.position.set(1.0 * vScale, wR, -1.2 * vScale);
       const w4 = new THREE.Mesh(wheelGeo, tireMat);
-      w4.position.set(-1.0, 0.4, -1.2);
+      w4.position.set(-1.0 * vScale, wR, -1.2 * vScale);
 
       // Side armor plates (welded scrap metal)
-      const scrapMetal = new THREE.MeshStandardMaterial({ color: "#3d3028", roughness: 0.9, metalness: 0.6 });
-      for (const sx of [-0.95, 0.95]) {
-        const plate = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.7, 2.8), scrapMetal);
-        plate.position.set(sx, 0.6, 0);
+      const scrapMetal = new THREE.MeshStandardMaterial({ color: variant === 1 ? "#2a2018" : "#3d3028", roughness: 0.9, metalness: 0.6 });
+      for (const sx of [-0.95 * vScale, 0.95 * vScale]) {
+        const plate = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.7 * vScale, 2.8 * vScale), scrapMetal);
+        plate.position.set(sx, 0.6 * vScale, 0);
         group.add(plate);
         // Rivets
-        for (let rv = 0; rv < 4; rv++) {
-          const rivet = new THREE.Mesh(new THREE.SphereGeometry(0.05, 4, 4), darkMetal);
-          rivet.position.set(sx * 1.04, 0.3 + rv * 0.2, -1 + rv * 0.7);
+        const rivetCount = variant === 1 ? 6 : 4;
+        for (let rv = 0; rv < rivetCount; rv++) {
+          const rivet = new THREE.Mesh(new THREE.SphereGeometry(0.05, 4, 4), vDarkMetal);
+          rivet.position.set(sx * 1.04, (0.3 + rv * 0.15) * vScale, -1 + rv * 0.7);
           group.add(rivet);
         }
       }
 
-      // Spikes on rammer
-      const spikeGeo = new THREE.ConeGeometry(0.05, 0.35, 4);
-      for (let sp = 0; sp < 5; sp++) {
-        const spike = new THREE.Mesh(spikeGeo, darkMetal);
-        spike.position.set(-0.8 + sp * 0.4, 0.5, 2.1);
+      // Spikes on rammer (heavy has more)
+      const spikeCount = variant === 1 ? 7 : 5;
+      const spikeGeo = new THREE.ConeGeometry(0.05 * vScale, 0.35 * vScale, 4);
+      for (let sp = 0; sp < spikeCount; sp++) {
+        const spike = new THREE.Mesh(spikeGeo, vDarkMetal);
+        spike.position.set((-spikeCount * 0.2 + sp * 0.4) * vScale, 0.5 * vScale, 2.1 * vScale);
         spike.rotation.x = -0.3;
         group.add(spike);
       }
 
-      // Skull/hood ornament
-      const skullBase = new THREE.Mesh(new THREE.SphereGeometry(0.18, 6, 5), new THREE.MeshStandardMaterial({ color: "#e8d5c0", roughness: 0.8 }));
-      skullBase.position.set(0, 0.95, 1.5);
-      skullBase.scale.set(1, 0.7, 0.8);
-      const skullJaw = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.12, 0.15), new THREE.MeshStandardMaterial({ color: "#d4c0a8" }));
-      skullJaw.position.set(0, 0.85, 1.6);
-      const skullEyeL = new THREE.Mesh(new THREE.SphereGeometry(0.05, 4, 4), new THREE.MeshStandardMaterial({ color: "#0a0000", roughness: 0.1 }));
-      skullEyeL.position.set(-0.06, 0.98, 1.63);
-      const skullEyeR = skullEyeL.clone();
-      skullEyeR.position.set(0.06, 0.98, 1.63);
-      group.add(skullBase, skullJaw, skullEyeL, skullEyeR);
+      // Hood ornament (varies by variant)
+      if (variant === 0) {
+        // Skull
+        const skullBase = new THREE.Mesh(new THREE.SphereGeometry(0.18 * vScale, 6, 5), new THREE.MeshStandardMaterial({ color: "#e8d5c0", roughness: 0.8 }));
+        skullBase.position.set(0, 0.95 * vScale, 1.5 * vScale);
+        skullBase.scale.set(1, 0.7, 0.8);
+        const skullJaw = new THREE.Mesh(new THREE.BoxGeometry(0.2 * vScale, 0.12, 0.15), new THREE.MeshStandardMaterial({ color: "#d4c0a8" }));
+        skullJaw.position.set(0, 0.85 * vScale, 1.6 * vScale);
+        const skullEyeL = new THREE.Mesh(new THREE.SphereGeometry(0.05, 4, 4), new THREE.MeshStandardMaterial({ color: "#0a0000", roughness: 0.1 }));
+        skullEyeL.position.set(-0.06 * vScale, 0.98 * vScale, 1.63 * vScale);
+        const skullEyeR = skullEyeL.clone();
+        skullEyeR.position.set(0.06 * vScale, 0.98 * vScale, 1.63 * vScale);
+        group.add(skullBase, skullJaw, skullEyeL, skullEyeR);
+      } else if (variant === 1) {
+        // Bull horns (heavy)
+        const hornMat = new THREE.MeshStandardMaterial({ color: "#d4c8b0", roughness: 0.7 });
+        const hornL = new THREE.Mesh(new THREE.ConeGeometry(0.06 * vScale, 0.5 * vScale, 6), hornMat);
+        hornL.position.set(-0.2 * vScale, 1.0 * vScale, 1.5 * vScale);
+        hornL.rotation.z = 0.6;
+        const hornR = hornL.clone();
+        hornR.position.set(0.2 * vScale, 1.0 * vScale, 1.5 * vScale);
+        hornR.rotation.z = -0.6;
+        group.add(hornL, hornR);
+      } else {
+        // Small blade (light)
+        const blade = new THREE.Mesh(new THREE.BoxGeometry(0.5 * vScale, 0.02, 0.15), new THREE.MeshStandardMaterial({ color: "#888", metalness: 0.8, roughness: 0.3 }));
+        blade.position.set(0, 0.85 * vScale, 1.6 * vScale);
+        group.add(blade);
+      }
 
       // Exposed exhaust pipes on sides
-      for (const ex of [-0.7, 0.7]) {
-        const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 1.0, 8), rustMat);
-        pipe.position.set(ex, 0.35, -1.2);
+      for (const ex of [-0.7 * vScale, 0.7 * vScale]) {
+        const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.08 * vScale, 0.1 * vScale, 1.0, 8), vRustMat);
+        pipe.position.set(ex, 0.35 * vScale, -1.2 * vScale);
         pipe.rotation.x = Math.PI / 2;
         group.add(pipe);
       }
@@ -4024,21 +4177,21 @@ function createObstacleMesh(kind) {
       });
     }
 
-    const hullTop = 1.8;
+    const hullTop = 1.8 * vScale;
     group.userData = {
       type: "enemy",
       isEnemy: true,
-      damage: 22,
-      collisionHalfX: 1.02,
-      collisionHalfZ: 1.78,
+      damage: variant === 1 ? 28 : variant === 2 ? 16 : 22,
+      collisionHalfX: 1.02 * vScale,
+      collisionHalfZ: 1.78 * vScale,
       height: 0,
       collisionYMin: 0,
       collisionYMax: hullTop,
-      projectileY: 1.7,
-      shotCooldown: 0.9 + Math.random() * 0.8,
+      projectileY: 1.7 * vScale,
+      shotCooldown: (variant === 1 ? 1.1 : variant === 2 ? 0.7 : 0.9) + Math.random() * 0.8,
       laneTarget: 0,
-      rewardCoins: 2,
-      rewardAmmo: 1,
+      rewardCoins: variant === 1 ? 3 : variant === 2 ? 1 : 2,
+      rewardAmmo: variant === 1 ? 2 : 1,
     };
     return group;
   }
@@ -4317,70 +4470,97 @@ function createObstacleMesh(kind) {
   // Mutant (enemigo terrestre agresivo)
   if (kind === "mutant") {
     const group = new THREE.Group();
-    const fleshMat = new THREE.MeshStandardMaterial({
-      color: "#5a3d3a",
-      roughness: 0.85,
-    });
-    const boneMat = new THREE.MeshStandardMaterial({
-      color: "#d4c8b8",
-      roughness: 0.7,
-    });
-    const eyeMat = new THREE.MeshBasicMaterial({
-      color: "#ff4400",
-    });
+    const variant = Math.floor(Math.random() * 3); // 0=brute, 1=spitter, 2=charger
+    const mScale = variant === 0 ? 1.15 : variant === 2 ? 0.9 : 1.0;
+    const fleshColor = variant === 0 ? "#5a3d3a" : variant === 1 ? "#4a3528" : "#6b4a45";
+    const fleshMat = new THREE.MeshStandardMaterial({ color: fleshColor, roughness: 0.85 });
+    const boneMat = new THREE.MeshStandardMaterial({ color: "#d4c8b8", roughness: 0.7 });
+    const eyeColor = variant === 1 ? "#44ff00" : "#ff4400";
+    const eyeMat = new THREE.MeshBasicMaterial({ color: eyeColor });
 
     // Cuerpo principal
     const torso = new THREE.Mesh(
-      new THREE.BoxGeometry(1.1, 1.8, 1.0),
+      new THREE.BoxGeometry(1.1 * mScale, 1.8 * mScale, 1.0 * mScale),
       fleshMat,
     );
-    torso.position.y = 1.1;
-    torso.scale.set(1, 1.15, 0.8);
+    torso.position.y = 1.1 * mScale;
+    torso.scale.set(1, variant === 0 ? 1.3 : 1.15, 0.8);
     group.add(torso);
 
     // Cabeza deforme
     const head = new THREE.Mesh(
-      new THREE.SphereGeometry(0.55, 6, 5),
+      new THREE.SphereGeometry(0.55 * mScale, 6, 5),
       fleshMat,
     );
-    head.position.y = 2.25;
-    head.scale.set(1, 0.75, 0.8);
+    head.position.y = 2.25 * mScale;
+    head.scale.set(variant === 2 ? 0.8 : 1, 0.75, 0.8);
     group.add(head);
 
     // Ojos brillantes
-    for (const ex of [-0.15, 0.15]) {
-      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 4), eyeMat);
-      eye.position.set(ex, 2.3, 0.4);
+    const eyeCount = variant === 1 ? 3 : 2;
+    for (let e = 0; e < eyeCount; e++) {
+      const ex = (e - (eyeCount - 1) / 2) * 0.15 * mScale;
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.08 * mScale, 6, 4), eyeMat);
+      eye.position.set(ex, 2.3 * mScale, 0.4 * mScale);
       group.add(eye);
     }
 
     // Brazos extendidos con garras
-    const armGeo = new THREE.CylinderGeometry(0.18, 0.22, 1.4, 6);
-    for (const ax of [-0.7, 0.7]) {
+    const armGeo = new THREE.CylinderGeometry(0.18 * mScale, 0.22 * mScale, 1.4 * mScale, 6);
+    for (const ax of [-0.7 * mScale, 0.7 * mScale]) {
       const arm = new THREE.Mesh(armGeo, fleshMat);
-      arm.position.set(ax, 1.3, 0);
+      arm.position.set(ax, 1.3 * mScale, 0);
       arm.rotation.z = ax > 0 ? -0.6 : 0.6;
       arm.rotation.x = -0.2;
       group.add(arm);
 
-      // Garras (spikes)
-      for (let c = 0; c < 3; c++) {
-        const claw = new THREE.Mesh(
-          new THREE.ConeGeometry(0.06, 0.35, 4),
-          boneMat,
-        );
-        claw.position.set(ax + (ax > 0 ? 0.5 : -0.5), 0.4 + c * 0.2, 0.1);
-        claw.rotation.set((c - 1) * 0.3, 0, ax > 0 ? -0.5 : 0.5);
-        group.add(claw);
+      // Garras / armas (varían por tipo)
+      if (variant === 1) {
+        // Spitter has a single long tentacle/blade
+        const blade = new THREE.Mesh(new THREE.ConeGeometry(0.05 * mScale, 0.8 * mScale, 4), boneMat);
+        blade.position.set(ax + (ax > 0 ? 0.6 : -0.6) * mScale, 0.3 * mScale, 0.2 * mScale);
+        blade.rotation.set(0.5, 0, ax > 0 ? -0.8 : 0.8);
+        group.add(blade);
+      } else {
+        const clawCount = variant === 0 ? 4 : 3;
+        for (let c = 0; c < clawCount; c++) {
+          const claw = new THREE.Mesh(
+            new THREE.ConeGeometry(0.06 * mScale, 0.35 * mScale, 4),
+            boneMat,
+          );
+          claw.position.set(ax + (ax > 0 ? 0.5 : -0.5) * mScale, (0.4 + c * 0.18) * mScale, 0.1 * mScale);
+          claw.rotation.set((c - 1) * 0.3, 0, ax > 0 ? -0.5 : 0.5);
+          group.add(claw);
+        }
       }
     }
 
-    // Piernas cortas y robustas
-    const legGeo = new THREE.CylinderGeometry(0.22, 0.25, 0.7, 6);
-    for (const lx of [-0.3, 0.3]) {
+    // Piernas
+    const legH = variant === 0 ? 0.9 : 0.7;
+    const legGeo = new THREE.CylinderGeometry(0.22 * mScale, 0.25 * mScale, legH * mScale, 6);
+    for (const lx of [-0.3 * mScale, 0.3 * mScale]) {
       const leg = new THREE.Mesh(legGeo, fleshMat);
-      leg.position.set(lx, 0.35, 0);
+      leg.position.set(lx, legH * 0.5 * mScale, 0);
       group.add(leg);
+    }
+
+    // Extra: spines on back for brute
+    if (variant === 0) {
+      for (let sp = 0; sp < 4; sp++) {
+        const spine = new THREE.Mesh(new THREE.ConeGeometry(0.04 * mScale, 0.4 * mScale, 4), boneMat);
+        spine.position.set((Math.random() - 0.5) * 0.3 * mScale, (1.2 + sp * 0.35) * mScale, -0.45 * mScale);
+        spine.rotation.x = -0.6;
+        group.add(spine);
+      }
+    }
+
+    // Extra: pustule sacks for spitter
+    if (variant === 1) {
+      for (let p = 0; p < 3; p++) {
+        const sack = new THREE.Mesh(new THREE.SphereGeometry(0.15 * mScale, 6, 5), new THREE.MeshStandardMaterial({ color: "#88aa44", roughness: 0.6, transparent: true, opacity: 0.8 }));
+        sack.position.set((Math.random() - 0.5) * 0.5 * mScale, (0.8 + p * 0.4) * mScale, 0.5 * mScale);
+        group.add(sack);
+      }
     }
 
     group.traverse((c) => {
@@ -4390,17 +4570,17 @@ function createObstacleMesh(kind) {
     group.userData = {
       type: "enemy",
       isEnemy: true,
-      damage: 30,
-      collisionHalfX: 0.85,
-      collisionHalfZ: 0.8,
+      damage: variant === 0 ? 35 : variant === 1 ? 25 : 22,
+      collisionHalfX: 0.85 * mScale,
+      collisionHalfZ: 0.8 * mScale,
       height: 0,
       collisionYMin: 0,
-      collisionYMax: 2.6,
-      projectileY: 1.5,
-      shotCooldown: 1.5 + Math.random() * 1.2,
+      collisionYMax: 2.6 * mScale,
+      projectileY: 1.5 * mScale,
+      shotCooldown: (variant === 0 ? 1.8 : variant === 1 ? 1.2 : 0.9) + Math.random() * 1.2,
       laneTarget: 0,
-      rewardCoins: 3,
-      rewardAmmo: 2,
+      rewardCoins: variant === 0 ? 4 : variant === 1 ? 3 : 2,
+      rewardAmmo: variant === 0 ? 3 : 2,
     };
     return group;
   }
@@ -4909,7 +5089,7 @@ function recycleCityBackdrop(root) {
 }
 
 function createCityRoadsideProp(index) {
-  const kind = index % 9;
+  const kind = index % 15;
   const root = new THREE.Group();
   const steel = new THREE.MeshStandardMaterial({
     color: "#5a6069",
@@ -5020,8 +5200,8 @@ function createCityRoadsideProp(index) {
     lamp.userData.isLamp = true;
     root.add(basePost, arm, lamp);
     root.userData.isLampPost = true;
-  } else {
-    // Trash pile / debris cluster (kind 8)
+  } else if (kind === 8) {
+    // Trash pile / debris cluster
     const trashMat = new THREE.MeshStandardMaterial({ color: "#3d3834", roughness: 1 });
     const b1 = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.3, 0.8), trashMat);
     b1.position.set(0, 0.15, 0);
@@ -5037,6 +5217,106 @@ function createCityRoadsideProp(index) {
     cardboard.rotation.set(0.3, 0.5, 0.1);
     root.add(b1, b2, bag, cardboard);
     root.userData.isTrash = true;
+  } else if (kind === 9) {
+    // Parked / burned car wreck
+    const carMat = new THREE.MeshStandardMaterial({ color: "#2a2828", roughness: 0.95, metalness: 0.4 });
+    const body = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.7, 3.5), carMat);
+    body.position.set(0, 0.5, 0);
+    body.rotation.y = (Math.random() - 0.5) * 0.3;
+    const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.5, 1.6), new THREE.MeshStandardMaterial({ color: "#1a1a1a", roughness: 0.9 }));
+    cabin.position.set(0, 0.95, -0.3);
+    body.add(cabin);
+    // Burned wheel
+    const wMat = new THREE.MeshStandardMaterial({ color: "#0a0a0a", roughness: 1 });
+    for (const [wx, wz] of [[0.9, 1.1], [-0.9, 0.8], [0.9, -1.0], [-0.9, -1.3]]) {
+      const w = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.15, 10).applyMatrix4(new THREE.Matrix4().makeRotationZ(Math.PI / 2)), wMat);
+      w.position.set(wx, 0.25, wz);
+      w.rotation.set(Math.random() * 0.3, Math.random() * 0.3, 0);
+      root.add(w);
+    }
+    root.add(body);
+  } else if (kind === 10) {
+    // Dumpster / container
+    const dumpMat = new THREE.MeshStandardMaterial({ color: "#3a4a3a", roughness: 0.9, metalness: 0.3 });
+    const box = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.4, 2.8), dumpMat);
+    box.position.set(0, 0.7, 0);
+    box.rotation.y = (Math.random() - 0.5) * 0.2;
+    const lid = new THREE.Mesh(new THREE.BoxGeometry(1.82, 0.08, 2.82), new THREE.MeshStandardMaterial({ color: "#2a3a2a", roughness: 0.85 }));
+    lid.position.set(0, 1.42, 0.2);
+    lid.rotation.x = -0.3;
+    // Trash spilling out
+    const spillMat = new THREE.MeshStandardMaterial({ color: "#4a4538", roughness: 1 });
+    for (let s = 0; s < 5; s++) {
+      const spill = new THREE.Mesh(new THREE.BoxGeometry(0.2 + Math.random() * 0.3, 0.15, 0.2 + Math.random() * 0.3), spillMat);
+      spill.position.set((Math.random() - 0.5) * 1.2, 0.08, 1.2 + Math.random() * 0.8);
+      spill.rotation.y = Math.random() * Math.PI;
+      root.add(spill);
+    }
+    root.add(box, lid);
+  } else if (kind === 11) {
+    // Security camera on pole
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 4.5, 8), steel);
+    pole.position.y = 2.25;
+    const camBox = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.18, 0.35), new THREE.MeshStandardMaterial({ color: "#222", metalness: 0.5 }));
+    camBox.position.set(0, 4.2, 0.2);
+    const lens = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), new THREE.MeshStandardMaterial({ color: "#ff3333", emissive: "#ff0000", emissiveIntensity: 1.5 }));
+    lens.position.set(0, 0, 0.18);
+    camBox.add(lens);
+    // Broken / dangling cable
+    const cable = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 1.5, 4), new THREE.MeshStandardMaterial({ color: "#111" }));
+    cable.position.set(0.1, -0.6, 0);
+    cable.rotation.z = 0.3;
+    camBox.add(cable);
+    root.add(pole, camBox);
+  } else if (kind === 12) {
+    // Bus stop shelter (ruined)
+    const frameMat = new THREE.MeshStandardMaterial({ color: "#444", metalness: 0.6, roughness: 0.4 });
+    const glassMat = new THREE.MeshStandardMaterial({ color: "#88aabb", transparent: true, opacity: 0.25, roughness: 0.1 });
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.08, 1.4), frameMat);
+    roof.position.y = 2.2;
+    const postL = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.2, 6), frameMat);
+    postL.position.set(-1.2, 1.1, 0);
+    const postR = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.2, 6), frameMat);
+    postR.position.set(1.2, 1.1, 0);
+    // Broken glass panel
+    const panel = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.8, 0.04), glassMat);
+    panel.position.set(0, 1.1, 0.5);
+    panel.rotation.z = (Math.random() - 0.5) * 0.15;
+    const bench = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.06, 0.4), new THREE.MeshStandardMaterial({ color: "#555", roughness: 0.8 }));
+    bench.position.set(0, 0.5, 0.2);
+    root.add(roof, postL, postR, panel, bench);
+  } else if (kind === 13) {
+    // Fire hydrant (different style)
+    const hBody = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.18, 0.8, 10), new THREE.MeshStandardMaterial({ color: "#8a3a2a", roughness: 0.8 }));
+    hBody.position.y = 0.4;
+    const hTop = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), new THREE.MeshStandardMaterial({ color: "#7a3020", roughness: 0.8 }));
+    hTop.position.y = 0.85;
+    const cap1 = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.2, 8), new THREE.MeshStandardMaterial({ color: "#aaa", metalness: 0.7 }));
+    cap1.rotation.z = Math.PI / 2;
+    cap1.position.set(0.18, 0.5, 0);
+    const cap2 = cap1.clone();
+    cap2.position.set(-0.18, 0.5, 0);
+    root.add(hBody, hTop, cap1, cap2);
+  } else {
+    // Newspaper vending machine (toppled)
+    const vmMat = new THREE.MeshStandardMaterial({ color: "#3a3a4a", roughness: 0.8, metalness: 0.3 });
+    const machine = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.0, 0.5), vmMat);
+    machine.position.set(0, 0.35, 0);
+    machine.rotation.z = (Math.random() - 0.5) * 0.6;
+    machine.rotation.y = Math.random() * Math.PI;
+    const window = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.02), new THREE.MeshStandardMaterial({ color: "#88aacc", transparent: true, opacity: 0.3 }));
+    window.position.set(0, 0.1, 0.26);
+    machine.add(window);
+    // Scattered papers
+    const paperMat = new THREE.MeshStandardMaterial({ color: "#ddd", roughness: 0.9, side: THREE.DoubleSide });
+    for (let p = 0; p < 4; p++) {
+      const paper = new THREE.Mesh(new THREE.PlaneGeometry(0.2 + Math.random() * 0.15, 0.25 + Math.random() * 0.15), paperMat);
+      paper.rotation.x = -Math.PI / 2;
+      paper.position.set((Math.random() - 0.5) * 1.5, 0.01, (Math.random() - 0.5) * 1.0);
+      paper.rotation.z = Math.random() * Math.PI;
+      root.add(paper);
+    }
+    root.add(machine);
   }
 
   applyRoadsideShadows(root);
@@ -5057,7 +5337,7 @@ function recycleCityRoadsideProp(prop, initial = false) {
 }
 
 function createRoadsideProp(index) {
-  const kind = index % 26;
+  const kind = index % 35;
   const root = new THREE.Group();
 
   const mRust = (l) =>
@@ -5621,6 +5901,118 @@ function createRoadsideProp(index) {
     handle.rotation.z = Math.PI / 2;
     handle.rotation.y = frame.rotation.y;
     root.add(frame, w1, w2, handle);
+  } else if (kind === 26) {
+    // Rusted barrels (cluster)
+    const barrelMat = mRust(0.3);
+    for (let b = 0; b < 2 + Math.floor(Math.random() * 3); b++) {
+      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.9, 10), barrelMat);
+      barrel.position.set((Math.random() - 0.5) * 1.2, 0.45, (Math.random() - 0.5) * 1.0);
+      barrel.rotation.z = (Math.random() - 0.5) * 0.4;
+      barrel.rotation.x = (Math.random() - 0.5) * 0.3;
+      root.add(barrel);
+    }
+  } else if (kind === 27) {
+    // Fallen traffic sign
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 3.2, 8), mSteel);
+    pole.position.set(0, 0.3, 0);
+    pole.rotation.z = 1.2 + Math.random() * 0.4;
+    const signShape = new THREE.Shape();
+    const s = 0.7;
+    signShape.moveTo(0, s);
+    signShape.lineTo(-s * 0.87, -s * 0.5);
+    signShape.lineTo(s * 0.87, -s * 0.5);
+    signShape.closePath();
+    const signGeo = new THREE.ExtrudeGeometry(signShape, { depth: 0.06, bevelEnabled: false });
+    const sign = new THREE.Mesh(signGeo, mEm("#c45a20", 0.35));
+    sign.position.set(1.2, 0.5, 0);
+    sign.rotation.z = pole.rotation.z;
+    root.add(pole, sign);
+  } else if (kind === 28) {
+    // Broken fence section
+    const postGeo = new THREE.CylinderGeometry(0.06, 0.08, 1.4, 6);
+    for (const px of [-1.0, 0, 1.0]) {
+      const post = new THREE.Mesh(postGeo, mW);
+      post.position.set(px, 0.5, (Math.random() - 0.5) * 0.15);
+      post.rotation.z = (Math.random() - 0.5) * 0.15;
+      root.add(post);
+    }
+    for (const ry of [0.35, 0.9]) {
+      const rail = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.06, 0.04), mW);
+      rail.position.set(0, ry, 0);
+      rail.rotation.z = (Math.random() - 0.5) * 0.08;
+      root.add(rail);
+    }
+  } else if (kind === 29) {
+    // Stack of tires
+    const tireMat = new THREE.MeshStandardMaterial({ color: "#151312", roughness: 0.95 });
+    const stackCount = 2 + Math.floor(Math.random() * 4);
+    for (let t = 0; t < stackCount; t++) {
+      const tire = new THREE.Mesh(new THREE.TorusGeometry(0.35 + Math.random() * 0.1, 0.08, 6, 14).applyMatrix4(new THREE.Matrix4().makeRotationX(Math.PI / 2)), tireMat);
+      tire.position.set((Math.random() - 0.5) * 0.15, 0.1 + t * 0.18, (Math.random() - 0.5) * 0.15);
+      tire.rotation.z = (Math.random() - 0.5) * 0.2;
+      root.add(tire);
+    }
+  } else if (kind === 30) {
+    // Toppled concrete barrier (Jersey barrier)
+    const barrier = new THREE.Mesh(new THREE.BoxGeometry(3.0, 1.0, 0.7), mConc);
+    barrier.position.set(0, 0.35, 0);
+    barrier.rotation.z = (Math.random() - 0.5) * 0.5;
+    barrier.rotation.y = Math.random() * Math.PI;
+    const stripe = new THREE.Mesh(new THREE.BoxGeometry(3.02, 0.12, 0.72), mEm("#d4a030", 0.25));
+    stripe.position.set(0, 0.5, 0);
+    stripe.rotation.copy(barrier.rotation);
+    root.add(barrier, stripe);
+  } else if (kind === 31) {
+    // Rusted car door leaning
+    const door = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.08, 1.8), mRust(0.28));
+    door.position.set(0, 0.6, 0);
+    door.rotation.z = 0.4 + Math.random() * 0.3;
+    door.rotation.y = Math.random() * Math.PI;
+    const handle = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.04, 0.04), mSteel);
+    handle.position.set(0.35, 0.04, 0.3);
+    door.add(handle);
+    root.add(door);
+  } else if (kind === 32) {
+    // Dead animal skeleton / remains
+    const boneMat = new THREE.MeshStandardMaterial({ color: "#d4c8b0", roughness: 0.8 });
+    const ribs = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 1.2, 4), boneMat);
+    ribs.rotation.z = Math.PI / 2;
+    ribs.position.set(0, 0.15, 0);
+    for (let r = 0; r < 5; r++) {
+      const rib = new THREE.Mesh(new THREE.TorusGeometry(0.1 + r * 0.04, 0.015, 4, 8, Math.PI), boneMat);
+      rib.position.set(-0.4 + r * 0.2, 0.12, 0);
+      rib.rotation.y = Math.PI / 2;
+      root.add(rib);
+    }
+    const skull = new THREE.Mesh(new THREE.SphereGeometry(0.12, 6, 5), boneMat);
+    skull.position.set(0.7, 0.1, 0);
+    skull.scale.set(1, 0.7, 0.8);
+    root.add(ribs, skull);
+  } else if (kind === 33) {
+    // Abandoned toolbox / mechanic station
+    const toolbox = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.5, 0.35), mRust(0.35));
+    toolbox.position.set(0, 0.25, 0);
+    const lid = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.06, 0.37), mSteel);
+    lid.position.set(0, 0.52, 0);
+    lid.rotation.z = (Math.random() - 0.5) * 0.3;
+    const wrench = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.5, 6), mSteel);
+    wrench.rotation.z = Math.PI / 2;
+    wrench.rotation.y = Math.random() * Math.PI;
+    wrench.position.set(0.4, 0.04, 0.2);
+    root.add(toolbox, lid, wrench);
+  } else if (kind === 34) {
+    // Radio antenna / mast (fallen or standing)
+    const isFallen = Math.random() > 0.5;
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.1, isFallen ? 4.0 : 6.0, 8), mSteel);
+    mast.position.set(0, isFallen ? 0.3 : 3.0, 0);
+    if (isFallen) mast.rotation.z = Math.PI / 2 + (Math.random() - 0.5) * 0.3;
+    for (let w = 0; w < 3; w++) {
+      const wire = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 2.5, 4), mSteel);
+      wire.position.set((Math.random() - 0.5) * 1.5, isFallen ? 0.8 + w * 0.4 : 4.0 + w * 0.8, (Math.random() - 0.5) * 0.3);
+      wire.rotation.z = (Math.random() - 0.5) * 0.3;
+      root.add(wire);
+    }
+    root.add(mast);
   }
 
   applyRoadsideShadows(root);
