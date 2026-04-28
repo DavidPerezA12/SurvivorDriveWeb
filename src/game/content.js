@@ -153,6 +153,7 @@ export const environmentProfiles = {
     fogBoost: 0,
     handling: 1,
     threatBoost: 0,
+    fuelUse: 1,
   },
   dust: {
     id: "dust",
@@ -161,6 +162,7 @@ export const environmentProfiles = {
     fogBoost: 0.002,
     handling: 0.94,
     threatBoost: 14,
+    fuelUse: 1.16,
   },
   ash: {
     id: "ash",
@@ -169,37 +171,39 @@ export const environmentProfiles = {
     fogBoost: 0.0015,
     handling: 0.97,
     threatBoost: 8,
+    fuelUse: 1.12,
   },
   smog: {
     id: "smog",
     label: "Smog Bank",
-    tint: "#262b30",
-    fogBoost: 0.002,
+    tint: "#4a5159", // Mucho más claro que #262b30
+    fogBoost: 0.0015, // Menos denso
     handling: 0.95,
     threatBoost: 12,
+    fuelUse: 1.1,
   },
 };
 
 export const skyPalette = {
   desert: {
-    bgNight: "#08101a",
-    bgDay: "#854f2c",
-    fogNight: "#0d111a",
-    fogDay: "#9e7447",
-    ambientNight: "#556f9e",
-    ambientDay: "#a88768",
-    groundNight: "#110b0d",
-    groundDay: "#211108",
+    bgNight: "#0f1a2b",
+    bgDay: "#a66840",
+    fogNight: "#161c2b",
+    fogDay: "#c49a6c",
+    ambientNight: "#6c88bf",
+    ambientDay: "#c4a385",
+    groundNight: "#1a1215",
+    groundDay: "#361e12",
   },
   city: {
-    bgNight: "#070c14",
-    bgDay: "#484952",
-    fogNight: "#0d1219",
-    fogDay: "#4f545c",
-    ambientNight: "#576a80",
-    ambientDay: "#878a8f",
-    groundNight: "#0c0d11",
-    groundDay: "#1c1d22",
+    bgNight: "#1a2636", // Más claro
+    bgDay: "#7d7e8a",    // Más brillante
+    fogNight: "#242d3b",
+    fogDay: "#898e99",
+    ambientNight: "#7a8eb2",
+    ambientDay: "#b0b3ba",   // Más luz ambiente de día
+    groundNight: "#25262e",
+    groundDay: "#4a4b54",    // Suelo de ciudad menos oscuro
   },
 };
 
@@ -234,11 +238,10 @@ export const pickupCatalog = {
 export const encounterConfig = {
   desert: {
     weightedPickups: ["coin", "coin", "jump", "fire", "ammo", "repair"],
-    obstacleBias: { raider: 0.08, barrier: 0.3, tower: 0.2, wreck: 0.1, scrap: 0.32 },
+    obstacleBias: { raider: 0.08, barrier: 0.3, tower: 0.2, wreck: 0.1, scrap: 0.22, mutant: 0.06, ramp: 0.04 },
   },
   city: {
     weightedPickups: ["coin", "ammo", "repair", "jump", "fire"],
-    obstacleBias: { raider: 0.14, barrier: 0.26, tower: 0.26, wreck: 0.2, scrap: 0.14 },
+    obstacleBias: { raider: 0.14, barrier: 0.22, tower: 0.22, wreck: 0.18, scrap: 0.1, mutant: 0.08, ramp: 0.06 },
   },
 };
-;

@@ -72,11 +72,11 @@ const carCreateFunctionNew = `function createCar() {
     roughness: 0.2,
     clearcoat: 1.0,
     clearcoatRoughness: 0.1,
-    envMapIntensity: 2.0,
+    envMapIntensity: 0.7,
   });
   
   const darkMetal = new THREE.MeshStandardMaterial({color: "#111", roughness: 0.8, metalness: 0.7});
-  const carbonFiber = new THREE.MeshStandardMaterial({color: "#1a1a1c", roughness: 0.5, metalness: 0.6, envMapIntensity: 1.5});
+  const carbonFiber = new THREE.MeshStandardMaterial({color: "#1a1a1c", roughness: 0.5, metalness: 0.6, envMapIntensity: 0.5});
   const glassMaterial = new THREE.MeshPhysicalMaterial({color: "#010101", metalness: 0.2, roughness: 0.0, transmission: 0.98, ior: 1.6, transparent: true});
   const engineGlow = new THREE.MeshStandardMaterial({color: "#ffaa00", emissive: "#ff4400", emissiveIntensity: 4.0});
   const tailLampMaterial = new THREE.MeshStandardMaterial({color: "#aa0000", emissive: "#ff0500", emissiveIntensity: 5.0});

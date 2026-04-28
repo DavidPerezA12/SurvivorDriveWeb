@@ -16,6 +16,14 @@ export function mountApp(app) {
             <span>Route</span>
             <strong data-biome>Desert run</strong>
           </div>
+          <div class="status-chip">
+            <span>Weather</span>
+            <strong data-weather>Clear</strong>
+          </div>
+          <div class="status-chip">
+            <span>Cycle</span>
+            <strong data-cycle>Day</strong>
+          </div>
           <div class="status-chip objective-chip">
             <span>Objective</span>
             <strong data-objective>Reach the city gate</strong>
@@ -26,14 +34,9 @@ export function mountApp(app) {
 
       <aside class="hud stats-cluster">
         <div class="stats">
-          <div class="stat"><span>Coins</span><strong data-coins>0</strong></div>
-          <div class="stat"><span>Ammo</span><strong data-ammo>0</strong></div>
           <div class="stat"><span>Jump</span><strong data-jumps>0</strong></div>
           <div class="stat"><span>Fire</span><strong data-fire>0</strong></div>
           <div class="stat"><span>Hull</span><strong data-health>100</strong></div>
-          <div class="stat"><span>Threat</span><strong data-threat>0%</strong></div>
-          <div class="stat"><span>Weather</span><strong data-weather>Clear</strong></div>
-          <div class="stat"><span>Cycle</span><strong data-cycle>Day</strong></div>
           <div class="stat"><span>Km</span><strong data-distance>0.0</strong></div>
         </div>
       </aside>
@@ -75,16 +78,10 @@ export function mountApp(app) {
           </p>
           <div class="contract-grid">
             <article class="contract-card emphasis">
-              <span class="eyebrow">Primary route</span>
-              <h3>Wasteland Highway</h3>
-              <p>Run larga desde desierto hasta la entrada de la ciudad. Desbloquea el tramo urbano.</p>
-              <button data-action="start-desert">Jugar desierto</button>
-            </article>
-            <article class="contract-card" data-city-card>
-              <span class="eyebrow">Second scene</span>
-              <h3>Ruined District</h3>
-              <p data-city-copy>Desbloquea el acceso urbano alcanzando la puerta de la ciudad.</p>
-              <button data-action="start-city" data-city-button disabled>Distrito city</button>
+              <span class="eyebrow">Unico escenario</span>
+              <h3>Highway to Ruins</h3>
+              <p>Recorre el desierto hasta las afueras y atraviesa el distrito urbano en ruinas en una sola run.</p>
+              <button data-action="start-desert">Jugar</button>
             </article>
           </div>
           <div class="actions compact">
@@ -117,8 +114,7 @@ export function mountApp(app) {
           </div>
           <div class="loadout" data-loadout></div>
           <div class="actions">
-            <button data-action="start-desert">Salir al desierto</button>
-            <button data-action="start-city" data-city-button-inline class="ghost" disabled>Distrito city</button>
+            <button data-action="start-desert">Jugar</button>
             <button data-action="menu" class="ghost">Volver</button>
           </div>
         </div>
@@ -223,8 +219,10 @@ export function mountApp(app) {
     jumpStock: app.querySelector('[data-action-stock="jump"]'),
     fireStock: app.querySelector('[data-action-stock="fire"]'),
     speedBar: app.querySelector("#speed-bar"),
-    cityButtons: [...app.querySelectorAll("[data-city-button], [data-city-button-inline]")],
-    cityCopy: app.querySelector("[data-city-copy]"),
+    jumpButton: app.querySelector('[data-game-action="jump"]'),
+    fireButton: app.querySelector('[data-game-action="fire"]'),
+    pauseButton: app.querySelector('[data-game-action="pause"]'),
+
     helpCopy: app.querySelector("[data-help-copy]"),
   };
 
@@ -242,11 +240,4 @@ export function mountApp(app) {
   };
 }
 
-export function updateCityAccessUI(hud, unlocked) {
-  for (const button of hud.cityButtons) {
-    button.disabled = !unlocked;
-  }
-  hud.cityCopy.textContent = unlocked
-    ? "Acceso urbano activo. Puedes arrancar directamente en el distrito."
-    : "Desbloquea el acceso urbano alcanzando la puerta de la ciudad.";
-}
+

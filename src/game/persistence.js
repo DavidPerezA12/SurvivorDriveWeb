@@ -70,7 +70,8 @@ export function loadSaveData() {
     const raw = localStorage.getItem(storageKey);
     if (!raw) return hydrateSave();
     return hydrateSave(JSON.parse(raw));
-  } catch {
+  } catch (e) {
+    console.warn("Failed to load save data:", e.message);
     return hydrateSave();
   }
 }

@@ -1,10 +1,14 @@
-import { biomeCatalog, encounterConfig, equipmentCatalog, objectiveCatalog, pickupCatalog } from "./content.js";
-
-export function applyLoadout(loadout) {
+export function applyLoadout(loadout, equipmentCatalog) {
   const selected = {
-    chassis: equipmentCatalog.chassis.find((item) => item.id === loadout.chassis),
-    tires: equipmentCatalog.tires.find((item) => item.id === loadout.tires),
-    rig: equipmentCatalog.rig.find((item) => item.id === loadout.rig),
+    chassis:
+      equipmentCatalog.chassis.find((item) => item.id === loadout.chassis) ??
+      equipmentCatalog.chassis[0],
+    tires:
+      equipmentCatalog.tires.find((item) => item.id === loadout.tires) ??
+      equipmentCatalog.tires[0],
+    rig:
+      equipmentCatalog.rig.find((item) => item.id === loadout.rig) ??
+      equipmentCatalog.rig[0],
   };
 
   const merged = {
@@ -20,6 +24,7 @@ export function applyLoadout(loadout) {
   };
 
   for (const entry of Object.values(selected)) {
+    if (!entry?.stats) continue;
     for (const [key, value] of Object.entries(entry.stats)) {
       merged[key] = (merged[key] ?? 1) * value;
     }
@@ -28,10 +33,11 @@ export function applyLoadout(loadout) {
   return { selected, merged };
 }
 
-export function createRunState(saveData, biome = "desert") {
-  const { merged } = applyLoadout(saveData.loadout);
+export function createRunState(saveData, biome = "desert", biomeCatalog, objectiveCatalog, equipmentCatalog) {
+  const { merged } = applyLoadout(saveData.loadout, equipmentCatalog);
   const biomeMeta = biomeCatalog[biome];
   const startingDistance = biome === "city" ? biomeCatalog.desert.checkpointKm : 0;
+  const ammoMax = Math.max(4, Math.round(8 * merged.ammoCap));
   return {
     biome,
     biomeLabel: biomeMeta.label,
@@ -47,9 +53,10 @@ export function createRunState(saveData, biome = "desert") {
     jumpPower: 10.35 * merged.jump,
     fireRadius: 4.8 * merged.fireRadius,
     traction: merged.traction,
-    ammoMax: Math.max(4, Math.round(8 * merged.ammoCap)),
-    ammo: Math.max(4, Math.round(8 * merged.ammoCap)),
+    ammoMax,
+    ammo: ammoMax,
     health: 100,
+    fuel: 100,
     coins: 0,
     jumps: 1,
     fire: 1,
@@ -59,6 +66,9 @@ export function createRunState(saveData, biome = "desert") {
     threat: 0,
     weatherLabel: "Clear",
     cycleLabel: "Day",
+    weatherFuelUse: 1,
+    weatherHandling: 1,
+    weatherThreat: 0,
     endReason: "",
     x: 0,
     lateralVel: 0,
@@ -77,12 +87,15 @@ export function createRunState(saveData, biome = "desert") {
     invulnerable: 0,
     obstacleTimer: 0,
     pickupTimer: 0,
+    propTimer: 0,
+    overheadTimer: 0,
+    lastMileMarker: 0,
     cityTransitionArmed: biome === "desert",
     cityTransitionDone: biome === "city",
   };
 }
 
-export function resolvePickup(run, type) {
+export function resolvePickup(run, type, pickupCatalog) {
   const pickup = pickupCatalog[type];
   if (!pickup) return null;
 
@@ -101,7 +114,7 @@ export function resolveCollision(run, damage) {
   return appliedDamage;
 }
 
-export function spawnEncounter(run, biome) {
+export function spawnEncounter(run, biome, encounterConfig) {
   const config = encounterConfig[biome];
   const threat = Math.min(1, (run.threat ?? 0) / 100);
   const table = { ...config.obstacleBias };
@@ -119,14 +132,14 @@ export function spawnEncounter(run, biome) {
   return biome === "city" ? "wreck" : "scrap";
 }
 
-export function choosePickupType(run, biome) {
+export function choosePickupType(run, biome, encounterConfig) {
   const config = encounterConfig[biome];
-  const scarcityBoost = run.fuel < 40 ? ["fuel", "ammo"] : [];
+  const scarcityBoost = run.fuel < 40 ? ["ammo", "repair"] : [];
   const pool = config.weightedPickups.concat(scarcityBoost);
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-export function updateRunProgression(run) {
+export function updateRunProgression(run, biomeCatalog) {
   run.sessionDistance = Math.max(0, run.distance - (run.biome === "city" ? biomeCatalog.desert.checkpointKm : 0));
   if (!Number.isFinite(run.objectiveTarget)) {
     run.objectiveProgress = run.biome === "city" ? run.sessionDistance : run.distance;
@@ -141,13 +154,14 @@ export function updateRunProgression(run) {
     run.cityTransitionArmed &&
     run.distance >= biomeCatalog.desert.checkpointKm;
 
+  if (shouldEnterCity) {
+    run.cityTransitionArmed = false;
+  }
+
   const completedRun =
     run.biome === "city" &&
     Number.isFinite(biomeCatalog.city.completionKm) &&
     run.distance >= biomeCatalog.city.completionKm;
 
-  return {
-    shouldEnterCity,
-    completedRun,
-  };
+  return { shouldEnterCity, completedRun };
 }

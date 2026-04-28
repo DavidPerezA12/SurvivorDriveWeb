@@ -159,7 +159,7 @@ input {
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -602,7 +602,7 @@ body[data-route="options"] .topbar .status-strip {
 
 @media (max-width: 1080px) {
   .stats {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
   .loadout {
