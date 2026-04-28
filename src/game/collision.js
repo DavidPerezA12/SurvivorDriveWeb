@@ -113,5 +113,5 @@ export function obstacleHitsCar(obstacle, run) {
 }
 
 export function randomLane() {
-  return [-2.8, 0, 2.8][Math.floor(Math.random() * 3)];
+  return [-4.2, -1.4, 1.4, 4.2][Math.floor(Math.random() * 4)];
 }

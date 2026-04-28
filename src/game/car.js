@@ -11,7 +11,7 @@ export function createCar(world, state, equipmentCatalog) {
   const group = new THREE.Group();
 
   const mainHull = new THREE.Group();
-  const chassisName = state.equipment.chassis.id || "interceptor";
+  const chassisName = state.equipment.chassis || "interceptor";
 
   // Use GLTF model if loaded
   if (world.assets.models["player"]) {

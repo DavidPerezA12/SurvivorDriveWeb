@@ -328,7 +328,7 @@ function setupThree() {
   });
 
   const road = new THREE.Mesh(
-    new THREE.PlaneGeometry(9.4, 600, 16, 64),
+    new THREE.PlaneGeometry(14, 600, 16, 64),
     roadMaterial,
   );
   road.rotation.x = -Math.PI / 2;
@@ -364,9 +364,9 @@ function setupThree() {
     metalness: 0.02,
   });
 
-  world.roadShoulders = [-5.55, 5.55].map((x) => {
+  world.roadShoulders = [-8.2, 8.2].map((x) => {
     const shoulder = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.7, 600, 4, 64),
+      new THREE.PlaneGeometry(2.5, 600, 4, 64),
       shoulderMaterial,
     );
     shoulder.rotation.x = -Math.PI / 2;
@@ -391,47 +391,47 @@ function setupThree() {
   world.materials.road = roadMaterial;
   world.materials.shoulder = shoulderMaterial;
 
-  for (let i = 0; i < 100; i += 1) {
+  for (let i = 0; i < 160; i += 1) {
     const dune = createDune();
-    recycleEnvironmentObject(dune, true, 10, 80, -35, 300);
+    recycleEnvironmentObject(dune, true, 12, 100, -35, 300);
     world.scene.add(dune);
     world.dunes.push(dune);
   }
 
-  for (let i = 0; i < 120; i += 1) {
+  for (let i = 0; i < 220; i += 1) {
     const prop = createRoadsideProp(i);
     world.scene.add(prop);
     world.roadsideProps.push(prop);
   }
 
-  for (let i = 0; i < 45; i += 1) {
+  for (let i = 0; i < 70; i += 1) {
     const b = createBackdropMesa(i);
     world.scene.add(b);
     world.roadsideBackdrop.push(b);
   }
 
-  for (let i = 0; i < 55; i += 1) {
+  for (let i = 0; i < 90; i += 1) {
     const prop = createCityRoadsideProp(i);
     prop.visible = false;
     world.scene.add(prop);
     world.cityProps.push(prop);
   }
 
-  for (let i = 0; i < 28; i += 1) {
+  for (let i = 0; i < 45; i += 1) {
     const skyline = createCityBackdrop(i);
     skyline.visible = false;
     world.scene.add(skyline);
     world.cityBackdrop.push(skyline);
   }
 
-  for (let i = 0; i < 180; i += 1) {
+  for (let i = 0; i < 280; i += 1) {
     const boulder = createScatteredBoulder();
-    recycleEnvironmentObject(boulder, true, 10, 85, -50, 320);
+    recycleEnvironmentObject(boulder, true, 12, 100, -50, 320);
     world.scene.add(boulder);
     world.boulders.push(boulder);
   }
 
-  for (let i = 0; i < 50; i += 1) {
+  for (let i = 0; i < 80; i += 1) {
     const band = new THREE.Mesh(
       new THREE.PlaneGeometry(30, 10),
       new THREE.MeshBasicMaterial({
@@ -442,7 +442,7 @@ function setupThree() {
       }),
     );
     band.position.set(
-      (Math.random() - 0.5) * 45,
+      (Math.random() - 0.5) * 55,
       1.5 + Math.random() * 6,
       i * 12,
     );
@@ -453,7 +453,7 @@ function setupThree() {
 
   // Heat shimmer planes (desert mirage above road)
   world.heatShimmer = [];
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 16; i++) {
     const shimmerGeo = new THREE.PlaneGeometry(15 + Math.random() * 20, 6 + Math.random() * 8, 4, 2);
     const shimmerMat = new THREE.MeshBasicMaterial({
       color: "#ffddb0",
@@ -478,13 +478,13 @@ function setupThree() {
     world.heatShimmer.push(shimmer);
   }
 
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < 35; i++) {
     const far = createFarBackdropElement(i);
     world.scene.add(far);
     world.farBackdrop.push(far);
   }
 
-  for (let i = 0; i < 60; i++) {
+  for (let i = 0; i < 100; i++) {
     const detail = createRoadDetail();
     world.scene.add(detail);
     world.roadDetails.push(detail);
@@ -493,7 +493,7 @@ function setupThree() {
   world.car = createCar(world, state, equipmentCatalog);
   world.scene.add(world.car);
 
-  world.camera.position.set(0, 5.5, -10);
+  world.camera.position.set(0, 6.2, -11.5);
   world.camera.lookAt(0, 1.4, 8);
 
   const dracoLoader = new DRACOLoader();
@@ -1139,8 +1139,8 @@ function updateCinematic(dt) {
   const targetCarX = menuPose ? 4.2 : 0;
   const targetLookX = menuPose ? 3.1 : 0;
   const cameraBaseX = menuPose ? 6.8 : 0;
-  const cameraBaseY = menuPose ? 4.9 : 5.2;
-  const cameraBaseZ = menuPose ? -8.8 : -10.5;
+  const cameraBaseY = menuPose ? 5.2 : 6.0;
+  const cameraBaseZ = menuPose ? -9.5 : -11.5;
 
   world.camera.position.x = cameraBaseX + Math.sin(t) * (menuPose ? 0.9 : 2.5);
   world.camera.position.y = cameraBaseY + Math.sin(t * 0.7) * 0.2;
@@ -1236,7 +1236,7 @@ function updateRun(dt) {
   const centering = run.x * 1.35;
   const cornering = 3.35;
   const traction = baseTraction * run.gripFactor;
-  const laneHalfWidth = 5.2;
+  const laneHalfWidth = 7.5;
   const lateralDamping = run.skidding ? 1.15 : 2.85;
   run.lateralVel +=
     (steer * cornering * 4.8 * traction -
@@ -1463,8 +1463,8 @@ function updateRun(dt) {
   world.camera.position.x +=
     (run.camSwayXSmoothed - world.camera.position.x) * dt * 2.5;
   world.camera.position.y +=
-    (5.5 + run.y * 0.35 + camSwayY - world.camera.position.y) * dt * 2.5;
-  world.camera.position.z += (-10.5 - world.camera.position.z) * dt * 2.5;
+    (6.2 + run.y * 0.35 + camSwayY - world.camera.position.y) * dt * 2.5;
+  world.camera.position.z += (-11.5 - world.camera.position.z) * dt * 2.5;
 
   // Screen shake
   if (shakeTimer > 0) {
@@ -1483,7 +1483,7 @@ function updateRun(dt) {
   run.propTimer = (run.propTimer || 0) - dt;
   if (run.propTimer <= 0) {
     spawnProp();
-    run.propTimer = Math.random() * 0.06;
+    run.propTimer = Math.random() * 0.035;
   }
   if (run.obstacleTimer <= 0) {
     spawnObstacle();
@@ -1751,7 +1751,7 @@ function createFarBackdropElement(i) {
 function recycleFarBackdrop(root, initial = false) {
   const side = Math.random() > 0.5 ? 1 : -1;
   const z = initial ? Math.random() * 800 : 800 + Math.random() * 200;
-  root.position.set(side * (250 + Math.random() * 150), -10, z);
+  root.position.set(side * (280 + Math.random() * 180), -10, z);
 }
 
 function createRoadDetail() {
@@ -1885,10 +1885,10 @@ function recycleRoadDetail(mesh, initial = false) {
     mesh.position.set(0, 0.045, z);
     mesh.rotation.set(0, 0, 0);
   } else if (mesh.userData.is3D) {
-    mesh.position.set((Math.random() - 0.5) * 8.5, 0.08, z);
+    mesh.position.set((Math.random() - 0.5) * 12.5, 0.08, z);
     mesh.rotation.set(0, Math.random() * Math.PI, 0);
   } else {
-    mesh.position.set((Math.random() - 0.5) * 8.5, 0.045, z);
+    mesh.position.set((Math.random() - 0.5) * 12.5, 0.045, z);
     mesh.rotation.x = -Math.PI / 2;
     mesh.rotation.z = Math.random() * Math.PI * 2;
   }
@@ -2457,17 +2457,21 @@ function spawnProp() {
   const isLeft = Math.random() > 0.5;
   const randType = Math.random();
   let kind = "rock";
-  if (randType > 0.94) kind = "castle";
-  else if (randType > 0.88) kind = "wreckage";
-  else if (randType > 0.82) kind = "billboard";
-  else if (randType > 0.55) kind = "building";
-  else if (randType > 0.38) kind = "tree";
-  else if (randType > 0.28) kind = "crater";
+  if (randType > 0.95) kind = "castle";
+  else if (randType > 0.90) kind = "wreckage";
+  else if (randType > 0.85) kind = "billboard";
+  else if (randType > 0.78) kind = "watchtower";
+  else if (randType > 0.68) kind = "building";
+  else if (randType > 0.58) kind = "tree";
+  else if (randType > 0.50) kind = "tank";
+  else if (randType > 0.42) kind = "tent";
+  else if (randType > 0.34) kind = "pipeline";
+  else if (randType > 0.26) kind = "crater";
 
   const prop = createPropMesh(kind);
   const zDist = 120 + Math.random() * 80;
   const xDist =
-    (kind === "castle" ? 25 + Math.random() * 20 : 15 + Math.random() * 45) *
+    (kind === "castle" ? 28 + Math.random() * 24 : 18 + Math.random() * 55) *
     (isLeft ? -1 : 1);
   prop.position.set(xDist, 0, zDist);
 
@@ -3088,6 +3092,57 @@ function createPropMesh(kind) {
       debris.scale.y = 0.3 + Math.random() * 0.3;
       group.add(debris);
     }
+  } else if (kind === "pipeline") {
+    const rustMat = new THREE.MeshStandardMaterial({ color: "#5a4538", roughness: 0.95, metalness: 0.4 });
+    const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 4.0, 12), rustMat);
+    pipe.rotation.z = Math.PI / 2 + (Math.random() - 0.5) * 0.4;
+    pipe.position.set(0, 0.4, 0);
+    const joint = new THREE.Mesh(new THREE.SphereGeometry(0.5, 10, 10), rustMat);
+    joint.position.set(1.8, 0.3, 0);
+    const spill = new THREE.Mesh(new THREE.CircleGeometry(0.5 + Math.random() * 0.6, 10), new THREE.MeshStandardMaterial({ color: "#1a140e", roughness: 1 }));
+    spill.rotation.x = -Math.PI / 2;
+    spill.position.set(-1.4, 0.02, 0.3);
+    group.add(pipe, joint, spill);
+  } else if (kind === "watchtower") {
+    const woodMat = new THREE.MeshStandardMaterial({ color: "#3a2818", roughness: 0.9 });
+    const rustMat = new THREE.MeshStandardMaterial({ color: "#5a4538", roughness: 0.9, metalness: 0.4 });
+    for (const lx of [-1.2, 1.2]) {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 6.0, 6), woodMat);
+      leg.position.set(lx, 3.0, 0);
+      leg.rotation.z = (Math.random() - 0.5) * 0.08;
+      group.add(leg);
+    }
+    const platform = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.2, 2.4), rustMat);
+    platform.position.set(0, 5.8, 0);
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(1.8, 1.3, 4), rustMat);
+    roof.position.set(0, 6.7, 0);
+    roof.rotation.y = Math.PI / 4;
+    group.add(platform, roof);
+  } else if (kind === "tent") {
+    const poleMat = new THREE.MeshStandardMaterial({ color: "#5a5045", roughness: 0.9 });
+    for (const px of [-1.1, 1.1]) {
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 3.0, 6), poleMat);
+      pole.position.set(px, 1.5, 0);
+      pole.rotation.z = px > 0 ? -0.18 : 0.18;
+      group.add(pole);
+    }
+    const tarp = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.06, 2.2), new THREE.MeshStandardMaterial({ color: "#6b5e4f", roughness: 1, side: THREE.DoubleSide }));
+    tarp.position.set(0, 2.8, 0);
+    tarp.rotation.z = (Math.random() - 0.5) * 0.12;
+    const crate = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.45, 0.35), new THREE.MeshStandardMaterial({ color: "#4a3b2e", roughness: 0.9 }));
+    crate.position.set(0.25, 0.22, 0.4);
+    group.add(tarp, crate);
+  } else if (kind === "tank") {
+    const rustMat = new THREE.MeshStandardMaterial({ color: "#5a4538", roughness: 0.9, metalness: 0.35 });
+    const tankBody = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, 3.6, 14), rustMat);
+    tankBody.position.y = 1.8;
+    const top = new THREE.Mesh(new THREE.SphereGeometry(1.4, 14, 6, 0, Math.PI * 2, 0, Math.PI / 2), rustMat);
+    top.position.y = 3.6;
+    const ladder = new THREE.Mesh(new THREE.BoxGeometry(0.3, 3.2, 0.06), new THREE.MeshStandardMaterial({ color: "#444", metalness: 0.6, roughness: 0.5 }));
+    ladder.position.set(1.42, 1.8, 0);
+    const valve = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.35, 8), new THREE.MeshStandardMaterial({ color: "#333", metalness: 0.7 }));
+    valve.position.set(0, 3.9, 0);
+    group.add(tankBody, top, ladder, valve);
   }
 
   return group;
@@ -4706,7 +4761,7 @@ function createBackdropMesa(i) {
 function recycleBackdrop(m) {
   const side = Math.random() > 0.5 ? 1 : -1;
   m.position.set(
-    side * (44 + Math.random() * 36),
+    side * (55 + Math.random() * 45),
     0,
     160 + Math.random() * 130,
   );
@@ -4846,7 +4901,7 @@ function createCityBackdrop(i) {
 function recycleCityBackdrop(root) {
   const side = Math.random() > 0.5 ? 1 : -1;
   root.position.set(
-    side * (48 + Math.random() * 26),
+    side * (55 + Math.random() * 35),
     0,
     160 + Math.random() * 140,
   );
@@ -4992,7 +5047,7 @@ function createCityRoadsideProp(index) {
 
 function recycleCityRoadsideProp(prop, initial = false) {
   const side = Math.random() > 0.5 ? 1 : -1;
-  const dist = prop.userData.isCurb ? 6.5 : (10 + Math.random() * 18);
+  const dist = prop.userData.isCurb ? 8.5 : (12 + Math.random() * 24);
   prop.position.set(
     side * dist,
     0,
@@ -5002,7 +5057,7 @@ function recycleCityRoadsideProp(prop, initial = false) {
 }
 
 function createRoadsideProp(index) {
-  const kind = index % 21;
+  const kind = index % 26;
   const root = new THREE.Group();
 
   const mRust = (l) =>
@@ -5488,6 +5543,84 @@ function createRoadsideProp(index) {
       junk.rotation.set(Math.random() * 0.8, Math.random() * Math.PI, Math.random() * 0.8);
       root.add(junk);
     }
+  } else if (kind === 21) {
+    // Broken pipeline segment
+    const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 3.5, 12), mRust(0.35));
+    pipe.rotation.z = Math.PI / 2 + (Math.random() - 0.5) * 0.3;
+    pipe.position.set(0, 0.35, 0);
+    const joint = new THREE.Mesh(new THREE.SphereGeometry(0.45, 10, 10), mRust(0.3));
+    joint.position.set(1.6, 0.25, 0);
+    const leak = new THREE.Mesh(new THREE.CircleGeometry(0.3, 8), new THREE.MeshStandardMaterial({ color: "#1a120a", roughness: 1 }));
+    leak.rotation.x = -Math.PI / 2;
+    leak.position.set(-1.2, 0.02, 0.4);
+    root.add(pipe, joint, leak);
+  } else if (kind === 22) {
+    // Watchtower (rusted metal and wood)
+    const postMat = new THREE.MeshStandardMaterial({ color: "#3a2818", roughness: 0.9 });
+    const legGeo = new THREE.CylinderGeometry(0.12, 0.15, 5.5, 6);
+    for (const lx of [-1.1, 1.1]) {
+      const leg = new THREE.Mesh(legGeo, postMat);
+      leg.position.set(lx, 2.75, 0);
+      leg.rotation.z = (Math.random() - 0.5) * 0.06;
+      root.add(leg);
+    }
+    const platform = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.2, 2.2), mRust(0.3));
+    platform.position.set(0, 5.2, 0);
+    const ladder = new THREE.Mesh(new THREE.BoxGeometry(0.25, 4.5, 0.08), mSteel);
+    ladder.position.set(0.6, 3.0, 1.15);
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(1.6, 1.2, 4), mRust(0.25));
+    roof.position.set(0, 6.0, 0);
+    roof.rotation.y = Math.PI / 4;
+    root.add(platform, ladder, roof);
+  } else if (kind === 23) {
+    // Abandoned tent / tarp shelter
+    const poleMat = new THREE.MeshStandardMaterial({ color: "#5a5045", roughness: 0.9 });
+    for (const px of [-1.0, 1.0]) {
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 2.8, 6), poleMat);
+      pole.position.set(px, 1.4, 0);
+      pole.rotation.z = px > 0 ? -0.15 : 0.15;
+      root.add(pole);
+    }
+    const tarp = new THREE.Mesh(
+      new THREE.BoxGeometry(2.4, 0.06, 2.0),
+      new THREE.MeshStandardMaterial({ color: "#6b5e4f", roughness: 1, side: THREE.DoubleSide }),
+    );
+    tarp.position.set(0, 2.6, 0);
+    tarp.rotation.z = (Math.random() - 0.5) * 0.1;
+    const crate = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.5, 0.4), mRust(0.3));
+    crate.position.set(0.3, 0.25, 0.5);
+    root.add(tarp, crate);
+  } else if (kind === 24) {
+    // Fuel tank (large rusted cylinder)
+    const tank = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 3.2, 14), mRust(0.22));
+    tank.position.y = 1.6;
+    const top = new THREE.Mesh(new THREE.SphereGeometry(1.2, 14, 6, 0, Math.PI * 2, 0, Math.PI / 2), mRust(0.18));
+    top.position.y = 3.2;
+    const ladder = new THREE.Mesh(new THREE.BoxGeometry(0.35, 2.8, 0.08), mSteel);
+    ladder.position.set(1.22, 1.6, 0);
+    const valve = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.4, 8), mSteel);
+    valve.position.set(0, 3.5, 0);
+    root.add(tank, top, ladder, valve);
+  } else if (kind === 25) {
+    // Wrecked motorcycle
+    const bikeMat = mRust(0.25);
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 1.6), bikeMat);
+    frame.position.set(0, 0.35, 0);
+    frame.rotation.y = Math.random() * Math.PI;
+    frame.rotation.z = (Math.random() - 0.5) * 0.6;
+    const wheelGeo = new THREE.TorusGeometry(0.28, 0.06, 6, 14).applyMatrix4(new THREE.Matrix4().makeRotationX(Math.PI / 2));
+    const wMat = new THREE.MeshStandardMaterial({ color: "#0d0b0a", roughness: 1 });
+    const w1 = new THREE.Mesh(wheelGeo, wMat);
+    w1.position.set(0, 0.2, 0.55);
+    w1.rotation.y = frame.rotation.y;
+    const w2 = new THREE.Mesh(wheelGeo, wMat);
+    w2.position.set(0, 0.2, -0.55);
+    w2.rotation.y = frame.rotation.y;
+    const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.7, 6), mSteel);
+    handle.position.set(0, 0.65, 0.5);
+    handle.rotation.z = Math.PI / 2;
+    handle.rotation.y = frame.rotation.y;
+    root.add(frame, w1, w2, handle);
   }
 
   applyRoadsideShadows(root);
@@ -5507,7 +5640,7 @@ function recycleRoadsideProp(prop, initial = false) {
     return;
   }
   const side = Math.random() > 0.5 ? 1 : -1;
-  const dist = 10.5 + Math.random() * 28;
+  const dist = 12 + Math.random() * 38;
   prop.position.set(
     side * dist,
     0,
