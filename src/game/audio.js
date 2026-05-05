@@ -30,7 +30,7 @@ export function beep(world, frequency, duration, type) {
   let osc;
   try {
     osc = ctx.createOscillator();
-  } catch (e) {
+  } catch {
     return;
   }
   const gain = ctx.createGain();
@@ -44,7 +44,7 @@ export function beep(world, frequency, duration, type) {
   try {
     osc.start();
     osc.stop(ctx.currentTime + duration);
-  } catch (e) {
+  } catch {
     /* context not ready */
   }
 }
@@ -101,7 +101,7 @@ export function updateEngineSound(world, state, speedFactor, skidding) {
       80 + speedFactor * 220,
       t + 0.08,
     );
-  } catch (e) {
+  } catch {
     /* invalid audio node */
   }
 }
@@ -149,7 +149,7 @@ export function playSkidSound(world) {
 
   const t = ctx.currentTime;
   sa.gain.gain.linearRampToValueAtTime(
-    0.045 * (state?.options?.volume ?? 100) / 100,
+    0.045 * (world.audio.gain?.gain?.value ?? 0.5),
     t + 0.08,
   );
 }
@@ -163,7 +163,7 @@ export function stopSkidSound(world) {
       sa.gain.gain.linearRampToValueAtTime(0.0001, ctx.currentTime + 0.14);
     }
     sa.noise.stop(ctx ? ctx.currentTime + 0.15 : 0);
-  } catch (e) {
+  } catch {
     /* already stopped */
   }
   sa.noise = null;

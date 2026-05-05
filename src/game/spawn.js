@@ -4,7 +4,9 @@ const GEOMETRY_CACHE = new Map();
 
 export function getCachedGeometry(key, factory) {
   if (!GEOMETRY_CACHE.has(key)) {
-    GEOMETRY_CACHE.set(key, factory());
+    const geometry = factory();
+    geometry.userData.cached = true;
+    GEOMETRY_CACHE.set(key, geometry);
   }
   return GEOMETRY_CACHE.get(key);
 }
@@ -13,7 +15,7 @@ export function disposeMesh(mesh) {
   if (!mesh) return;
   mesh.traverse((child) => {
     if (child.isMesh) {
-      if (child.geometry) child.geometry.dispose();
+      if (child.geometry && !child.geometry.userData.cached) child.geometry.dispose();
       if (child.material) {
         const materials = Array.isArray(child.material) ? child.material : [child.material];
         for (const mat of materials) {
@@ -63,7 +65,7 @@ export function spawnDustMote(world) {
   const run = world.run;
   const c = 0.72 + Math.random() * 0.2;
   const col = new THREE.Color().setRGB(c * 0.9, c * 0.75, c * 0.5);
-  const geo = getCachedGeometry("dust", () => new THREE.SphereGeometry(0.04 + Math.random() * 0.05, 5, 5));
+  const geo = getCachedGeometry("dust", () => new THREE.SphereGeometry(0.06, 5, 5));
   const p = new THREE.Mesh(
     geo,
     new THREE.MeshBasicMaterial({
@@ -198,7 +200,7 @@ export function createMissileTrail(world, from, to, color) {
   for (let i = 0; i <= steps; i += 1) {
     const t = i / steps;
     const particle = new THREE.Mesh(
-      new THREE.SphereGeometry(0.08 + Math.random() * 0.05, 6, 6),
+      getCachedGeometry("missile_trail", () => new THREE.SphereGeometry(0.1, 6, 6)),
       new THREE.MeshBasicMaterial({
         color,
         transparent: true,
@@ -246,35 +248,18 @@ export function spawnSkidMark(world) {
   }
 }
 
-export function spawnAtmosphericDebris(world, currentBiome) {
-  const biome = currentBiome;
+export function spawnAtmosphericDebris(world, biomeId) {
   const group = new THREE.Group();
-  if (biome === "desert") {
+  if (biomeId === "desert" || biomeId === "broken_highway") {
     const mat = new THREE.MeshStandardMaterial({ color: "#a88a64", wireframe: true });
-    const tumble = new THREE.Mesh(new THREE.SphereGeometry(0.35, 6, 6), mat);
+    const tumble = new THREE.Mesh(getCachedGeometry("tumbleweed", () => new THREE.SphereGeometry(0.35, 6, 6)), mat);
     group.add(tumble);
     group.userData.type = "tumbleweed";
-  } else if (Math.random() > 0.5) {
-    const mat = new THREE.MeshStandardMaterial({ color: "#d1d1d1", side: THREE.DoubleSide });
-    const paper = new THREE.Mesh(new THREE.PlaneGeometry(0.25, 0.35), mat);
-    group.add(paper);
-    group.userData.type = "paper";
-  } else if (Math.random() > 0.5) {
-    const mat = new THREE.MeshStandardMaterial({ color: "#222", metalness: 0.8 });
-    const body = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.15, 0.8), mat);
-    const eye = new THREE.Mesh(
-      new THREE.SphereGeometry(0.1, 8, 8),
-      new THREE.MeshStandardMaterial({ color: "#ff0000", emissive: "#ff0000", emissiveIntensity: 2 }),
-    );
-    eye.position.set(0, 0, 0.4);
-    group.add(body, eye);
-    group.userData.type = "drone";
-    group.userData.isDrone = true;
-  } else {
-    // Floating ember / ash particle
-    const isEmber = Math.random() > 0.5;
+  } else if (biomeId === "ghost_town" || biomeId === "military") {
+    // Floating ember / ash particle (more frequent in ghost town)
+    const isEmber = Math.random() > 0.4;
     const particle = new THREE.Mesh(
-      new THREE.SphereGeometry(0.05 + Math.random() * 0.12, 4, 4),
+      getCachedGeometry("ash_ember", () => new THREE.SphereGeometry(0.09, 4, 4)),
       new THREE.MeshBasicMaterial({
         color: isEmber ? "#ff8822" : "#888888",
         transparent: true,
@@ -288,6 +273,23 @@ export function spawnAtmosphericDebris(world, currentBiome) {
     }
     group.add(particle);
     group.userData.type = isEmber ? "ember" : "ash";
+  } else if (Math.random() > 0.5) {
+    const mat = new THREE.MeshStandardMaterial({ color: "#d1d1d1", side: THREE.DoubleSide });
+    const paper = new THREE.Mesh(getCachedGeometry("paper", () => new THREE.PlaneGeometry(0.25, 0.35)), mat);
+    group.add(paper);
+    group.userData.type = "paper";
+  } else {
+    // Fallback drone
+    const mat = new THREE.MeshStandardMaterial({ color: "#222", metalness: 0.8 });
+    const body = new THREE.Mesh(getCachedGeometry("drone_body", () => new THREE.BoxGeometry(0.8, 0.15, 0.8)), mat);
+    const eye = new THREE.Mesh(
+      getCachedGeometry("drone_eye", () => new THREE.SphereGeometry(0.1, 8, 8)),
+      new THREE.MeshStandardMaterial({ color: "#ff0000", emissive: "#ff0000", emissiveIntensity: 2 }),
+    );
+    eye.position.set(0, 0, 0.4);
+    group.add(body, eye);
+    group.userData.type = "drone";
+    group.userData.isDrone = true;
   }
 
   const side = Math.random() > 0.5 ? 1 : -1;

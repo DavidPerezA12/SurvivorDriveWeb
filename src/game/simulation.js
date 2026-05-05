@@ -1,4 +1,4 @@
-export function applyLoadout(loadout, equipmentCatalog) {
+export function applyLoadout(loadout, equipmentCatalog, upgrades = {}) {
   const selected = {
     chassis:
       equipmentCatalog.chassis.find((item) => item.id === loadout.chassis) ??
@@ -30,14 +30,30 @@ export function applyLoadout(loadout, equipmentCatalog) {
     }
   }
 
+  const upgradeStats = {
+    fuel_tank: { reserve: 0.08 },
+    ammo_rack: { ammoCap: 0.1 },
+    armor_plating: { armor: 0.07 },
+  };
+
+  for (const [upgradeId, level] of Object.entries(upgrades ?? {})) {
+    if (!level) continue;
+    const stats = upgradeStats[upgradeId];
+    if (!stats) continue;
+    for (const [key, value] of Object.entries(stats)) {
+      merged[key] = (merged[key] ?? 1) * (1 + value * level);
+    }
+  }
+
   return { selected, merged };
 }
 
 export function createRunState(saveData, biome = "desert", biomeCatalog, objectiveCatalog, equipmentCatalog) {
-  const { merged } = applyLoadout(saveData.loadout, equipmentCatalog);
+  const { merged } = applyLoadout(saveData.loadout, equipmentCatalog, saveData.upgrades);
   const biomeMeta = biomeCatalog[biome];
   const startingDistance = biome === "city" ? biomeCatalog.desert.checkpointKm : 0;
   const ammoMax = Math.max(4, Math.round(8 * merged.ammoCap));
+  const fuelMax = Math.round(100 * merged.reserve);
   return {
     biome,
     biomeLabel: biomeMeta.label,
@@ -56,8 +72,12 @@ export function createRunState(saveData, biome = "desert", biomeCatalog, objecti
     ammoMax,
     ammo: ammoMax,
     health: 100,
-    fuel: 100,
+    fuelMax,
+    fuel: fuelMax,
+    fuelEfficiency: merged.efficiency,
     coins: 0,
+    scrap: 0,
+    nitroTimer: 0,
     jumps: 1,
     fire: 1,
     distance: startingDistance,
@@ -100,10 +120,13 @@ export function resolvePickup(run, type, pickupCatalog) {
   if (!pickup) return null;
 
   if (type === "coin") run.coins += pickup.amount;
+  if (type === "scrap") run.scrap += pickup.amount;
+  if (type === "nitro") run.nitroTimer = (run.nitroTimer ?? 0) + pickup.amount;
   if (type === "jump") run.jumps += pickup.amount;
   if (type === "fire") run.fire += pickup.amount;
   if (type === "ammo") run.ammo = Math.min(run.ammoMax, run.ammo + pickup.amount);
   if (type === "repair") run.health = Math.min(100, run.health + pickup.amount);
+  if (type === "fuel") run.fuel = Math.min(run.fuelMax ?? 100, run.fuel + pickup.amount);
   return pickup;
 }
 
@@ -116,20 +139,24 @@ export function resolveCollision(run, damage) {
 
 export function spawnEncounter(run, biome, encounterConfig) {
   const config = encounterConfig[biome];
+  if (!config) return "scrap";
   const threat = Math.min(1, (run.threat ?? 0) / 100);
   const table = { ...config.obstacleBias };
-  table.raider += threat * 0.16;
-  table.tower += threat * (biome === "city" ? 0.12 : 0.05);
-  table.barrier += threat * 0.04;
-  table.scrap = Math.max(0.08, table.scrap - threat * 0.12);
+  if ("raider" in table) table.raider += threat * 0.16;
+  if ("tower" in table) table.tower += threat * (biome === "city" ? 0.12 : 0.05);
+  if ("barrier" in table) table.barrier += threat * 0.04;
+  if ("scrap" in table) table.scrap = Math.max(0.08, table.scrap - threat * 0.12);
 
-  const roll = Math.random();
+  const totalWeight = Object.values(table).reduce((sum, weight) => sum + Math.max(0, weight), 0);
+  if (totalWeight <= 0) return "scrap";
+
+  let roll = Math.random() * totalWeight;
   let cumulative = 0;
   for (const [kind, weight] of Object.entries(table)) {
-    cumulative += weight;
+    cumulative += Math.max(0, weight);
     if (roll <= cumulative) return kind;
   }
-  return biome === "city" ? "wreck" : "scrap";
+  return Object.keys(table).find((kind) => kind !== "none") ?? "scrap";
 }
 
 export function choosePickupType(run, biome, encounterConfig) {

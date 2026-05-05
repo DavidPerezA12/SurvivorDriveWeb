@@ -1,3 +1,6 @@
+import { zoneCatalog } from "./zones.js";
+
+// ── Unchanged exports ──────────────────────────────────────────────────
 export const storageKey = "survivor-drive-web-state";
 export const schemaVersion = 1;
 export const speedPips = 12;
@@ -113,22 +116,58 @@ export const equipmentCatalog = {
   ],
 };
 
+export const upgradeCatalog = {
+  fuel_tank: {
+    id: "fuel_tank",
+    name: "Fuel Tank",
+    description: "Deposito reforzado para aguantar mas tramo entre paradas.",
+    maxLevel: 3,
+    costs: [3, 5, 8],
+    stats: { reserve: 0.08 },
+  },
+  ammo_rack: {
+    id: "ammo_rack",
+    name: "Ammo Rack",
+    description: "Montaje extra de municion para sostener el fuego.",
+    maxLevel: 3,
+    costs: [2, 4, 7],
+    stats: { ammoCap: 0.1 },
+  },
+  armor_plating: {
+    id: "armor_plating",
+    name: "Armor Plating",
+    description: "Placas adicionales para aguantar impactos frontales.",
+    maxLevel: 3,
+    costs: [4, 6, 9],
+    stats: { armor: 0.07 },
+  },
+};
+
+export function getUpgradeCost(upgradeId, level, catalog = upgradeCatalog) {
+  const upgrade = catalog[upgradeId];
+  if (!upgrade) return null;
+  return upgrade.costs?.[level] ?? null;
+}
+
+// ── biomeCatalog — mapped from new zone system ─────────────────────────
+// "desert" represents the wasteland segment (zones garage→desert)
+// "city"   represents the urban/military segment (zones military→refuge)
 export const biomeCatalog = {
   desert: {
     id: "desert",
-    name: "Wasteland Highway",
+    name: zoneCatalog.desert.name,
     label: "Desert run",
-    hint: "Empuja a fondo por el wasteland hasta que el asfalto se convierta en ciudad.",
-    checkpointKm: 7.5,
+    hint: "Empuja a fondo por el wasteland hasta que el asfalto se convierta en zona militar.",
+    checkpointKm: zoneCatalog.desert.distanceEnd,
     completionKm: null,
     color: "#ffb673",
   },
   city: {
     id: "city",
-    name: "Ruined District",
+    name: zoneCatalog.ghost_town.name + " / " + zoneCatalog.military.name,
     label: "City breach",
     hint: "Atraviesa el distrito y sal de la bolsa de fuego.",
-    checkpointKm: 13,
+    checkpointKm: null,
     completionKm: null,
     color: "#9ad1ff",
   },
@@ -176,72 +215,100 @@ export const environmentProfiles = {
   smog: {
     id: "smog",
     label: "Smog Bank",
-    tint: "#4a5159", // Mucho más claro que #262b30
-    fogBoost: 0.0015, // Menos denso
+    tint: "#4a5159",
+    fogBoost: 0.0015,
     handling: 0.95,
     threatBoost: 12,
     fuelUse: 1.1,
   },
 };
 
-export const skyPalette = {
-  desert: {
-    bgNight: "#0f1a2b",
-    bgDay: "#a66840",
-    fogNight: "#161c2b",
-    fogDay: "#c49a6c",
-    ambientNight: "#6c88bf",
-    ambientDay: "#c4a385",
-    groundNight: "#1a1215",
-    groundDay: "#361e12",
-  },
-  city: {
-    bgNight: "#1a2636", // Más claro
-    bgDay: "#7d7e8a",    // Más brillante
-    fogNight: "#242d3b",
-    fogDay: "#898e99",
-    ambientNight: "#7a8eb2",
-    ambientDay: "#b0b3ba",   // Más luz ambiente de día
-    groundNight: "#25262e",
-    groundDay: "#4a4b54",    // Suelo de ciudad menos oscuro
-  },
-};
+// ── skyPalette — built from zone visuals ───────────────────────────────
+function rgbToHex(r, g, b) {
+  const hr = Math.min(255, Math.max(0, Math.round(r))).toString(16).padStart(2, "0");
+  const hg = Math.min(255, Math.max(0, Math.round(g))).toString(16).padStart(2, "0");
+  const hb = Math.min(255, Math.max(0, Math.round(b))).toString(16).padStart(2, "0");
+  return "#" + hr + hg + hb;
+}
 
-export const pickupCatalog = {
-  coin: {
-    label: "Coins",
-    amount: 1,
-    color: "#ffd166",
-  },
-  jump: {
-    label: "Jump charge",
-    amount: 1,
-    color: "#7af5b7",
-  },
-  fire: {
-    label: "Fire charge",
-    amount: 1,
-    color: "#ff8b5e",
-  },
-  ammo: {
-    label: "Ammo crate",
-    amount: 3,
-    color: "#6fd0ff",
-  },
-  repair: {
-    label: "Repair kit",
-    amount: 18,
-    color: "#ff96b4",
-  },
-};
+function zoneVisualToSkyPalette(zoneId) {
+  const zone = zoneCatalog[zoneId];
+  if (!zone) return null;
+  const v = zone.visual;
+  return {
+    bgNight: v.skyNight,
+    bgDay: v.skyDay,
+    fogNight: rgbToHex(v.fogColor.r * 255 * 0.55, v.fogColor.g * 255 * 0.55, v.fogColor.b * 255 * 0.55),
+    fogDay: rgbToHex(v.fogColor.r * 255, v.fogColor.g * 255, v.fogColor.b * 255),
+    ambientNight: v.ambientNight,
+    ambientDay: v.ambientDay,
+    groundNight: v.groundNight,
+    groundDay: v.groundDay,
+  };
+}
 
-export const encounterConfig = {
-  desert: {
-    weightedPickups: ["coin", "coin", "jump", "fire", "ammo", "repair"],
-    obstacleBias: { raider: 0.08, barrier: 0.3, tower: 0.2, wreck: 0.1, scrap: 0.22, mutant: 0.06, ramp: 0.04 },
-  },
-  city: {
-    weightedPickups: ["coin", "ammo", "repair", "jump", "fire"],
-    obstacleBias: { raider: 0.14, barrier: 0.22, tower: 0.22, wreck: 0.18, scrap: 0.1, mutant: 0.08, ramp: 0.06 },
-  },
-};
+export const skyPalette = Object.fromEntries(
+  Object.keys(zoneCatalog).map(id => [id, zoneVisualToSkyPalette(id)])
+);
+
+// ── pickupCatalog — canonical source is zones.js ───────────────────────
+export { pickupCatalog } from "./zones.js";
+function buildEncounterBiome(zoneIds) {
+  const zones = zoneIds.map((id) => zoneCatalog[id]).filter(Boolean);
+  const n = zones.length;
+
+  // Aggregate obstacle weights across zones in the group
+  const rawObs = {};
+  for (let zi = 0; zi < zones.length; zi++) {
+    const zone = zones[zi];
+    const obsWeights = zone.obstacles.weights;
+    const keys = Object.keys(obsWeights);
+    for (let ki = 0; ki < keys.length; ki++) {
+      const kind = keys[ki];
+      rawObs[kind] = (rawObs[kind] || 0) + obsWeights[kind];
+    }
+  }
+
+  // Normalise by zone count
+  const obstacleBias = {};
+  const obsKeys = Object.keys(rawObs);
+  for (let oi = 0; oi < obsKeys.length; oi++) {
+    const key = obsKeys[oi];
+    obstacleBias[key] = rawObs[key] / n;
+  }
+
+  // Aggregate pickup weights across zones
+  const rawPu = {};
+  for (let zi2 = 0; zi2 < zones.length; zi2++) {
+    const puZone = zones[zi2];
+    const puWeights = puZone.pickups.weights;
+    const puKeys = Object.keys(puWeights);
+    for (let pi = 0; pi < puKeys.length; pi++) {
+      const puKind = puKeys[pi];
+      if (puKind === "none") continue;
+      rawPu[puKind] = (rawPu[puKind] || 0) + puWeights[puKind];
+    }
+  }
+
+  // Convert weights to a weighted array (higher weight = more entries)
+  const weightedPickups = [];
+  let totalWeight = 0;
+  const puAllKeys = Object.keys(rawPu);
+  for (let ti = 0; ti < puAllKeys.length; ti++) {
+    totalWeight += rawPu[puAllKeys[ti]];
+  }
+  const targetCount = 20;
+  for (let pj = 0; pj < puAllKeys.length; pj++) {
+    const pk = puAllKeys[pj];
+    const count = Math.max(1, Math.round((rawPu[pk] / totalWeight) * targetCount));
+    for (let c = 0; c < count; c++) {
+      weightedPickups.push(pk);
+    }
+  }
+
+  return { obstacleBias, weightedPickups };
+}
+
+export const encounterConfig = Object.fromEntries(
+  Object.keys(zoneCatalog).map((id) => [id, buildEncounterBiome([id])])
+);

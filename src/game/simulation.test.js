@@ -85,7 +85,7 @@ test("resolveCollision reduces health by damage/armor", () => {
 
 test("resolvePickup adds correct amounts", () => {
   const run = { coins: 0, jumps: 0, fire: 0, ammo: 5, ammoMax: 12, health: 80 };
-  const result = resolvePickup(run, "coin", pickupCatalog);
+  resolvePickup(run, "coin", pickupCatalog);
   assert.equal(run.coins, 1);
 
   resolvePickup(run, "ammo", pickupCatalog);
@@ -101,14 +101,32 @@ test("resolvePickup adds correct amounts", () => {
   assert.equal(run.health, 100);
 });
 
+test("resolvePickup stacks nitro duration", () => {
+  const run = { nitroTimer: 1 };
+  resolvePickup(run, "nitro", pickupCatalog);
+  assert.equal(run.nitroTimer, 4);
+});
+
 test("spawnEncounter always returns a valid kind", () => {
   const run = { threat: 20 };
+  const validKinds = Object.keys(encounterConfig.desert.obstacleBias);
   for (let i = 0; i < 50; i++) {
     const kind = spawnEncounter(run, "desert", encounterConfig);
     assert.ok(
-      ["raider", "barrier", "tower", "wreck", "scrap", "mutant", "ramp"].includes(kind),
+      validKinds.includes(kind),
       `unexpected kind: ${kind}`,
     );
+  }
+});
+
+test("spawnEncounter preserves safe-zone empty rolls", () => {
+  const originalRandom = Math.random;
+  Math.random = () => 0.1;
+  try {
+    const run = { threat: 0 };
+    assert.equal(spawnEncounter(run, "garage", encounterConfig), "none");
+  } finally {
+    Math.random = originalRandom;
   }
 });
 
@@ -139,7 +157,7 @@ test("hydrateSave merges defaults with partial data", () => {
   const partial = { options: { volume: 30 } };
   const hydrated = hydrateSave(partial);
   assert.equal(hydrated.options.volume, 30);
-  assert.equal(hydrated.options.quality, "high");
+  assert.equal(hydrated.options.quality, "medium");
   assert.equal(hydrated.unlocks.city, false);
 });
 

@@ -4,7 +4,7 @@ export const defaultSaveData = {
   schemaVersion,
   options: {
     volume: 60,
-    quality: "high",
+    quality: "medium",
     fullscreen: false,
     weatherFx: true,
     dayNight: true,
@@ -23,6 +23,12 @@ export const defaultSaveData = {
     totalRuns: 0,
     totalKills: 0,
     totalCoins: 0,
+    scrapBank: 0,
+  },
+  upgrades: {
+    fuel_tank: 0,
+    ammo_rack: 0,
+    armor_plating: 0,
   },
   unlocks: {
     city: false,
@@ -84,6 +90,7 @@ export function registerRunResult(saveData, run) {
   saveData.progression.totalRuns += 1;
   saveData.progression.totalKills += run.kills;
   saveData.progression.totalCoins += run.coins;
+  saveData.progression.scrapBank = (saveData.progression.scrapBank ?? 0) + (run.scrap ?? 0);
   saveData.progression.bestDistance = Math.max(saveData.progression.bestDistance, run.distance);
   if (run.biome === "city") {
     saveData.progression.bestCityDistance = Math.max(saveData.progression.bestCityDistance, run.distance);

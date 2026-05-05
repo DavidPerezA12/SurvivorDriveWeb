@@ -82,21 +82,23 @@ export function obstacleHitsCar(obstacle, run) {
   }
   if (!xzOverlap) return false;
 
-  // Vertical overlap check
-  const carBase = 0.1 + run.y;
-  const carLow = carBase + 0.02;
-  const carHigh = carBase + 1.56;
-  const by = obstacle.position.y;
-  let yMin = by + (obstacle.userData.collisionYMin ?? -1.2);
-  let yMax = by + (obstacle.userData.collisionYMax ?? 1.2);
-  if (obstacle.userData.collisionBottom != null && obstacle.userData.collisionYMin == null) {
-    yMin = obstacle.userData.collisionBottom;
-    yMax = obstacle.userData.collisionTop ?? by + 1.15;
-  }
+  const isGroundHazard = obstacle.userData.isOilSpill || obstacle.userData.isPothole;
+  if (!isGroundHazard) {
+    const carBase = 0.1 + run.y;
+    const carLow = carBase + 0.02;
+    const carHigh = carBase + 1.56;
+    const by = obstacle.position.y;
+    let yMin = by + (obstacle.userData.collisionYMin ?? -1.2);
+    let yMax = by + (obstacle.userData.collisionYMax ?? 1.2);
+    if (obstacle.userData.collisionBottom != null && obstacle.userData.collisionYMin == null) {
+      yMin = obstacle.userData.collisionBottom;
+      yMax = obstacle.userData.collisionTop ?? by + 1.15;
+    }
 
-  const clearAbove = 0.34;
-  if (carLow >= yMax - clearAbove) return false;
-  if (carHigh <= yMin + 0.05) return false;
+    const clearAbove = 0.34;
+    if (carLow >= yMax - clearAbove) return false;
+    if (carHigh <= yMin + 0.05) return false;
+  }
 
   // Penetration depths
   const xOverlap = Math.max(0, CAR_HALF_X + halfX - dx);
@@ -112,6 +114,7 @@ export function obstacleHitsCar(obstacle, run) {
   return { dx, dz, signedDx, signedDz, isScrape, xOverlap, zOverlap, halfX, halfZ, footprint };
 }
 
-export function randomLane() {
-  return [-4.2, -1.4, 1.4, 4.2][Math.floor(Math.random() * 4)];
+export function randomLane(lanes = [-4.2, -1.4, 1.4, 4.2]) {
+  const availableLanes = lanes.length > 0 ? lanes : [-4.2, -1.4, 1.4, 4.2];
+  return availableLanes[Math.floor(Math.random() * availableLanes.length)];
 }

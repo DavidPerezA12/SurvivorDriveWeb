@@ -2,7 +2,7 @@
 
 Reboot de **Survivor Drive** para navegador con **Vite + Three.js**.
 
-No es una conversión directa del proyecto antiguo de Unity en [`da/`](./da/). Toma la idea base y la rehace como un juego arcade web: menú, equipamiento, opciones persistentes, HUD, conducción en wasteland, obstáculos, pickups, salto, habilidad de fuego, pausa y game over.
+Es un juego arcade web independiente: menú, equipamiento, opciones persistentes, HUD, conducción en wasteland, obstáculos, pickups, salto, habilidad de fuego, pausa y game over.
 
 ## Estado actual
 
@@ -98,29 +98,31 @@ SurvivorDriveWeb/
 │   ├── main.js           # entrada: Three.js, bucle, integración UI ↔ simulación
 │   ├── style.css         # layout HUD/UI y estilos globales
 │   └── game/
+│       ├── assets.js     # carga y normalización de modelos runtime
 │       ├── content.js    # catálogos, manifiestos de pickups, perfiles de entorno
 │       ├── input.js      # teclado / toque y estado de entrada
 │       ├── persistence.js# SaveData, localStorage, desbloqueos
 │       ├── routes.js     # rutas de pantalla y bioma
 │       ├── simulation.js # estado de carrera, colisiones, encuentros
 │       ├── ui.js         # montaje del DOM (menús, HUD, canvas)
+│       ├── uiController.js# eventos DOM y sincronización UI ↔ juego
 │       └── input.test.js # tests del módulo de entrada
 ├── index.html
-├── vite.config.js        # base `./` y chunk manual de three
-├── COMPARISON.md         # Unity (`da/`) frente al web
-├── PARITY_MATRIX.md      # matriz escenas/scripts Unity → web
-└── da/                   # proyecto Unity de referencia
+├── public/models/        # modelos servidos por Vite
+└── vite.config.js        # base `./` y chunk manual de three
 ```
 
-## Referencias del proyecto antiguo
+## Arquitectura
 
-- [`da/`](./da/) contiene el proyecto original en Unity.
-- [`COMPARISON.md`](./COMPARISON.md) resume la diferencia entre el proyecto viejo y el reboot web actual.
-- [`PARITY_MATRIX.md`](./PARITY_MATRIX.md) enlaza escenas y scripts de `da/` con el estado en web.
+- `src/main.js` conserva el arranque, la escena 3D y el bucle principal.
+- `src/game/simulation.js` contiene lógica serializable y testeable de la run.
+- `src/game/ui.js` monta el DOM base; `src/game/uiController.js` conecta eventos y flujo.
+- `src/game/assets.js` centraliza modelos, loaders y normalización de materiales.
+- `src/game/content.js` mantiene datos de balance y catálogos.
 
 ## Limitaciones actuales
 
-Todavía no intenta replicar todo lo que prometía el prototipo antiguo de Unity. Aún faltan, por ejemplo:
+Todavía faltan, por ejemplo:
 
 - IA o combate más profundo
 - Terreno procedural más rico
@@ -133,7 +135,7 @@ Todavía no intenta replicar todo lo que prometía el prototipo antiguo de Unity
 - Mejorar el feeling del coche y la cámara
 - Añadir enemigos y patrones de tráfico
 - Subir la calidad del entorno (props y pass final de assets)
-- Seguir partiendo lógica pesada de `main.js` en módulos de juego si crece
+- Seguir partiendo lógica pesada de `main.js` en módulos de juego
 - Introducir assets 3D reales (GLB, pipeline)
 
 ## Autoría
