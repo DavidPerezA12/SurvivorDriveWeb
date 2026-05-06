@@ -32,10 +32,7 @@ export function createPropMesh(kind, models = {}) {
     const height = 5 + Math.random() * 10;
 
     // Main block
-    const main = new THREE.Mesh(
-      new THREE.BoxGeometry(width, height, depth),
-      wallMat,
-    );
+    const main = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), wallMat);
     main.position.y = height / 2;
     main.castShadow = true;
     main.receiveShadow = true;
@@ -47,10 +44,7 @@ export function createPropMesh(kind, models = {}) {
     for (let f = 1; f <= floors; f++) {
       for (let w = 0; w < windowsPerFloor; w++) {
         if (Math.random() > 0.7) continue;
-        const win = new THREE.Mesh(
-          new THREE.BoxGeometry(0.45, 0.6, 0.05),
-          windowMat,
-        );
+        const win = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.6, 0.05), windowMat);
         win.position.set(
           -width / 2 + 0.8 + w * (width / (windowsPerFloor + 1)),
           f * 2.5 - 0.5,
@@ -78,41 +72,65 @@ export function createPropMesh(kind, models = {}) {
     const roofY = height / 2;
     if (Math.random() > 0.6) {
       // Antenna tower
-      const roofMat = new THREE.MeshStandardMaterial({ color: "#333", roughness: 0.8, metalness: 0.5 });
+      const roofMat = new THREE.MeshStandardMaterial({
+        color: "#333",
+        roughness: 0.8,
+        metalness: 0.5,
+      });
       const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.5, 6), roofMat);
-      ant.position.set((Math.random()-0.5) * width * 0.5, roofY + 1.5, (Math.random()-0.5) * depth * 0.5);
+      ant.position.set(
+        (Math.random() - 0.5) * width * 0.5,
+        roofY + 1.5,
+        (Math.random() - 0.5) * depth * 0.5,
+      );
       group.add(ant);
     } else if (Math.random() > 0.5) {
       // Vent/AC unit
-      const ventMat = new THREE.MeshStandardMaterial({ color: "#555", roughness: 0.7, metalness: 0.5 });
+      const ventMat = new THREE.MeshStandardMaterial({
+        color: "#555",
+        roughness: 0.7,
+        metalness: 0.5,
+      });
       const vent = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.8, 0.8), ventMat);
-      vent.position.set((Math.random()-0.5) * width * 0.4, roofY + 0.4, (Math.random()-0.5) * depth * 0.4);
+      vent.position.set(
+        (Math.random() - 0.5) * width * 0.4,
+        roofY + 0.4,
+        (Math.random() - 0.5) * depth * 0.4,
+      );
       vent.rotation.y = Math.random();
       group.add(vent);
     } else {
       // Water tank
-      const tankMat = new THREE.MeshStandardMaterial({ color: "#444", roughness: 0.8, metalness: 0.4 });
+      const tankMat = new THREE.MeshStandardMaterial({
+        color: "#444",
+        roughness: 0.8,
+        metalness: 0.4,
+      });
       const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 1.8, 8), tankMat);
-      tank.position.set((Math.random()-0.5) * width * 0.3, roofY + 0.9, (Math.random()-0.5) * depth * 0.3);
+      tank.position.set(
+        (Math.random() - 0.5) * width * 0.3,
+        roofY + 0.9,
+        (Math.random() - 0.5) * depth * 0.3,
+      );
       group.add(tank);
     }
 
     // Wall sign on some buildings
     if (Math.random() > 0.65) {
       const isNeon = Math.random() > 0.5;
-      const signMat = new THREE.MeshStandardMaterial({ 
-        color: isNeon ? "#222" : "#552222", 
+      const signMat = new THREE.MeshStandardMaterial({
+        color: isNeon ? "#222" : "#552222",
         emissive: isNeon ? new THREE.Color().setHSL(Math.random(), 1.0, 0.5) : "#000",
         emissiveIntensity: isNeon ? 2.0 : 0,
-        roughness: 0.9 
+        roughness: 0.9,
       });
       const sign = new THREE.Mesh(new THREE.BoxGeometry(width * 0.5, 1.2, 0.06), signMat);
       sign.position.set(0, height * 0.65, depth / 2 + 0.03);
       group.add(sign);
       if (isNeon) {
-          const signLight = new THREE.PointLight(signMat.emissive, 1, 5);
-          signLight.position.set(0, 0, 0.2);
-          sign.add(signLight);
+        const signLight = new THREE.PointLight(signMat.emissive, 1, 5);
+        signLight.position.set(0, 0, 0.2);
+        sign.add(signLight);
       }
     }
   } else if (kind === "tree") {
@@ -121,7 +139,11 @@ export function createPropMesh(kind, models = {}) {
       roughness: 1.0,
     });
     const leafMat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color().setHSL(0.15 + Math.random() * 0.06, 0.2 + Math.random() * 0.15, 0.18 + Math.random() * 0.1),
+      color: new THREE.Color().setHSL(
+        0.15 + Math.random() * 0.06,
+        0.2 + Math.random() * 0.15,
+        0.18 + Math.random() * 0.1,
+      ),
       roughness: 0.9,
     });
 
@@ -147,16 +169,17 @@ export function createPropMesh(kind, models = {}) {
     const clusterCount = 3 + Math.floor(Math.random() * 4);
     for (let c = 0; c < clusterCount; c++) {
       const clusterR = 0.7 + Math.random() * 1.2;
-      const cluster = new THREE.Mesh(
-        new THREE.DodecahedronGeometry(clusterR, 1),
-        leafMat,
-      );
+      const cluster = new THREE.Mesh(new THREE.DodecahedronGeometry(clusterR, 1), leafMat);
       cluster.position.set(
         (Math.random() - 0.5) * 2.0,
         trunkH - 0.3 + Math.random() * 1.5,
         (Math.random() - 0.5) * 2.0,
       );
-      cluster.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+      cluster.rotation.set(
+        Math.random() * Math.PI,
+        Math.random() * Math.PI,
+        Math.random() * Math.PI,
+      );
       cluster.scale.set(1, 0.4 + Math.random() * 0.6, 1);
       cluster.castShadow = true;
       group.add(cluster);
@@ -166,10 +189,7 @@ export function createPropMesh(kind, models = {}) {
     const trunkTop = trunkH;
     for (let b = 0; b < 3; b++) {
       const branchLen = 0.8 + Math.random() * 1.5;
-      const branch = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.04, 0.12, branchLen, 5),
-        trunkMat,
-      );
+      const branch = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.12, branchLen, 5), trunkMat);
       branch.position.set(0, trunkTop * 0.6 + Math.random() * trunkTop * 0.4, 0);
       branch.rotation.set(
         (Math.random() - 0.5) * 1.2,
@@ -184,10 +204,7 @@ export function createPropMesh(kind, models = {}) {
     for (let r = 0; r < 3; r++) {
       const rootAng = Math.random() * Math.PI * 2;
       const rootLen = 0.3 + Math.random() * 0.5;
-      const root = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.04, 0.08, rootLen, 4),
-        trunkMat,
-      );
+      const root = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.08, rootLen, 4), trunkMat);
       root.position.set(Math.cos(rootAng) * 0.2, 0.15, Math.sin(rootAng) * 0.2);
       root.rotation.z = Math.PI / 2;
       root.rotation.y = rootAng + (Math.random() - 0.5) * 0.5;
@@ -198,18 +215,12 @@ export function createPropMesh(kind, models = {}) {
       color: "#333",
       roughness: 0.9,
     });
-    const pole1 = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.3, 0.3, 15),
-      matPole,
-    );
+    const pole1 = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 15), matPole);
     pole1.position.set(-2, 7.5, 0);
     pole1.castShadow = true;
     group.add(pole1);
 
-    const pole2 = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.3, 0.3, 15),
-      matPole,
-    );
+    const pole2 = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 15), matPole);
     pole2.position.set(2, 7.5, 0);
     pole2.castShadow = true;
     group.add(pole2);
@@ -242,11 +253,7 @@ export function createPropMesh(kind, models = {}) {
       for (let j = 0; j < 8; j++) {
         const b = new THREE.Mesh(battGeo, castleMat);
         const ang = (j / 8) * Math.PI * 2;
-        b.position.set(
-          t.position.x + Math.cos(ang) * 2,
-          10.4,
-          t.position.z + Math.sin(ang) * 2,
-        );
+        b.position.set(t.position.x + Math.cos(ang) * 2, 10.4, t.position.z + Math.sin(ang) * 2);
         group.add(b);
       }
     }
@@ -276,10 +283,7 @@ export function createPropMesh(kind, models = {}) {
       flatShading: true,
     });
     for (let i = 0; i < 3; i++) {
-      const mesh = new THREE.Mesh(
-        new THREE.DodecahedronGeometry(1 + Math.random()),
-        mat,
-      );
+      const mesh = new THREE.Mesh(new THREE.DodecahedronGeometry(1 + Math.random()), mat);
       mesh.position.set(
         (Math.random() - 0.5) * 1.5,
         0.5 + Math.random() * 0.5,
@@ -291,13 +295,20 @@ export function createPropMesh(kind, models = {}) {
       group.add(mesh);
     }
   } else if (kind === "street_light") {
-    const matPole = new THREE.MeshStandardMaterial({ color: "#222", roughness: 0.8, metalness: 0.5 });
+    const matPole = new THREE.MeshStandardMaterial({
+      color: "#222",
+      roughness: 0.8,
+      metalness: 0.5,
+    });
     const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 8), matPole);
     pole.position.y = 4;
     const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 3), matPole);
     arm.position.set(1.4, 7.8, 0);
     arm.rotation.z = Math.PI / 2;
-    const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.2, 0.4), new THREE.MeshStandardMaterial({ color: "#eef", emissive: "#fffdeb", emissiveIntensity: 2 }));
+    const lamp = new THREE.Mesh(
+      new THREE.BoxGeometry(0.6, 0.2, 0.4),
+      new THREE.MeshStandardMaterial({ color: "#eef", emissive: "#fffdeb", emissiveIntensity: 2 }),
+    );
     lamp.position.set(2.8, 7.7, 0);
     const light = new THREE.PointLight("#fffdeb", 1.5, 25);
     light.position.set(2.8, 7.5, 0);
@@ -310,7 +321,7 @@ export function createPropMesh(kind, models = {}) {
     const crossbar = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.2, 0.2), wood);
     crossbar.position.y = 8;
     group.add(pole, crossbar);
-    
+
     // Insulators on crossbar ends
     const insulatorMat = new THREE.MeshStandardMaterial({ color: "#6b5e53", roughness: 0.6 });
     for (const cx of [-1.4, 1.4]) {
@@ -318,9 +329,13 @@ export function createPropMesh(kind, models = {}) {
       ins.position.set(cx, 8.25, 0);
       group.add(ins);
     }
-    
+
     // Broken/dangling wires from crossbar
-    const wireMat = new THREE.MeshStandardMaterial({ color: "#222", roughness: 0.5, metalness: 0.3 });
+    const wireMat = new THREE.MeshStandardMaterial({
+      color: "#222",
+      roughness: 0.5,
+      metalness: 0.3,
+    });
     for (let wi = 0; wi < 4; wi++) {
       const side = wi < 2 ? -1 : 1;
       const startX = side * 1.6;
@@ -354,11 +369,23 @@ export function createPropMesh(kind, models = {}) {
     pole1.position.set(-2, 0.75, 0);
     const pole2 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.5), rust);
     pole2.position.set(2, 0.75, 0);
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(4, 1.2), new THREE.MeshStandardMaterial({ color: "#666", transparent: true, opacity: 0.5, wireframe: true }));
+    const mesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(4, 1.2),
+      new THREE.MeshStandardMaterial({
+        color: "#666",
+        transparent: true,
+        opacity: 0.5,
+        wireframe: true,
+      }),
+    );
     mesh.position.y = 0.75;
     group.add(pole1, pole2, mesh);
   } else if (kind === "dead_bush") {
-    const mat = new THREE.MeshStandardMaterial({ color: "#4a3b2c", roughness: 1.0, wireframe: true });
+    const mat = new THREE.MeshStandardMaterial({
+      color: "#4a3b2c",
+      roughness: 1.0,
+      wireframe: true,
+    });
     const bush = new THREE.Mesh(new THREE.SphereGeometry(0.8, 4, 4), mat);
     bush.position.y = 0.6;
     bush.scale.set(1, 0.6, 1);
@@ -385,7 +412,14 @@ export function createPropMesh(kind, models = {}) {
     });
     const burnMat = new THREE.MeshStandardMaterial({ color: "#1a1008", roughness: 1 });
     // Main body
-    const body = new THREE.Mesh(new THREE.BoxGeometry(2.2 + Math.random(), 0.4 + Math.random() * 0.3, 3.5 + Math.random() * 2), wreckMat);
+    const body = new THREE.Mesh(
+      new THREE.BoxGeometry(
+        2.2 + Math.random(),
+        0.4 + Math.random() * 0.3,
+        3.5 + Math.random() * 2,
+      ),
+      wreckMat,
+    );
     body.position.set(0, 0.3, 0);
     body.rotation.y = Math.random() * Math.PI;
     body.rotation.z = (Math.random() - 0.5) * 0.8;
@@ -400,7 +434,9 @@ export function createPropMesh(kind, models = {}) {
     const wheelMat = new THREE.MeshStandardMaterial({ color: "#0d0b0a", roughness: 1 });
     for (let w = 0; w < 3; w++) {
       const wheel = new THREE.Mesh(
-        new THREE.TorusGeometry(0.4 + Math.random() * 0.15, 0.08, 6, 12).applyMatrix4(new THREE.Matrix4().makeRotationX(Math.PI / 2)),
+        new THREE.TorusGeometry(0.4 + Math.random() * 0.15, 0.08, 6, 12).applyMatrix4(
+          new THREE.Matrix4().makeRotationX(Math.PI / 2),
+        ),
         wheelMat,
       );
       wheel.position.set((Math.random() - 0.5) * 2, 0.2, (Math.random() - 0.5) * 3);
@@ -441,26 +477,44 @@ export function createPropMesh(kind, models = {}) {
     group.add(crater);
     // Rim debris
     for (let d = 0; d < 8; d++) {
-      const debris = new THREE.Mesh(new THREE.DodecahedronGeometry(0.15 + Math.random() * 0.35, 1), dirtMat);
+      const debris = new THREE.Mesh(
+        new THREE.DodecahedronGeometry(0.15 + Math.random() * 0.35, 1),
+        dirtMat,
+      );
       const ang = Math.random() * Math.PI * 2;
-      debris.position.set(Math.cos(ang) * craterR * 0.8, 0.05 + Math.random() * 0.15, Math.sin(ang) * craterR * 0.8);
+      debris.position.set(
+        Math.cos(ang) * craterR * 0.8,
+        0.05 + Math.random() * 0.15,
+        Math.sin(ang) * craterR * 0.8,
+      );
       debris.scale.y = 0.3 + Math.random() * 0.3;
       group.add(debris);
     }
   } else if (kind === "pipeline") {
-    const rustMat = new THREE.MeshStandardMaterial({ color: "#5a4538", roughness: 0.95, metalness: 0.4 });
+    const rustMat = new THREE.MeshStandardMaterial({
+      color: "#5a4538",
+      roughness: 0.95,
+      metalness: 0.4,
+    });
     const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 4.0, 12), rustMat);
     pipe.rotation.z = Math.PI / 2 + (Math.random() - 0.5) * 0.4;
     pipe.position.set(0, 0.4, 0);
     const joint = new THREE.Mesh(new THREE.SphereGeometry(0.5, 10, 10), rustMat);
     joint.position.set(1.8, 0.3, 0);
-    const spill = new THREE.Mesh(new THREE.CircleGeometry(0.5 + Math.random() * 0.6, 10), new THREE.MeshStandardMaterial({ color: "#1a140e", roughness: 1 }));
+    const spill = new THREE.Mesh(
+      new THREE.CircleGeometry(0.5 + Math.random() * 0.6, 10),
+      new THREE.MeshStandardMaterial({ color: "#1a140e", roughness: 1 }),
+    );
     spill.rotation.x = -Math.PI / 2;
     spill.position.set(-1.4, 0.02, 0.3);
     group.add(pipe, joint, spill);
   } else if (kind === "watchtower") {
     const woodMat = new THREE.MeshStandardMaterial({ color: "#3a2818", roughness: 0.9 });
-    const rustMat = new THREE.MeshStandardMaterial({ color: "#5a4538", roughness: 0.9, metalness: 0.4 });
+    const rustMat = new THREE.MeshStandardMaterial({
+      color: "#5a4538",
+      roughness: 0.9,
+      metalness: 0.4,
+    });
     for (const lx of [-1.2, 1.2]) {
       const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 6.0, 6), woodMat);
       leg.position.set(lx, 3.0, 0);
@@ -481,16 +535,25 @@ export function createPropMesh(kind, models = {}) {
       pole.rotation.z = px > 0 ? -0.18 : 0.18;
       group.add(pole);
     }
-    const tarp = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.06, 2.2), new THREE.MeshStandardMaterial({ color: "#6b5e4f", roughness: 1, side: THREE.DoubleSide }));
+    const tarp = new THREE.Mesh(
+      new THREE.BoxGeometry(2.6, 0.06, 2.2),
+      new THREE.MeshStandardMaterial({ color: "#6b5e4f", roughness: 1, side: THREE.DoubleSide }),
+    );
     tarp.position.set(0, 2.8, 0);
     tarp.rotation.z = (Math.random() - 0.5) * 0.12;
-    const crate = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.45, 0.35), new THREE.MeshStandardMaterial({ color: "#4a3b2e", roughness: 0.9 }));
+    const crate = new THREE.Mesh(
+      new THREE.BoxGeometry(0.55, 0.45, 0.35),
+      new THREE.MeshStandardMaterial({ color: "#4a3b2e", roughness: 0.9 }),
+    );
     crate.position.set(0.25, 0.22, 0.4);
     group.add(tarp, crate);
-    } else if (kind === "bus_stop") {
+  } else if (kind === "bus_stop") {
     const mat = new THREE.MeshStandardMaterial({ color: "#444", roughness: 0.8, metalness: 0.5 });
     const floor = new THREE.Mesh(new THREE.BoxGeometry(4, 0.1, 2), mat);
-    const back = new THREE.Mesh(new THREE.BoxGeometry(4, 2.5, 0.1), new THREE.MeshStandardMaterial({ color: "#88aacc", transparent: true, opacity: 0.4 }));
+    const back = new THREE.Mesh(
+      new THREE.BoxGeometry(4, 2.5, 0.1),
+      new THREE.MeshStandardMaterial({ color: "#88aacc", transparent: true, opacity: 0.4 }),
+    );
     back.position.set(0, 1.25, -0.95);
     const roof = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.1, 2.2), mat);
     roof.position.set(0, 2.5, 0);
@@ -507,10 +570,13 @@ export function createPropMesh(kind, models = {}) {
     head.position.set(0, 6, 0);
     head.rotation.z = 0.2;
     // Cracked lenses
-    for(let i=0; i<3; i++) {
-        const lens = new THREE.Mesh(new THREE.CircleGeometry(0.18, 8), new THREE.MeshStandardMaterial({ color: "#111", roughness: 0.2 }));
-        lens.position.set(0, 6.5 - i*0.5, 0.31);
-        head.add(lens);
+    for (let i = 0; i < 3; i++) {
+      const lens = new THREE.Mesh(
+        new THREE.CircleGeometry(0.18, 8),
+        new THREE.MeshStandardMaterial({ color: "#111", roughness: 0.2 }),
+      );
+      lens.position.set(0, 6.5 - i * 0.5, 0.31);
+      head.add(lens);
     }
     group.add(pole, head);
   } else if (kind === "concrete_barrier") {
@@ -534,19 +600,35 @@ export function createPropMesh(kind, models = {}) {
     const mat = new THREE.MeshStandardMaterial({ color: "#ccc", roughness: 0.7 });
     const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 2), mat);
     pole.position.y = 1;
-    const dish = new THREE.Mesh(new THREE.SphereGeometry(1.5, 12, 12, 0, Math.PI*2, 0, Math.PI/3), mat);
+    const dish = new THREE.Mesh(
+      new THREE.SphereGeometry(1.5, 12, 12, 0, Math.PI * 2, 0, Math.PI / 3),
+      mat,
+    );
     dish.position.y = 2.5;
-    dish.rotation.x = -Math.PI/4;
+    dish.rotation.x = -Math.PI / 4;
     group.add(pole, dish);
   } else if (kind === "tank") {
-    const rustMat = new THREE.MeshStandardMaterial({ color: "#5a4538", roughness: 0.9, metalness: 0.35 });
+    const rustMat = new THREE.MeshStandardMaterial({
+      color: "#5a4538",
+      roughness: 0.9,
+      metalness: 0.35,
+    });
     const tankBody = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, 3.6, 14), rustMat);
     tankBody.position.y = 1.8;
-    const top = new THREE.Mesh(new THREE.SphereGeometry(1.4, 14, 6, 0, Math.PI * 2, 0, Math.PI / 2), rustMat);
+    const top = new THREE.Mesh(
+      new THREE.SphereGeometry(1.4, 14, 6, 0, Math.PI * 2, 0, Math.PI / 2),
+      rustMat,
+    );
     top.position.y = 3.6;
-    const ladder = new THREE.Mesh(new THREE.BoxGeometry(0.3, 3.2, 0.06), new THREE.MeshStandardMaterial({ color: "#444", metalness: 0.6, roughness: 0.5 }));
+    const ladder = new THREE.Mesh(
+      new THREE.BoxGeometry(0.3, 3.2, 0.06),
+      new THREE.MeshStandardMaterial({ color: "#444", metalness: 0.6, roughness: 0.5 }),
+    );
     ladder.position.set(1.42, 1.8, 0);
-    const valve = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.35, 8), new THREE.MeshStandardMaterial({ color: "#333", metalness: 0.7 }));
+    const valve = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.12, 0.12, 0.35, 8),
+      new THREE.MeshStandardMaterial({ color: "#333", metalness: 0.7 }),
+    );
     valve.position.set(0, 3.9, 0);
     group.add(tankBody, top, ladder, valve);
   }

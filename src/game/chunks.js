@@ -55,12 +55,8 @@ export const chunkTemplates = {
     lengthM: 40,
     zones: ["*"],
     weight: 8,
-    obstacleSlots: [
-      { kind: "random", x: 2.8, z: 8 },
-    ],
-    pickupSlots: [
-      { kind: "random", x: -1.4, z: 18 },
-    ],
+    obstacleSlots: [{ kind: "random", x: 2.8, z: 8 }],
+    pickupSlots: [{ kind: "random", x: -1.4, z: 18 }],
     propSlots: [
       { kind: "random", x: -8.2, z: 5, side: "left" },
       { kind: "random", x: 8.2, z: 25, side: "right" },
@@ -401,8 +397,8 @@ const CHUNK_COOLDOWN_SPECIAL_M = 100; // min meters between special chunks
 
 export function createChunkScheduler() {
   return {
-    queue: [],              // upcoming chunks [{ chunkId, distanceStart, distanceEnd, spawned }]
-    lastChunkEndM: 0,       // where the last queued chunk ends
+    queue: [], // upcoming chunks [{ chunkId, distanceStart, distanceEnd, spawned }]
+    lastChunkEndM: 0, // where the last queued chunk ends
     lastSpecialDistance: -CHUNK_COOLDOWN_SPECIAL_M,
   };
 }
@@ -487,9 +483,7 @@ export function getChunksToSpawn(scheduler, prevDistanceM, currentDistanceM) {
     }
   }
   // Clean up chunks that are far behind
-  scheduler.queue = scheduler.queue.filter(
-    (c) => c.distanceEnd > currentDistanceM - 100,
-  );
+  scheduler.queue = scheduler.queue.filter((c) => c.distanceEnd > currentDistanceM - 100);
   return toSpawn;
 }
 

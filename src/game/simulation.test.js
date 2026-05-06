@@ -16,10 +16,7 @@ import {
   objectiveCatalog,
   pickupCatalog,
 } from "./content.js";
-import {
-  hydrateSave,
-  deepMerge,
-} from "./persistence.js";
+import { hydrateSave, deepMerge } from "./persistence.js";
 import { defaultSaveData } from "./persistence.js";
 
 test("applyLoadout returns correct multipliers for default equip", () => {
@@ -43,7 +40,7 @@ test("applyLoadout multiply stacks correctly", () => {
     rig: "tank",
   };
   const { merged } = applyLoadout(loadout, equipmentCatalog);
-  const expectedArmor = 1.20 * 1.0 * 1.18;
+  const expectedArmor = 1.2 * 1.0 * 1.18;
   assert.ok(
     Math.abs(merged.armor - expectedArmor) < 0.001,
     `armor should be ${expectedArmor}, got ${merged.armor}`,
@@ -112,10 +109,7 @@ test("spawnEncounter always returns a valid kind", () => {
   const validKinds = Object.keys(encounterConfig.desert.obstacleBias);
   for (let i = 0; i < 50; i++) {
     const kind = spawnEncounter(run, "desert", encounterConfig);
-    assert.ok(
-      validKinds.includes(kind),
-      `unexpected kind: ${kind}`,
-    );
+    assert.ok(validKinds.includes(kind), `unexpected kind: ${kind}`);
   }
 });
 

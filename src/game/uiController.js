@@ -76,8 +76,7 @@ export function setupUIController({
   const volumeInput = document.querySelector('[data-option="volume"]');
   volumeInput.addEventListener("input", () => {
     state.options.volume = Number(volumeInput.value);
-    document.querySelector('[data-option-value="volume"]').textContent =
-      `${state.options.volume}%`;
+    document.querySelector('[data-option-value="volume"]').textContent = `${state.options.volume}%`;
     updateAudioVolume(state, world);
     saveState();
   });
@@ -89,9 +88,7 @@ export function setupUIController({
     saveState();
   });
 
-  const resolutionScaleInput = document.querySelector(
-    '[data-option="resolutionScale"]',
-  );
+  const resolutionScaleInput = document.querySelector('[data-option="resolutionScale"]');
   resolutionScaleInput.addEventListener("change", () => {
     state.options.resolutionScale = resolutionScaleInput.value;
     applyOptions();
@@ -166,18 +163,13 @@ function populateEquipmentSelectors(state, equipmentCatalog) {
 
 function hydrateOptionsUI(state) {
   document.querySelector('[data-option="volume"]').value = state.options.volume;
-  document.querySelector('[data-option-value="volume"]').textContent =
-    `${state.options.volume}%`;
-  document.querySelector('[data-option="quality"]').value =
-    state.options.quality;
+  document.querySelector('[data-option-value="volume"]').textContent = `${state.options.volume}%`;
+  document.querySelector('[data-option="quality"]').value = state.options.quality;
   document.querySelector('[data-option="resolutionScale"]').value =
     state.options.resolutionScale ?? "auto";
-  document.querySelector('[data-option="fullscreen"]').checked =
-    state.options.fullscreen;
-  document.querySelector('[data-option="weatherFx"]').checked =
-    state.options.weatherFx;
-  document.querySelector('[data-option="dayNight"]').checked =
-    state.options.dayNight;
+  document.querySelector('[data-option="fullscreen"]').checked = state.options.fullscreen;
+  document.querySelector('[data-option="weatherFx"]').checked = state.options.weatherFx;
+  document.querySelector('[data-option="dayNight"]').checked = state.options.dayNight;
 }
 
 function updateLoadoutUI({ state, hud, equipmentCatalog }) {

@@ -176,8 +176,7 @@ export function createShoulderTexture() {
   for (let t = 0; t < 8; t++) {
     const tx = 20 + Math.random() * (sizeX - 40);
     const ty = Math.random() * sizeY;
-    const trashColor =
-      Math.random() > 0.5 ? "rgba(180, 60, 30, 0.55)" : "rgba(140, 140, 130, 0.5)";
+    const trashColor = Math.random() > 0.5 ? "rgba(180, 60, 30, 0.55)" : "rgba(140, 140, 130, 0.5)";
     ctx.fillStyle = trashColor;
     ctx.fillRect(tx, ty, 5 + Math.random() * 10, 4 + Math.random() * 14);
     bCtx.fillStyle = "rgba(140, 140, 140, 0.9)";
@@ -443,7 +442,7 @@ export function createRoadTexture() {
       rCtx.lineTo(x, y);
 
       const branchChance = isWideCrack ? 0.6 : 0.45;
-      if (Math.random() > (1 - branchChance)) {
+      if (Math.random() > 1 - branchChance) {
         let bx = x;
         let by = y;
         ctx.moveTo(bx, by);

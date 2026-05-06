@@ -106,7 +106,9 @@ export function updateHUD() {
     hud.eventChip.style.display = activeEventId ? "" : "none";
   }
   if (hud.eventName) {
-    hud.eventName.textContent = activeEventId ? (eventCatalog[activeEventId]?.name ?? activeEventId) : "—";
+    hud.eventName.textContent = activeEventId
+      ? (eventCatalog[activeEventId]?.name ?? activeEventId)
+      : "—";
   }
 
   hud.distance.textContent = run.distance.toFixed(1);

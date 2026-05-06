@@ -1,10 +1,6 @@
 import * as THREE from "three";
 
-import {
-  createRaider,
-  createTower,
-  createMutant,
-} from "./obstacles/enemies.js";
+import { createRaider, createTower, createMutant } from "./obstacles/enemies.js";
 
 import {
   createBarrier,
@@ -13,22 +9,11 @@ import {
   createRock,
 } from "./obstacles/walls.js";
 
-import {
-  createWreck,
-  createDebris,
-  createFallenSign,
-  createScrap,
-} from "./obstacles/debris.js";
+import { createWreck, createDebris, createFallenSign, createScrap } from "./obstacles/debris.js";
 
-import {
-  createOilSpill,
-  createMine,
-  createPothole,
-} from "./obstacles/hazards.js";
+import { createOilSpill, createMine, createPothole } from "./obstacles/hazards.js";
 
-import {
-  createRamp,
-} from "./obstacles/features.js";
+import { createRamp } from "./obstacles/features.js";
 
 export function createObstacleMesh(kind, models = {}) {
   const rustMat = new THREE.MeshStandardMaterial({

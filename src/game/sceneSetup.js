@@ -14,10 +14,7 @@ import {
   recycleEnvironmentObject,
 } from "../world/environment.js";
 
-import {
-  createRoadsideProp,
-  createCityRoadsideProp,
-} from "../world/meshes/roadside.js";
+import { createRoadsideProp, createCityRoadsideProp } from "../world/meshes/roadside.js";
 
 import {
   createBackdropMesa,
@@ -29,12 +26,16 @@ import { createRoadDetail } from "../world/meshes/roadDetails.js";
 
 import { createCar } from "./car.js";
 
-import {
-  recycleRoadsideProp,
-  recycleCityRoadsideProp,
-} from "../world/movement.js";
+import { recycleRoadsideProp, recycleCityRoadsideProp } from "../world/movement.js";
 
-export function setupThree(world, state, equipmentCatalog, getCurrentBiome, isDesertBiome, onResize) {
+export function setupThree(
+  world,
+  state,
+  equipmentCatalog,
+  getCurrentBiome,
+  isDesertBiome,
+  onResize,
+) {
   world.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   world.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -255,10 +256,7 @@ export function setupThree(world, state, equipmentCatalog, getCurrentBiome, isDe
   });
 
   world.roadShoulders = [-8.2, 8.2].map((x) => {
-    const shoulder = new THREE.Mesh(
-      new THREE.PlaneGeometry(2.5, 600, 4, 64),
-      shoulderMaterial,
-    );
+    const shoulder = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 600, 4, 64), shoulderMaterial);
 
     shoulder.rotation.x = -Math.PI / 2;
 
@@ -375,11 +373,7 @@ export function setupThree(world, state, equipmentCatalog, getCurrentBiome, isDe
       }),
     );
 
-    band.position.set(
-      (Math.random() - 0.5) * 55,
-      1.5 + Math.random() * 6,
-      i * 12,
-    );
+    band.position.set((Math.random() - 0.5) * 55, 1.5 + Math.random() * 6, i * 12);
 
     band.rotation.y = (Math.random() - 0.5) * 0.8;
 

@@ -46,20 +46,18 @@ export async function loadAssets(world) {
         (error) => {
           console.error(`Error loading model ${name}:`, error);
           resolve();
-        }
+        },
       );
     });
   });
 
   await Promise.all(promises);
-  
+
   Object.entries(assetAlias).forEach(([alias, target]) => {
     if (world.assets.models[target]) {
       world.assets.models[alias] = world.assets.models[target];
     }
   });
-
-  console.log("Assets loaded and aliased");
 }
 
 function normalizeModel(model, name) {
@@ -67,10 +65,10 @@ function normalizeModel(model, name) {
     if (child.isMesh) {
       child.castShadow = true;
       child.receiveShadow = true;
-      
+
       if (child.material) {
         if (Array.isArray(child.material)) {
-          child.material = child.material.map(m => improveMaterial(m, name));
+          child.material = child.material.map((m) => improveMaterial(m, name));
         } else {
           child.material = improveMaterial(child.material, name);
         }
@@ -111,7 +109,7 @@ function normalizeModel(model, name) {
 
 function improveMaterial(mat, modelName) {
   const isPlayer = modelName === "player";
-  
+
   const params = {
     color: mat.color,
     map: mat.map,
@@ -143,7 +141,7 @@ function improveMaterial(mat, modelName) {
       newMat.thickness = 0.5;
     }
   }
-  
+
   if (matName.includes("tire") || matName.includes("rubber")) {
     newMat.roughness = 0.95;
     newMat.metalness = 0.0;

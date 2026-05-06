@@ -399,7 +399,9 @@ export function updateZoneHud(hud, data = {}) {
 
   const threatClass = threatLevel > 70 ? "danger" : threatLevel > 40 ? "warning" : "";
   if (hud.zoneThreatWrap) {
-    hud.zoneThreatWrap.className = hud.zoneThreatWrap.className.replace(/\b(danger|warning)\b/g, "").trim();
+    hud.zoneThreatWrap.className = hud.zoneThreatWrap.className
+      .replace(/\b(danger|warning)\b/g, "")
+      .trim();
     if (threatClass) {
       hud.zoneThreatWrap.classList.add(threatClass);
     }

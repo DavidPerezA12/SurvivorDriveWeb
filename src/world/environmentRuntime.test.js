@@ -33,8 +33,14 @@ test("chooseNextWeather avoids biome-incompatible weather", () => {
     rain: {},
   };
 
-  assert.equal(chooseNextWeather("clear", profiles, "ghost_town", () => 0), "smog");
-  assert.equal(chooseNextWeather("clear", profiles, "desert", () => 0), "dust");
+  assert.equal(
+    chooseNextWeather("clear", profiles, "ghost_town", () => 0),
+    "smog",
+  );
+  assert.equal(
+    chooseNextWeather("clear", profiles, "desert", () => 0),
+    "dust",
+  );
 });
 
 test("resolveZoneTransition exposes current and next zone blend data", () => {

@@ -28,10 +28,10 @@ export const eventCatalog = {
     durationMin: 8,
     durationMax: 16,
     effects: {
-      fogBoost: 0.012,     // added to base fog
-      handlingMult: 0.85,  // reduced grip
-      speedMult: 0.9,      // slight speed penalty
-      windStrength: 1.5,   // lateral wind push
+      fogBoost: 0.012, // added to base fog
+      handlingMult: 0.85, // reduced grip
+      speedMult: 0.9, // slight speed penalty
+      windStrength: 1.5, // lateral wind push
       ambientDarken: 0.3,
       headlightsForced: true,
       particleSpawn: "dust_storm",
@@ -48,8 +48,8 @@ export const eventCatalog = {
     durationMin: 10,
     durationMax: 18,
     effects: {
-      spawnChaser: 1,       // number of chaser vehicles
-      chaserSpeed: 1.05,    // slightly faster than player base
+      spawnChaser: 1, // number of chaser vehicles
+      chaserSpeed: 1.05, // slightly faster than player base
       chaserDamage: 15,
       chaserShootInterval: 1.5,
     },
@@ -99,13 +99,13 @@ export const eventCatalog = {
     durationMin: 6,
     durationMax: 10,
     effects: {
-      spawnBarrierWall: true,  // full-width barrier wall with gaps
-      gapCount: 1,             // number of passable gaps
-      gapWidth: 1.8,           // width of each gap in world units
+      spawnBarrierWall: true, // full-width barrier wall with gaps
+      gapCount: 1, // number of passable gaps
+      gapWidth: 1.8, // width of each gap in world units
     },
     hudMessage: "¡Carretera cortada!",
     hudColor: "#ffaa00",
-    canCancel: true,  // ends when player passes through
+    canCancel: true, // ends when player passes through
   },
 
   gas_station: {
@@ -117,8 +117,8 @@ export const eventCatalog = {
     effects: {
       spawnFuelPickups: 4,
       spawnRepairPickups: 2,
-      spawnAmbush: true,         // enemies after collecting
-      ambushDelay: 3,            // seconds after first pickup
+      spawnAmbush: true, // enemies after collecting
+      ambushDelay: 3, // seconds after first pickup
       ambushEnemies: 3,
     },
     hudMessage: "Gasolinera avistada",
@@ -165,12 +165,12 @@ export const eventCatalog = {
 
 export function createEventManager() {
   return {
-    activeEvent: null,          // currently active event
-    eventTimer: 0,              // remaining duration of active event
-    eventCooldown: 0,           // cooldown before next event can trigger
-    eventHudTimer: 0,           // timer for HUD message display
-    chasers: [],                // active chaser vehicles (if chase event)
-    eventStartDistance: 0,      // distance when event started
+    activeEvent: null, // currently active event
+    eventTimer: 0, // remaining duration of active event
+    eventCooldown: 0, // cooldown before next event can trigger
+    eventHudTimer: 0, // timer for HUD message display
+    chasers: [], // active chaser vehicles (if chase event)
+    eventStartDistance: 0, // distance when event started
   };
 }
 
@@ -221,8 +221,7 @@ export function tryTriggerEvent(eventMgr, distanceKm) {
       if (!eventDef) return null;
 
       const duration =
-        eventDef.durationMin +
-        Math.random() * (eventDef.durationMax - eventDef.durationMin);
+        eventDef.durationMin + Math.random() * (eventDef.durationMax - eventDef.durationMin);
 
       eventMgr.activeEvent = entry.id;
       eventMgr.eventTimer = duration;
@@ -307,8 +306,7 @@ export function forceEvent(eventMgr, eventId, distanceKm) {
   if (!eventDef) return false;
 
   const duration =
-    eventDef.durationMin +
-    Math.random() * (eventDef.durationMax - eventDef.durationMin);
+    eventDef.durationMin + Math.random() * (eventDef.durationMax - eventDef.durationMin);
 
   eventMgr.activeEvent = eventId;
   eventMgr.eventTimer = duration;

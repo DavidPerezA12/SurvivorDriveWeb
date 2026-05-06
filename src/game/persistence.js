@@ -93,7 +93,10 @@ export function registerRunResult(saveData, run) {
   saveData.progression.scrapBank = (saveData.progression.scrapBank ?? 0) + (run.scrap ?? 0);
   saveData.progression.bestDistance = Math.max(saveData.progression.bestDistance, run.distance);
   if (run.biome === "city") {
-    saveData.progression.bestCityDistance = Math.max(saveData.progression.bestCityDistance, run.distance);
+    saveData.progression.bestCityDistance = Math.max(
+      saveData.progression.bestCityDistance,
+      run.distance,
+    );
   }
   saveData.progression.lastBiome = run.biome;
   saveData.stats.lastRunDistance = run.distance;

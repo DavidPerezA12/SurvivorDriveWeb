@@ -1,9 +1,5 @@
 import { recycleRoadDetail } from "./meshes/roadDetails.js";
-import {
-  recycleFarBackdrop,
-  recycleBackdrop,
-  recycleCityBackdrop,
-} from "./meshes/backdrops.js";
+import { recycleFarBackdrop, recycleBackdrop, recycleCityBackdrop } from "./meshes/backdrops.js";
 import { recycleEnvironmentObject } from "./environment.js";
 
 export function moveWorld(world, dt, speedFactor) {
@@ -151,22 +147,14 @@ export function recycleCityRoadsideProp(prop, initial = false) {
   const side = Math.random() > 0.5 ? 1 : -1;
   const dist = prop.userData.isCurb ? 8.5 : 12 + Math.random() * 24;
 
-  prop.position.set(
-    side * dist,
-    0,
-    (initial ? Math.random() * 220 : 220) + Math.random() * 90,
-  );
+  prop.position.set(side * dist, 0, (initial ? Math.random() * 220 : 220) + Math.random() * 90);
 
   prop.rotation.y = prop.userData.isCurb ? 0 : side === 1 ? -0.04 : 0.04;
 }
 
 export function recycleRoadsideProp(prop, initial = false) {
   if (prop.userData.isGantry) {
-    prop.position.set(
-      0,
-      0,
-      (initial ? Math.random() * 240 : 200) + Math.random() * 120,
-    );
+    prop.position.set(0, 0, (initial ? Math.random() * 240 : 200) + Math.random() * 120);
 
     prop.rotation.set(0, 0, 0);
     return;
@@ -175,11 +163,7 @@ export function recycleRoadsideProp(prop, initial = false) {
   const side = Math.random() > 0.5 ? 1 : -1;
   const dist = 12 + Math.random() * 38;
 
-  prop.position.set(
-    side * dist,
-    0,
-    (initial ? Math.random() * 240 : 200) + Math.random() * 120,
-  );
+  prop.position.set(side * dist, 0, (initial ? Math.random() * 240 : 200) + Math.random() * 120);
 
   prop.rotation.y =
     (side === 1 ? -1 : 1) * (0.1 + Math.random() * 0.4) + (Math.random() - 0.5) * 0.2;

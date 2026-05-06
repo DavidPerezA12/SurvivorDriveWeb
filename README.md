@@ -101,8 +101,10 @@ SurvivorDriveWeb/
 │       ├── assets.js     # carga y normalización de modelos runtime
 │       ├── content.js    # catálogos, manifiestos de pickups, perfiles de entorno
 │       ├── input.js      # teclado / toque y estado de entrada
+│       ├── loop.js       # requestAnimationFrame, dt clamp y render
 │       ├── persistence.js# SaveData, localStorage, desbloqueos
 │       ├── routes.js     # rutas de pantalla y bioma
+│       ├── runRuntime.js # runtime de run: spawns, eventos, cámara y colisiones
 │       ├── simulation.js # estado de carrera, colisiones, encuentros
 │       ├── ui.js         # montaje del DOM (menús, HUD, canvas)
 │       ├── uiController.js# eventos DOM y sincronización UI ↔ juego
@@ -114,7 +116,9 @@ SurvivorDriveWeb/
 
 ## Arquitectura
 
-- `src/main.js` conserva el arranque, la escena 3D y el bucle principal.
+- `src/main.js` conserva el bootstrap, estado global, UI, opciones e inyección de dependencias.
+- `src/game/loop.js` contiene el bucle de render.
+- `src/game/runRuntime.js` contiene spawns, chunks, eventos, cámara, colisiones y finalización de run.
 - `src/game/simulation.js` contiene lógica serializable y testeable de la run.
 - `src/game/ui.js` monta el DOM base; `src/game/uiController.js` conecta eventos y flujo.
 - `src/game/assets.js` centraliza modelos, loaders y normalización de materiales.

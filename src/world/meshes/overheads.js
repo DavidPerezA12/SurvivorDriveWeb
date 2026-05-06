@@ -39,7 +39,10 @@ function box(width, height, depth, material, position = [0, 0, 0]) {
 }
 
 function cylinder(radiusTop, radiusBottom, height, material, position = [0, 0, 0], segments = 8) {
-  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(radiusTop, radiusBottom, height, segments), material);
+  const mesh = new THREE.Mesh(
+    new THREE.CylinderGeometry(radiusTop, radiusBottom, height, segments),
+    material,
+  );
   mesh.position.set(...position);
   return mesh;
 }

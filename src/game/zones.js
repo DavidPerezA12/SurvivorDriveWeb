@@ -1,7 +1,7 @@
 /**
  * zones.js — Zone system for SurvivorDriveWeb
  *
- * Replaces the old two-biome system (desert/city) with 5 progressive zones.
+ * Replaces the old two-biome system (desert/city) with 6 progressive zones.
  * Each zone defines: distance range, obstacle/pickup/event weights,
  * visual theme, difficulty, weather pool, and prop catalog.
  *
@@ -65,10 +65,10 @@ export const zoneCatalog = {
       spawnIntervalMin: 1.0,
       spawnIntervalMax: 1.8,
       weights: {
-        none: 0.60,       // 60% chance of no obstacle (safe zone)
-        barrier: 0.10,
+        none: 0.6, // 60% chance of no obstacle (safe zone)
+        barrier: 0.1,
         scrap: 0.15,
-        wreck: 0.10,
+        wreck: 0.1,
         ramp: 0.05,
       },
     },
@@ -78,11 +78,11 @@ export const zoneCatalog = {
       spawnIntervalMin: 1.2,
       spawnIntervalMax: 2.2,
       weights: {
-        coin: 0.30,
+        coin: 0.3,
         fuel: 0.25,
-        repair: 0.20,
+        repair: 0.2,
         ammo: 0.15,
-        scrap: 0.10,
+        scrap: 0.1,
       },
     },
 
@@ -100,7 +100,7 @@ export const zoneCatalog = {
       roadColor: "#4a4a4a",
       groundColor: "#6b5b4a",
       shoulderColor: "#5a5a4a",
-      fogColor: { r: 0.55, g: 0.50, b: 0.42 },
+      fogColor: { r: 0.55, g: 0.5, b: 0.42 },
       fogDensity: 0.003,
       ambientDay: "#c4a385",
       ambientNight: "#6c88bf",
@@ -116,11 +116,11 @@ export const zoneCatalog = {
     // ── Prop decor weights ──
     props: {
       guardrail: 0.25,
-      pole: 0.20,
+      pole: 0.2,
       sign: 0.15,
       barrel: 0.15,
       crate: 0.15,
-      cone: 0.10,
+      cone: 0.1,
     },
   },
 
@@ -147,7 +147,7 @@ export const zoneCatalog = {
       spawnIntervalMax: 1.1,
       weights: {
         barrier: 0.22,
-        scrap: 0.20,
+        scrap: 0.2,
         wreck: 0.18,
         barricade: 0.12,
         raider: 0.08,
@@ -177,10 +177,10 @@ export const zoneCatalog = {
       cooldownMin: 25,
       cooldownMax: 40,
       weights: {
-        none: 0.60,
+        none: 0.6,
         dust_storm: 0.15,
         cut_road: 0.15,
-        chase_light: 0.10,
+        chase_light: 0.1,
       },
     },
 
@@ -201,11 +201,11 @@ export const zoneCatalog = {
     weatherPool: ["clear", "dust", "ash"],
 
     props: {
-      wrecked_car: 0.20,
+      wrecked_car: 0.2,
       barrier: 0.18,
       debris_pile: 0.15,
       guardrail: 0.12,
-      pole: 0.10,
+      pole: 0.1,
       sign: 0.08,
       barrel: 0.07,
       crate: 0.05,
@@ -217,12 +217,13 @@ export const zoneCatalog = {
     id: "ghost_town",
     name: "Pueblo Fantasma",
     label: "Ghost Town",
-    description: "Calles estrechas entre edificios destruidos. Gasolinera abandonada y escombros laterales.",
+    description:
+      "Calles estrechas entre edificios destruidos. Gasolinera abandonada y escombros laterales.",
     distanceStart: 2.0,
     distanceEnd: 3.5,
 
     roadWidth: 10, // narrower streets
-    laneCount: 2,  // fewer lanes
+    laneCount: 2, // fewer lanes
     lanes: [-3.0, -1.0, 1.0, 3.0],
     speedLimit: 0.9,
 
@@ -239,7 +240,7 @@ export const zoneCatalog = {
         debris: 0.18,
         barrier: 0.16,
         barricade: 0.12,
-        scrap: 0.10,
+        scrap: 0.1,
         fallen_sign: 0.08,
         raider: 0.06,
         oil_spill: 0.05,
@@ -251,12 +252,12 @@ export const zoneCatalog = {
       spawnIntervalMin: 0.9,
       spawnIntervalMax: 2.2,
       weights: {
-        scrap: 0.20,
+        scrap: 0.2,
         coin: 0.18,
         fuel: 0.16,
         repair: 0.14,
         ammo: 0.12,
-        nitro: 0.10,
+        nitro: 0.1,
         jump: 0.05,
         fire: 0.05,
       },
@@ -267,10 +268,10 @@ export const zoneCatalog = {
       cooldownMax: 35,
       weights: {
         none: 0.45,
-        cut_road: 0.20,
+        cut_road: 0.2,
         gas_station: 0.15,
-        dark_tunnel: 0.10,
-        chase_medium: 0.10,
+        dark_tunnel: 0.1,
+        chase_medium: 0.1,
       },
     },
 
@@ -295,7 +296,7 @@ export const zoneCatalog = {
       fence: 0.15,
       wreckage: 0.14,
       debris_pile: 0.12,
-      street_light: 0.10,
+      street_light: 0.1,
       barrel: 0.08,
       sign: 0.08,
       crate: 0.07,
@@ -326,7 +327,7 @@ export const zoneCatalog = {
       spawnIntervalMin: 0.38,
       spawnIntervalMax: 0.8,
       weights: {
-        barrier: 0.20,
+        barrier: 0.2,
         rock: 0.18,
         scrap: 0.16,
         wreck: 0.12,
@@ -347,7 +348,7 @@ export const zoneCatalog = {
         nitro: 0.15,
         repair: 0.14,
         ammo: 0.12,
-        scrap: 0.10,
+        scrap: 0.1,
         jump: 0.05,
         fire: 0.04,
       },
@@ -361,7 +362,7 @@ export const zoneCatalog = {
         dust_storm: 0.25,
         chase_heavy: 0.15,
         cut_road: 0.15,
-        gas_station: 0.10,
+        gas_station: 0.1,
       },
     },
 
@@ -369,7 +370,7 @@ export const zoneCatalog = {
       roadColor: "#f0e8d8",
       groundColor: "#d48a4f",
       shoulderColor: "#dfaa74",
-      fogColor: { r: 0.60, g: 0.48, b: 0.34 },
+      fogColor: { r: 0.6, g: 0.48, b: 0.34 },
       fogDensity: 0.004,
       ambientDay: "#c4a385",
       ambientNight: "#6c88bf",
@@ -385,7 +386,7 @@ export const zoneCatalog = {
       rock: 0.18,
       dead_bush: 0.15,
       dune: 0.12,
-      crater: 0.10,
+      crater: 0.1,
       pipeline: 0.08,
       satellite_dish: 0.08,
       watchtower: 0.08,
@@ -400,7 +401,8 @@ export const zoneCatalog = {
     id: "military",
     name: "Zona Militar",
     label: "Military Zone",
-    description: "El tramo final y más difícil. Barreras militares, minas, vehículos blindados y persecución.",
+    description:
+      "El tramo final y más difícil. Barreras militares, minas, vehículos blindados y persecución.",
     distanceStart: 5.0,
     distanceEnd: 6.5,
 
@@ -422,7 +424,7 @@ export const zoneCatalog = {
         mine: 0.18,
         barrier: 0.14,
         raider: 0.12,
-        tower: 0.10,
+        tower: 0.1,
         wreck: 0.08,
         scrap: 0.06,
         debris: 0.05,
@@ -435,12 +437,12 @@ export const zoneCatalog = {
       spawnIntervalMin: 0.7,
       spawnIntervalMax: 1.8,
       weights: {
-        repair: 0.20,
+        repair: 0.2,
         ammo: 0.18,
         fuel: 0.16,
         nitro: 0.15,
         scrap: 0.12,
-        coin: 0.10,
+        coin: 0.1,
         jump: 0.05,
         fire: 0.04,
       },
@@ -452,9 +454,9 @@ export const zoneCatalog = {
       weights: {
         none: 0.25,
         military_checkpoint: 0.22,
-        chase_heavy: 0.20,
+        chase_heavy: 0.2,
         dust_storm: 0.15,
-        cut_road: 0.10,
+        cut_road: 0.1,
         dark_tunnel: 0.08,
       },
     },
@@ -479,8 +481,8 @@ export const zoneCatalog = {
       sandbag: 0.18,
       military_barrier: 0.16,
       crate: 0.12,
-      wreckage: 0.10,
-      fence: 0.10,
+      wreckage: 0.1,
+      fence: 0.1,
       barrel: 0.08,
       debris_pile: 0.08,
       watchtower: 0.07,
@@ -512,10 +514,10 @@ export const zoneCatalog = {
       spawnIntervalMax: 0.6,
       weights: {
         military_barrier: 0.25,
-        mine: 0.20,
+        mine: 0.2,
         raider: 0.15,
         tower: 0.12,
-        barrier: 0.10,
+        barrier: 0.1,
         debris: 0.08,
         half_gate: 0.05,
         oil_spill: 0.05,
@@ -541,11 +543,11 @@ export const zoneCatalog = {
       cooldownMin: 12,
       cooldownMax: 24,
       weights: {
-        none: 0.20,
-        chase_heavy: 0.30,
+        none: 0.2,
+        chase_heavy: 0.3,
         military_checkpoint: 0.25,
         dust_storm: 0.15,
-        dark_tunnel: 0.10,
+        dark_tunnel: 0.1,
       },
     },
 
@@ -566,11 +568,11 @@ export const zoneCatalog = {
     weatherPool: ["clear", "ash"],
 
     props: {
-      sandbag: 0.20,
+      sandbag: 0.2,
       military_barrier: 0.18,
       wreckage: 0.15,
       debris_pile: 0.12,
-      fence: 0.10,
+      fence: 0.1,
       crate: 0.08,
       barrel: 0.07,
       pole: 0.05,
@@ -580,9 +582,7 @@ export const zoneCatalog = {
 };
 
 // ── Zone lookup by distance ─────────────────────────────────────────────
-const zoneEntries = Object.values(zoneCatalog).sort(
-  (a, b) => a.distanceStart - b.distanceStart,
-);
+const zoneEntries = Object.values(zoneCatalog).sort((a, b) => a.distanceStart - b.distanceStart);
 
 export function getZoneByDistance(distanceKm) {
   for (const zone of zoneEntries) {
@@ -676,22 +676,22 @@ export const pickupCatalog = {
 // ── Obstacle catalog (extended with new types) ───────────────────────────
 export const obstacleCatalog = {
   // ── Existing types (from content.js) ──
-  barrier:    { label: "Barrier",         category: "wall",     damage: 18, isWall: true },
-  tower:      { label: "Tower",           category: "enemy",    damage: 35, isWall: true, isEnemy: true },
-  raider:     { label: "Raider",          category: "enemy",    damage: 22, isEnemy: true },
-  wreck:      { label: "Wreck",           category: "debris",   damage: 20 },
-  scrap:      { label: "Scrap",           category: "debris",   damage: 16 },
-  mutant:     { label: "Mutant",          category: "enemy",    damage: 25, isEnemy: true },
-  ramp:       { label: "Ramp",            category: "feature",  damage: 0,  isRamp: true },
+  barrier: { label: "Barrier", category: "wall", damage: 18, isWall: true },
+  tower: { label: "Tower", category: "enemy", damage: 35, isWall: true, isEnemy: true },
+  raider: { label: "Raider", category: "enemy", damage: 22, isEnemy: true },
+  wreck: { label: "Wreck", category: "debris", damage: 20 },
+  scrap: { label: "Scrap", category: "debris", damage: 16 },
+  mutant: { label: "Mutant", category: "enemy", damage: 25, isEnemy: true },
+  ramp: { label: "Ramp", category: "feature", damage: 0, isRamp: true },
 
   // ── New types ──
-  barricade:        { label: "Barricade",       category: "wall",     damage: 22, isWall: true },
-  debris:           { label: "Debris",          category: "debris",   damage: 12 },
-  oil_spill:        { label: "Oil Spill",       category: "hazard",   damage: 5,  noDestroy: true },
-  fallen_sign:      { label: "Fallen Sign",     category: "debris",   damage: 10 },
-  mine:             { label: "Land Mine",       category: "hazard",   damage: 40 },
-  military_barrier: { label: "Mil. Barrier",    category: "wall",     damage: 30, isWall: true },
-  half_gate:        { label: "Half Gate",       category: "wall",     damage: 25, isWall: true },
-  rock:             { label: "Rock",            category: "natural",  damage: 15, isWall: true },
-  pothole:          { label: "Pothole",         category: "hazard",   damage: 8,  noDestroy: true },
+  barricade: { label: "Barricade", category: "wall", damage: 22, isWall: true },
+  debris: { label: "Debris", category: "debris", damage: 12 },
+  oil_spill: { label: "Oil Spill", category: "hazard", damage: 5, noDestroy: true },
+  fallen_sign: { label: "Fallen Sign", category: "debris", damage: 10 },
+  mine: { label: "Land Mine", category: "hazard", damage: 40 },
+  military_barrier: { label: "Mil. Barrier", category: "wall", damage: 30, isWall: true },
+  half_gate: { label: "Half Gate", category: "wall", damage: 25, isWall: true },
+  rock: { label: "Rock", category: "natural", damage: 15, isWall: true },
+  pothole: { label: "Pothole", category: "hazard", damage: 8, noDestroy: true },
 };

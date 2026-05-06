@@ -4,11 +4,8 @@ export function applyLoadout(loadout, equipmentCatalog, upgrades = {}) {
       equipmentCatalog.chassis.find((item) => item.id === loadout.chassis) ??
       equipmentCatalog.chassis[0],
     tires:
-      equipmentCatalog.tires.find((item) => item.id === loadout.tires) ??
-      equipmentCatalog.tires[0],
-    rig:
-      equipmentCatalog.rig.find((item) => item.id === loadout.rig) ??
-      equipmentCatalog.rig[0],
+      equipmentCatalog.tires.find((item) => item.id === loadout.tires) ?? equipmentCatalog.tires[0],
+    rig: equipmentCatalog.rig.find((item) => item.id === loadout.rig) ?? equipmentCatalog.rig[0],
   };
 
   const merged = {
@@ -48,7 +45,13 @@ export function applyLoadout(loadout, equipmentCatalog, upgrades = {}) {
   return { selected, merged };
 }
 
-export function createRunState(saveData, biome = "desert", biomeCatalog, objectiveCatalog, equipmentCatalog) {
+export function createRunState(
+  saveData,
+  biome = "desert",
+  biomeCatalog,
+  objectiveCatalog,
+  equipmentCatalog,
+) {
   const { merged } = applyLoadout(saveData.loadout, equipmentCatalog, saveData.upgrades);
   const biomeMeta = biomeCatalog[biome];
   const startingDistance = biome === "city" ? biomeCatalog.desert.checkpointKm : 0;
@@ -167,13 +170,17 @@ export function choosePickupType(run, biome, encounterConfig) {
 }
 
 export function updateRunProgression(run, biomeCatalog) {
-  run.sessionDistance = Math.max(0, run.distance - (run.biome === "city" ? biomeCatalog.desert.checkpointKm : 0));
+  run.sessionDistance = Math.max(
+    0,
+    run.distance - (run.biome === "city" ? biomeCatalog.desert.checkpointKm : 0),
+  );
   if (!Number.isFinite(run.objectiveTarget)) {
     run.objectiveProgress = run.biome === "city" ? run.sessionDistance : run.distance;
   } else {
-    run.objectiveProgress = run.biome === "city"
-      ? Math.min(run.objectiveTarget, run.sessionDistance)
-      : Math.min(run.objectiveTarget, run.distance);
+    run.objectiveProgress =
+      run.biome === "city"
+        ? Math.min(run.objectiveTarget, run.sessionDistance)
+        : Math.min(run.objectiveTarget, run.distance);
   }
 
   const shouldEnterCity =

@@ -53,7 +53,14 @@ export const equipmentCatalog = {
       id: "scout",
       name: "Scout",
       description: "Ligero, agil y con buena velocidad punta.",
-      stats: { speed: 1.08, handling: 1.12, armor: 0.95, reserve: 0.92, efficiency: 1.05, ammoCap: 0.95 },
+      stats: {
+        speed: 1.08,
+        handling: 1.12,
+        armor: 0.95,
+        reserve: 0.92,
+        efficiency: 1.05,
+        ammoCap: 0.95,
+      },
       color: "#d8b36b",
       role: "Sprint",
     },
@@ -61,7 +68,14 @@ export const equipmentCatalog = {
       id: "hauler",
       name: "Hauler",
       description: "Pesado, estable y con casco reforzado.",
-      stats: { speed: 0.94, handling: 0.9, armor: 1.2, reserve: 1.2, efficiency: 0.94, ammoCap: 1.08 },
+      stats: {
+        speed: 0.94,
+        handling: 0.9,
+        armor: 1.2,
+        reserve: 1.2,
+        efficiency: 0.94,
+        ammoCap: 1.08,
+      },
       color: "#7d8f99",
       role: "Tank",
     },
@@ -69,7 +83,14 @@ export const equipmentCatalog = {
       id: "interceptor",
       name: "Interceptor",
       description: "Intermedio, pensado para runs largas.",
-      stats: { speed: 1.0, handling: 1.0, armor: 1.05, reserve: 1.06, efficiency: 1.08, ammoCap: 1.16 },
+      stats: {
+        speed: 1.0,
+        handling: 1.0,
+        armor: 1.05,
+        reserve: 1.06,
+        efficiency: 1.08,
+        ammoCap: 1.16,
+      },
       color: "#a86143",
       role: "Long run",
     },
@@ -225,9 +246,15 @@ export const environmentProfiles = {
 
 // ── skyPalette — built from zone visuals ───────────────────────────────
 function rgbToHex(r, g, b) {
-  const hr = Math.min(255, Math.max(0, Math.round(r))).toString(16).padStart(2, "0");
-  const hg = Math.min(255, Math.max(0, Math.round(g))).toString(16).padStart(2, "0");
-  const hb = Math.min(255, Math.max(0, Math.round(b))).toString(16).padStart(2, "0");
+  const hr = Math.min(255, Math.max(0, Math.round(r)))
+    .toString(16)
+    .padStart(2, "0");
+  const hg = Math.min(255, Math.max(0, Math.round(g)))
+    .toString(16)
+    .padStart(2, "0");
+  const hb = Math.min(255, Math.max(0, Math.round(b)))
+    .toString(16)
+    .padStart(2, "0");
   return "#" + hr + hg + hb;
 }
 
@@ -238,7 +265,11 @@ function zoneVisualToSkyPalette(zoneId) {
   return {
     bgNight: v.skyNight,
     bgDay: v.skyDay,
-    fogNight: rgbToHex(v.fogColor.r * 255 * 0.55, v.fogColor.g * 255 * 0.55, v.fogColor.b * 255 * 0.55),
+    fogNight: rgbToHex(
+      v.fogColor.r * 255 * 0.55,
+      v.fogColor.g * 255 * 0.55,
+      v.fogColor.b * 255 * 0.55,
+    ),
     fogDay: rgbToHex(v.fogColor.r * 255, v.fogColor.g * 255, v.fogColor.b * 255),
     ambientNight: v.ambientNight,
     ambientDay: v.ambientDay,
@@ -248,7 +279,7 @@ function zoneVisualToSkyPalette(zoneId) {
 }
 
 export const skyPalette = Object.fromEntries(
-  Object.keys(zoneCatalog).map(id => [id, zoneVisualToSkyPalette(id)])
+  Object.keys(zoneCatalog).map((id) => [id, zoneVisualToSkyPalette(id)]),
 );
 
 // ── pickupCatalog — canonical source is zones.js ───────────────────────
@@ -310,5 +341,5 @@ function buildEncounterBiome(zoneIds) {
 }
 
 export const encounterConfig = Object.fromEntries(
-  Object.keys(zoneCatalog).map((id) => [id, buildEncounterBiome([id])])
+  Object.keys(zoneCatalog).map((id) => [id, buildEncounterBiome([id])]),
 );

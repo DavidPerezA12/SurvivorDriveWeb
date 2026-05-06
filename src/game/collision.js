@@ -19,7 +19,15 @@ export function pointToObstacleFootprintDistSq(px, pz, cx, cz, halfX, halfZ) {
   return dx * dx + dz * dz;
 }
 
-export function circleIntersectsCarAabb(cx, cz, radius, run, carZ = CAR_Z, carHalfX = CAR_HALF_X, carHalfZ = CAR_HALF_Z) {
+export function circleIntersectsCarAabb(
+  cx,
+  cz,
+  radius,
+  run,
+  carZ = CAR_Z,
+  carHalfX = CAR_HALF_X,
+  carHalfZ = CAR_HALF_Z,
+) {
   const nx = Math.max(run.x - carHalfX, Math.min(cx, run.x + carHalfX));
   const nz = Math.max(carZ - carHalfZ, Math.min(cz, carZ + carHalfZ));
   const dx = cx - nx;
@@ -35,18 +43,12 @@ export function firePulseTouchesObstacle(obstacle, run, fireReach, originZ = 1.5
   if (obstacle.userData.collisionFootprint === "circle") {
     const r =
       obstacle.userData.collisionRadius ??
-      Math.max(
-        obstacle.userData.collisionHalfX ?? 1,
-        obstacle.userData.collisionHalfZ ?? 1,
-      );
+      Math.max(obstacle.userData.collisionHalfX ?? 1, obstacle.userData.collisionHalfZ ?? 1);
     return Math.hypot(ox - px, oz - pz) <= fireReach + r;
   }
   const hx = obstacle.userData.collisionHalfX ?? obstacle.userData.radius ?? 1;
   const hz = obstacle.userData.collisionHalfZ ?? obstacle.userData.radius ?? 1;
-  return (
-    pointToObstacleFootprintDistSq(px, pz, ox, oz, hx, hz) <=
-    fireReach * fireReach
-  );
+  return pointToObstacleFootprintDistSq(px, pz, ox, oz, hx, hz) <= fireReach * fireReach;
 }
 
 /**

@@ -2,8 +2,7 @@ import * as THREE from "three";
 
 export function stateColor(state, equipmentCatalog) {
   return (
-    equipmentCatalog.chassis.find((item) => item.id === state.equipment.chassis)
-      ?.color ?? "#d8b36b"
+    equipmentCatalog.chassis.find((item) => item.id === state.equipment.chassis)?.color ?? "#d8b36b"
   );
 }
 
@@ -18,14 +17,19 @@ export function createCar(world, state, equipmentCatalog) {
     const clone = world.assets.models["player"].clone();
     const wheels = [];
     const carColor = stateColor(state, equipmentCatalog);
-    
+
     clone.traverse((child) => {
       if (child.isMesh) {
         child.castShadow = true;
         child.receiveShadow = true;
-        
+
         const name = child.name.toLowerCase();
-        if (name.includes("body") || name.includes("paint") || name.includes("chassis") || name.includes("car_body")) {
+        if (
+          name.includes("body") ||
+          name.includes("paint") ||
+          name.includes("chassis") ||
+          name.includes("car_body")
+        ) {
           child.material = child.material.clone();
           child.material.color.set(carColor);
           if (child.material.isMeshPhysicalMaterial) {
@@ -33,7 +37,7 @@ export function createCar(world, state, equipmentCatalog) {
             child.material.clearcoatRoughness = 0.1;
           }
         }
-        
+
         if (name.includes("wheel")) {
           wheels.push(child);
         }
@@ -93,59 +97,70 @@ export function createCar(world, state, equipmentCatalog) {
     }
     group.userData.brakeLights = brakeLights;
 
-  // --- External Visual Rig Attachments ---
-  const rig = state.equipment.rig;
-  const rigGroup = new THREE.Group();
-  mainHull.add(rigGroup);
+    // --- External Visual Rig Attachments ---
+    const rig = state.equipment.rig;
+    const rigGroup = new THREE.Group();
+    mainHull.add(rigGroup);
 
-  if (rig === "ram") {
-    const ramMat = new THREE.MeshStandardMaterial({ color: "#222", metalness: 0.8, roughness: 0.3 });
-    const beam = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.3, 0.4), ramMat);
-    beam.position.set(0, 0.35, 1.85);
-    rigGroup.add(beam);
-    for (let i = 0; i < 5; i++) {
-      const spike = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.5, 4), ramMat);
-      spike.position.set(-0.8 + i * 0.4, 0.35, 2.1);
-      spike.rotation.x = Math.PI / 2;
-      rigGroup.add(spike);
-    }
-  } else if (rig === "tank") {
-    const plateMat = new THREE.MeshStandardMaterial({ color: "#333", metalness: 0.6, roughness: 0.7 });
-    for (const side of [-1, 1]) {
-      const plate = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.8, 2.2), plateMat);
-      plate.position.set(side * 0.85, 0.7, 0);
-      rigGroup.add(plate);
-      // Window bars
-      const bars = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.05, 0.1), plateMat);
-      bars.position.set(side * 0.6, 1.1, 0);
-      bars.rotation.y = Math.PI/2;
-      rigGroup.add(bars);
-    }
-  } else if (rig === "booster") {
-    const boostMat = new THREE.MeshStandardMaterial({ color: "#555", metalness: 0.9 });
-    const flames = [];
-    for (const side of [-1, 1]) {
-      const nozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, 0.8, 8), boostMat);
-      nozzle.position.set(side * 0.5, 0.6, -1.9);
-      nozzle.rotation.x = Math.PI / 2;
-      rigGroup.add(nozzle);
-      // Small blue flame glow
-      const flame = new THREE.PointLight("#0088ff", 0, 3);
-      flame.position.set(side * 0.5, 0.6, -2.2);
-      rigGroup.add(flame);
-      flames.push(flame);
+    if (rig === "ram") {
+      const ramMat = new THREE.MeshStandardMaterial({
+        color: "#222",
+        metalness: 0.8,
+        roughness: 0.3,
+      });
+      const beam = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.3, 0.4), ramMat);
+      beam.position.set(0, 0.35, 1.85);
+      rigGroup.add(beam);
+      for (let i = 0; i < 5; i++) {
+        const spike = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.5, 4), ramMat);
+        spike.position.set(-0.8 + i * 0.4, 0.35, 2.1);
+        spike.rotation.x = Math.PI / 2;
+        rigGroup.add(spike);
+      }
+    } else if (rig === "tank") {
+      const plateMat = new THREE.MeshStandardMaterial({
+        color: "#333",
+        metalness: 0.6,
+        roughness: 0.7,
+      });
+      for (const side of [-1, 1]) {
+        const plate = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.8, 2.2), plateMat);
+        plate.position.set(side * 0.85, 0.7, 0);
+        rigGroup.add(plate);
+        // Window bars
+        const bars = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.05, 0.1), plateMat);
+        bars.position.set(side * 0.6, 1.1, 0);
+        bars.rotation.y = Math.PI / 2;
+        rigGroup.add(bars);
+      }
+    } else if (rig === "booster") {
+      const boostMat = new THREE.MeshStandardMaterial({ color: "#555", metalness: 0.9 });
+      const flames = [];
+      for (const side of [-1, 1]) {
+        const nozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, 0.8, 8), boostMat);
+        nozzle.position.set(side * 0.5, 0.6, -1.9);
+        nozzle.rotation.x = Math.PI / 2;
+        rigGroup.add(nozzle);
+        // Small blue flame glow
+        const flame = new THREE.PointLight("#0088ff", 0, 3);
+        flame.position.set(side * 0.5, 0.6, -2.2);
+        rigGroup.add(flame);
+        flames.push(flame);
 
-      const flameGeo = new THREE.ConeGeometry(0.12, 0.5, 6);
-      const flameMat = new THREE.MeshBasicMaterial({ color: "#00ccff", transparent: true, opacity: 0 });
-      const fMesh = new THREE.Mesh(flameGeo, flameMat);
-      fMesh.position.set(side * 0.5, 0.6, -2.1);
-      fMesh.rotation.x = -Math.PI / 2;
-      rigGroup.add(fMesh);
-      flame.userData.mesh = fMesh;
+        const flameGeo = new THREE.ConeGeometry(0.12, 0.5, 6);
+        const flameMat = new THREE.MeshBasicMaterial({
+          color: "#00ccff",
+          transparent: true,
+          opacity: 0,
+        });
+        const fMesh = new THREE.Mesh(flameGeo, flameMat);
+        fMesh.position.set(side * 0.5, 0.6, -2.1);
+        fMesh.rotation.x = -Math.PI / 2;
+        rigGroup.add(fMesh);
+        flame.userData.mesh = fMesh;
+      }
+      group.userData.boosterFlames = flames;
     }
-    group.userData.boosterFlames = flames;
-  }
-
 
     group.add(mainHull);
     return group;
@@ -211,10 +226,7 @@ export function createCar(world, state, equipmentCatalog) {
     body.castShadow = true;
     mainHull.add(body);
 
-    const fenderFL = new THREE.Mesh(
-      new THREE.BoxGeometry(0.45, 0.2, 0.8),
-      darkMetal,
-    );
+    const fenderFL = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.2, 0.8), darkMetal);
     fenderFL.position.set(0.85, 0.55, 1.3);
     fenderFL.rotation.z = -0.15;
     mainHull.add(fenderFL);
@@ -222,10 +234,7 @@ export function createCar(world, state, equipmentCatalog) {
     fenderFR.position.x = -0.85;
     fenderFR.rotation.z = 0.15;
     mainHull.add(fenderFR);
-    const fenderRL = new THREE.Mesh(
-      new THREE.BoxGeometry(0.45, 0.18, 0.7),
-      darkMetal,
-    );
+    const fenderRL = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.18, 0.7), darkMetal);
     fenderRL.position.set(0.85, 0.5, -1.3);
     fenderRL.rotation.z = -0.12;
     mainHull.add(fenderRL);
@@ -240,18 +249,12 @@ export function createCar(world, state, equipmentCatalog) {
     cabin.castShadow = true;
     mainHull.add(cabin);
 
-    const windshieldFront = new THREE.Mesh(
-      new THREE.BoxGeometry(1.2, 0.35, 0.05),
-      glassMaterial,
-    );
+    const windshieldFront = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.35, 0.05), glassMaterial);
     windshieldFront.position.set(0, 1.35, 0.55);
     windshieldFront.rotation.x = -0.35;
     mainHull.add(windshieldFront);
 
-    const windshieldRear = new THREE.Mesh(
-      new THREE.BoxGeometry(1.2, 0.3, 0.05),
-      glassMaterial,
-    );
+    const windshieldRear = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.3, 0.05), glassMaterial);
     windshieldRear.position.set(0, 1.3, -0.75);
     windshieldRear.rotation.x = 0.2;
     mainHull.add(windshieldRear);
@@ -267,10 +270,7 @@ export function createCar(world, state, equipmentCatalog) {
     rcTop.position.set(0, 1.55, -0.1);
     mainHull.add(rcTop);
 
-    const rcLeft1 = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.05, 0.05, 1.2, 8),
-      rollCageMat,
-    );
+    const rcLeft1 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.2, 8), rollCageMat);
     rcLeft1.position.set(0.7, 1.2, -0.85);
     rcLeft1.rotation.x = -0.35;
     mainHull.add(rcLeft1);
@@ -279,10 +279,7 @@ export function createCar(world, state, equipmentCatalog) {
     rcRight1.position.set(-0.7, 1.2, -0.85);
     mainHull.add(rcRight1);
 
-    const rcLeft2 = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.05, 0.05, 1.35, 8),
-      rollCageMat,
-    );
+    const rcLeft2 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.35, 8), rollCageMat);
     rcLeft2.position.set(0.7, 1.1, 0.65);
     rcLeft2.rotation.x = 0.55;
     mainHull.add(rcLeft2);
@@ -291,18 +288,12 @@ export function createCar(world, state, equipmentCatalog) {
     rcRight2.position.set(-0.7, 1.1, 0.65);
     mainHull.add(rcRight2);
 
-    const rcFrontBar = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.04, 0.04, 1.5, 8),
-      rollCageMat,
-    );
+    const rcFrontBar = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.5, 8), rollCageMat);
     rcFrontBar.rotation.z = Math.PI / 2;
     rcFrontBar.position.set(0, 1.5, 0.6);
     mainHull.add(rcFrontBar);
 
-    const engineBlock = new THREE.Mesh(
-      new THREE.BoxGeometry(1.3, 0.65, 1.0),
-      darkMetal,
-    );
+    const engineBlock = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.65, 1.0), darkMetal);
     engineBlock.position.set(0, 0.78, -1.6);
     mainHull.add(engineBlock);
 
@@ -366,10 +357,7 @@ export function createCar(world, state, equipmentCatalog) {
     body.castShadow = true;
     mainHull.add(body);
 
-    const underPlate = new THREE.Mesh(
-      new THREE.BoxGeometry(2.8, 0.12, 5.0),
-      darkMetal,
-    );
+    const underPlate = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.12, 5.0), darkMetal);
     underPlate.position.y = 0.38;
     mainHull.add(underPlate);
 
@@ -380,21 +368,19 @@ export function createCar(world, state, equipmentCatalog) {
     mainHull.add(cabin);
 
     for (let i = 0; i < 3; i++) {
-      const windowSlit = new THREE.Mesh(
-        new THREE.BoxGeometry(0.55, 0.3, 2.02),
-        glassMaterial,
-      );
+      const windowSlit = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.3, 2.02), glassMaterial);
       windowSlit.position.set((i - 1) * 0.7, 1.9, 0.9);
       mainHull.add(windowSlit);
     }
 
-    const windowBarMat = new THREE.MeshStandardMaterial({ color: "#222", metalness: 0.8, roughness: 0.4 });
+    const windowBarMat = new THREE.MeshStandardMaterial({
+      color: "#222",
+      metalness: 0.8,
+      roughness: 0.4,
+    });
     for (const wx of [-0.7, 0, 0.7]) {
       for (const wy of [1.7, 2.05]) {
-        const bar = new THREE.Mesh(
-          new THREE.BoxGeometry(0.03, 0.04, 2.04),
-          windowBarMat,
-        );
+        const bar = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.04, 2.04), windowBarMat);
         bar.position.set(wx - 0.35 + (wx === 0 ? 0.35 : 0), wy, 0.9);
         mainHull.add(bar);
       }
@@ -449,26 +435,17 @@ export function createCar(world, state, equipmentCatalog) {
     skirt.position.set(0, 0.42, 0);
     mainHull.add(skirt);
 
-    const nudgeBar = new THREE.Mesh(
-      new THREE.BoxGeometry(2.8, 0.35, 0.3),
-      darkMetal,
-    );
+    const nudgeBar = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.35, 0.3), darkMetal);
     nudgeBar.position.set(0, 0.55, 2.65);
     mainHull.add(nudgeBar);
 
     for (const nx of [-1.2, -0.6, 0, 0.6, 1.2]) {
-      const nBolt = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.04, 0.04, 0.08, 6),
-        windowBarMat,
-      );
+      const nBolt = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.08, 6), windowBarMat);
       nBolt.position.set(nx, 0.75, 2.72);
       mainHull.add(nBolt);
     }
 
-    const tL = new THREE.Mesh(
-      new THREE.BoxGeometry(0.7, 0.25, 0.12),
-      tailLampMaterial,
-    );
+    const tL = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.25, 0.12), tailLampMaterial);
     tL.position.set(0.9, 0.9, -2.65);
     mainHull.add(tL);
     const tR = tL.clone();
@@ -483,8 +460,8 @@ export function createCar(world, state, equipmentCatalog) {
     const bodyShape = new THREE.Shape();
     bodyShape.moveTo(2.2, 0.18);
     bodyShape.lineTo(2.2, 0.72);
-    bodyShape.lineTo(1.0, 0.95); 
-    bodyShape.lineTo(-1.2, 1.08); 
+    bodyShape.lineTo(1.0, 0.95);
+    bodyShape.lineTo(-1.2, 1.08);
     bodyShape.lineTo(-2.4, 0.82);
     bodyShape.lineTo(-2.4, 0.28);
     bodyShape.lineTo(-2.0, 0.18);
@@ -505,10 +482,7 @@ export function createCar(world, state, equipmentCatalog) {
     body.receiveShadow = true;
     mainHull.add(body);
 
-    const hoodScoop = new THREE.Mesh(
-      new THREE.BoxGeometry(0.7, 0.12, 1.2),
-      darkMetal,
-    );
+    const hoodScoop = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.12, 1.2), darkMetal);
     hoodScoop.position.set(0, 0.92, 1.0);
     mainHull.add(hoodScoop);
     const hoodScoopVent = new THREE.Mesh(
@@ -518,31 +492,19 @@ export function createCar(world, state, equipmentCatalog) {
     hoodScoopVent.position.set(0, 0.99, 1.0);
     mainHull.add(hoodScoopVent);
 
-    const cabin = new THREE.Mesh(
-      new THREE.BoxGeometry(1.7, 0.55, 1.9),
-      glassMaterial,
-    );
+    const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.55, 1.9), glassMaterial);
     cabin.position.set(0, 1.15, -0.15);
     mainHull.add(cabin);
 
-    const roofStrip = new THREE.Mesh(
-      new THREE.BoxGeometry(1.6, 0.06, 1.7),
-      darkMetal,
-    );
+    const roofStrip = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.06, 1.7), darkMetal);
     roofStrip.position.set(0, 1.42, -0.15);
     mainHull.add(roofStrip);
 
-    const spoilerWing = new THREE.Mesh(
-      new THREE.BoxGeometry(2.6, 0.1, 0.55),
-      carbonFiber,
-    );
+    const spoilerWing = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.1, 0.55), carbonFiber);
     spoilerWing.position.set(0, 1.4, -2.3);
     mainHull.add(spoilerWing);
 
-    const spoilerEndplateL = new THREE.Mesh(
-      new THREE.BoxGeometry(0.08, 0.25, 0.55),
-      carbonFiber,
-    );
+    const spoilerEndplateL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.25, 0.55), carbonFiber);
     spoilerEndplateL.position.set(1.3, 1.35, -2.3);
     mainHull.add(spoilerEndplateL);
     const spoilerEndplateR = spoilerEndplateL.clone();
@@ -565,10 +527,7 @@ export function createCar(world, state, equipmentCatalog) {
 
     const grillSlats = new THREE.MeshStandardMaterial({ color: "#0a0a0a", roughness: 0.9 });
     for (let gs = 0; gs < 5; gs++) {
-      const slat = new THREE.Mesh(
-        new THREE.BoxGeometry(1.4, 0.025, 0.06),
-        grillSlats,
-      );
+      const slat = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.025, 0.06), grillSlats);
       slat.position.set(0, 0.33 + gs * 0.045, 2.18);
       mainHull.add(slat);
     }
@@ -588,10 +547,7 @@ export function createCar(world, state, equipmentCatalog) {
     ex4.position.set(-0.45, 0.35, -2.35);
     mainHull.add(ex4);
 
-    const exGlow1 = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.06, 0.08, 0.08, 8),
-      engineGlow,
-    );
+    const exGlow1 = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.08, 8), engineGlow);
     exGlow1.rotation.x = Math.PI / 2;
     exGlow1.position.set(0.7, 0.35, -2.55);
     mainHull.add(exGlow1);
@@ -599,10 +555,7 @@ export function createCar(world, state, equipmentCatalog) {
     exGlow2.position.set(-0.7, 0.35, -2.55);
     mainHull.add(exGlow2);
 
-    const sideSkirtL = new THREE.Mesh(
-      new THREE.BoxGeometry(0.1, 0.12, 3.5),
-      darkMetal,
-    );
+    const sideSkirtL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.12, 3.5), darkMetal);
     sideSkirtL.position.set(0.95, 0.25, -0.2);
     mainHull.add(sideSkirtL);
     const sideSkirtR = sideSkirtL.clone();
@@ -628,21 +581,40 @@ export function createCar(world, state, equipmentCatalog) {
   mainHull.add(rigGroup);
 
   if (rig === "ram") {
-    const ramMat = new THREE.MeshStandardMaterial({ color: "#222", metalness: 0.85, roughness: 0.25 });
+    const ramMat = new THREE.MeshStandardMaterial({
+      color: "#222",
+      metalness: 0.85,
+      roughness: 0.25,
+    });
     const beam = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.35, 0.5), ramMat);
-    beam.position.set(0, 0.45, chassisName === "hauler" ? 2.7 : chassisName === "scout" ? 2.1 : 2.35);
+    beam.position.set(
+      0,
+      0.45,
+      chassisName === "hauler" ? 2.7 : chassisName === "scout" ? 2.1 : 2.35,
+    );
     rigGroup.add(beam);
     for (let i = 0; i < 7; i++) {
       const spike = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.55, 5), ramMat);
-      spike.position.set(-1.0 + i * 0.33, 0.55, chassisName === "hauler" ? 2.95 : chassisName === "scout" ? 2.35 : 2.6);
+      spike.position.set(
+        -1.0 + i * 0.33,
+        0.55,
+        chassisName === "hauler" ? 2.95 : chassisName === "scout" ? 2.35 : 2.6,
+      );
       spike.rotation.x = Math.PI / 2;
       rigGroup.add(spike);
     }
   } else if (rig === "tank") {
-    const plateMat = new THREE.MeshStandardMaterial({ color: "#333", metalness: 0.7, roughness: 0.6 });
+    const plateMat = new THREE.MeshStandardMaterial({
+      color: "#333",
+      metalness: 0.7,
+      roughness: 0.6,
+    });
     const chassisW = chassisName === "hauler" ? 1.5 : chassisName === "scout" ? 1.0 : 0.95;
     for (const side of [-1, 1]) {
-      const plate = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.0, chassisName === "hauler" ? 2.8 : 2.4), plateMat);
+      const plate = new THREE.Mesh(
+        new THREE.BoxGeometry(0.12, 1.0, chassisName === "hauler" ? 2.8 : 2.4),
+        plateMat,
+      );
       plate.position.set(side * (chassisW + 0.06), 0.85, 0);
       rigGroup.add(plate);
       for (let b = 0; b < 3; b++) {
@@ -652,13 +624,27 @@ export function createCar(world, state, equipmentCatalog) {
       }
     }
   } else if (rig === "booster") {
-    const boostMat = new THREE.MeshStandardMaterial({ color: "#444", metalness: 0.95, roughness: 0.2 });
+    const boostMat = new THREE.MeshStandardMaterial({
+      color: "#444",
+      metalness: 0.95,
+      roughness: 0.2,
+    });
     const flames = [];
-    const nozzlePositions = chassisName === "hauler"
-      ? [[0.6, 0.8, -2.6], [-0.6, 0.8, -2.6]]
-      : chassisName === "scout"
-        ? [[0.4, 0.7, -2.0], [-0.4, 0.7, -2.0]]
-        : [[0.5, 0.5, -2.5], [-0.5, 0.5, -2.5]];
+    const nozzlePositions =
+      chassisName === "hauler"
+        ? [
+            [0.6, 0.8, -2.6],
+            [-0.6, 0.8, -2.6],
+          ]
+        : chassisName === "scout"
+          ? [
+              [0.4, 0.7, -2.0],
+              [-0.4, 0.7, -2.0],
+            ]
+          : [
+              [0.5, 0.5, -2.5],
+              [-0.5, 0.5, -2.5],
+            ];
     for (const [nx, ny, nz] of nozzlePositions) {
       const nozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.22, 0.9, 10), boostMat);
       nozzle.position.set(nx, ny, nz);
@@ -669,7 +655,11 @@ export function createCar(world, state, equipmentCatalog) {
       rigGroup.add(flame);
       flames.push(flame);
       const flameGeo = new THREE.ConeGeometry(0.14, 0.6, 8);
-      const flameMat = new THREE.MeshBasicMaterial({ color: "#00ccff", transparent: true, opacity: 0 });
+      const flameMat = new THREE.MeshBasicMaterial({
+        color: "#00ccff",
+        transparent: true,
+        opacity: 0,
+      });
       const fMesh = new THREE.Mesh(flameGeo, flameMat);
       fMesh.position.set(nx, ny, nz - 0.3);
       fMesh.rotation.x = -Math.PI / 2;
@@ -681,26 +671,12 @@ export function createCar(world, state, equipmentCatalog) {
 
   // Ram/Rig (Attached to front of any chassis)
   const ram = new THREE.Group();
-  const ramBar = new THREE.Mesh(
-    new THREE.BoxGeometry(2.6, 0.3, 0.4),
-    carbonFiber,
-  );
-  ramBar.position.set(
-    0,
-    0.4,
-    chassisName === "hauler" ? 2.6 : chassisName === "scout" ? 2.0 : 2.2,
-  );
+  const ramBar = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.3, 0.4), carbonFiber);
+  ramBar.position.set(0, 0.4, chassisName === "hauler" ? 2.6 : chassisName === "scout" ? 2.0 : 2.2);
   ramBar.castShadow = true;
   ram.add(ramBar);
-  const drlL = new THREE.Mesh(
-    new THREE.BoxGeometry(0.6, 0.1, 0.45),
-    drlMaterial,
-  );
-  drlL.position.set(
-    0.8,
-    0.4,
-    chassisName === "hauler" ? 2.6 : chassisName === "scout" ? 2.0 : 2.2,
-  );
+  const drlL = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.1, 0.45), drlMaterial);
+  drlL.position.set(0.8, 0.4, chassisName === "hauler" ? 2.6 : chassisName === "scout" ? 2.0 : 2.2);
   ram.add(drlL);
   const drlR = drlL.clone();
   drlR.position.set(
@@ -719,8 +695,7 @@ export function createCar(world, state, equipmentCatalog) {
   const wheelZFront = chassisName === "hauler" ? 1.9 : 1.5;
   const wheelZRear = chassisName === "hauler" ? -1.9 : -1.5;
   const wheelX = chassisName === "hauler" ? 1.4 : 1.15;
-  const wheelRad =
-    chassisName === "hauler" ? 0.52 : chassisName === "scout" ? 0.48 : 0.38;
+  const wheelRad = chassisName === "hauler" ? 0.52 : chassisName === "scout" ? 0.48 : 0.38;
 
   const wheelsSpec = [
     [wheelX, wheelRad, wheelZFront, true],
@@ -766,34 +741,42 @@ export function createCar(world, state, equipmentCatalog) {
     rollGroup.add(sideWall);
 
     const rim = new THREE.Mesh(
-      new THREE.CylinderGeometry(wheelRad * 0.62, wheelRad * 0.62, chassisName === "hauler" ? 0.42 : 0.34, 8),
+      new THREE.CylinderGeometry(
+        wheelRad * 0.62,
+        wheelRad * 0.62,
+        chassisName === "hauler" ? 0.42 : 0.34,
+        8,
+      ),
       rimMat,
     );
     rim.rotation.z = Math.PI / 2;
     rollGroup.add(rim);
 
     const spokeCount = chassisName === "hauler" ? 8 : chassisName === "scout" ? 5 : 6;
-    const spokeMat = new THREE.MeshStandardMaterial({ color: "#666", metalness: 0.7, roughness: 0.25 });
+    const spokeMat = new THREE.MeshStandardMaterial({
+      color: "#666",
+      metalness: 0.7,
+      roughness: 0.25,
+    });
     for (let s = 0; s < spokeCount; s++) {
-      const spoke = new THREE.Mesh(
-        new THREE.BoxGeometry(wheelRad * 0.55, 0.06, 0.05),
-        spokeMat,
-      );
+      const spoke = new THREE.Mesh(new THREE.BoxGeometry(wheelRad * 0.55, 0.06, 0.05), spokeMat);
       spoke.position.x = wheelRad * 0.32;
       spoke.rotation.z = (s / spokeCount) * Math.PI * 2;
       rim.add(spoke);
     }
     const cap = new THREE.Mesh(
-      new THREE.CylinderGeometry(wheelRad * 0.16, wheelRad * 0.16, chassisName === "hauler" ? 0.43 : 0.35, 10),
+      new THREE.CylinderGeometry(
+        wheelRad * 0.16,
+        wheelRad * 0.16,
+        chassisName === "hauler" ? 0.43 : 0.35,
+        10,
+      ),
       hubAccentMat,
     );
     cap.rotation.z = Math.PI / 2;
     rollGroup.add(cap);
 
-    const capRing = new THREE.Mesh(
-      new THREE.TorusGeometry(wheelRad * 0.16, 0.01, 6, 10),
-      rimMat,
-    );
+    const capRing = new THREE.Mesh(new THREE.TorusGeometry(wheelRad * 0.16, 0.01, 6, 10), rimMat);
     capRing.rotation.y = Math.PI / 2;
     capRing.position.x = 0.17 * (i % 2 === 0 ? 1 : -1);
     rollGroup.add(capRing);
@@ -850,7 +833,6 @@ export function rebuildCarAppearance(world, state, equipmentCatalog) {
   world.car = newCar;
 
   const rig = state.equipment.rig;
-  world.car.userData.ram.scale.x =
-    rig === "tank" ? 1.25 : rig === "booster" ? 0.9 : 1.0;
+  world.car.userData.ram.scale.x = rig === "tank" ? 1.25 : rig === "booster" ? 0.9 : 1.0;
   world.car.userData.ram.scale.z = rig === "ram" ? 1.2 : 1.0;
 }

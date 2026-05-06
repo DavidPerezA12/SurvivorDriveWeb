@@ -131,7 +131,9 @@ export function createEnvironmentRuntime({
     }
 
     if (world.materials.shoulder) {
-      world.materials.shoulder.color.set(vA.groundColor).lerp(tempColorA.set(vB.groundColor), blend);
+      world.materials.shoulder.color
+        .set(vA.groundColor)
+        .lerp(tempColorA.set(vB.groundColor), blend);
     }
   }
 
@@ -175,22 +177,17 @@ export function createEnvironmentRuntime({
       env.weather = env.targetWeather;
     }
 
-    const profile = environmentProfiles[env.weatherStrength > 0.5 ? env.targetWeather : env.weather];
+    const profile =
+      environmentProfiles[env.weatherStrength > 0.5 ? env.targetWeather : env.weather];
     const eventEffects = world.eventEffects ?? {};
     const daylight = Math.max(0.1, Math.sin(env.cycle * Math.PI));
     const phaseLabel = resolveCycleLabel(env.cycle);
 
     env.bg.copy(tempColorA.set(palA.bgNight).lerp(tempColorB.set(palB.bgNight), blend));
-    env.bg.lerp(
-      tempColorC.set(palA.bgDay).lerp(tempColorD.set(palB.bgDay), blend),
-      daylight,
-    );
+    env.bg.lerp(tempColorC.set(palA.bgDay).lerp(tempColorD.set(palB.bgDay), blend), daylight);
 
     env.fog.copy(tempColorA.set(palA.fogNight).lerp(tempColorB.set(palB.fogNight), blend));
-    env.fog.lerp(
-      tempColorC.set(palA.fogDay).lerp(tempColorD.set(palB.fogDay), blend),
-      daylight,
-    );
+    env.fog.lerp(tempColorC.set(palA.fogDay).lerp(tempColorD.set(palB.fogDay), blend), daylight);
 
     env.bg.lerp(profile.tint, env.weatherStrength * 0.18);
     env.fog.lerp(profile.tint, env.weatherStrength * 0.28);
@@ -207,7 +204,8 @@ export function createEnvironmentRuntime({
     if (world.lights.stars) world.lights.stars.material.opacity = starOpacity;
 
     if (world.car && world.car.userData.headlights) {
-      const lightsOn = daylight < 0.35 || env.weatherStrength > 0.6 || eventEffects.headlightsForced;
+      const lightsOn =
+        daylight < 0.35 || env.weatherStrength > 0.6 || eventEffects.headlightsForced;
       const targetIntensity = lightsOn ? (isUrbanZone(zone.id) ? 4 : 6) : 0;
       world.car.userData.headlights.forEach((light) => {
         light.intensity = THREE.MathUtils.lerp(light.intensity, targetIntensity, dt * 2.5);
@@ -219,16 +217,23 @@ export function createEnvironmentRuntime({
     }
 
     if (world.lights.ambient) {
-      const ambNight = tempColorA.set(palA.ambientNight).lerp(tempColorB.set(palB.ambientNight), blend);
+      const ambNight = tempColorA
+        .set(palA.ambientNight)
+        .lerp(tempColorB.set(palB.ambientNight), blend);
       const ambDay = tempColorC.set(palA.ambientDay).lerp(tempColorD.set(palB.ambientDay), blend);
       world.lights.ambient.color.copy(ambNight).lerp(ambDay, daylight);
 
-      const gndNight = tempColorA.set(palA.groundNight).lerp(tempColorB.set(palB.groundNight), blend);
+      const gndNight = tempColorA
+        .set(palA.groundNight)
+        .lerp(tempColorB.set(palB.groundNight), blend);
       const gndDay = tempColorC.set(palA.groundDay).lerp(tempColorD.set(palB.groundDay), blend);
       world.lights.ambient.groundColor.copy(gndNight).lerp(gndDay, daylight);
 
       world.lights.ambient.intensity =
-        0.45 + daylight * 0.55 - env.weatherStrength * 0.2 - (eventEffects.ambientDarken ?? 0) * 0.25;
+        0.45 +
+        daylight * 0.55 -
+        env.weatherStrength * 0.2 -
+        (eventEffects.ambientDarken ?? 0) * 0.25;
     }
 
     if (world.lights.sun) {
@@ -243,7 +248,10 @@ export function createEnvironmentRuntime({
     }
 
     for (const band of world.dustBands) {
-      band.material.opacity = Math.min(0.035 + env.weatherStrength * 0.12 + (1 - daylight) * 0.015, 0.08);
+      band.material.opacity = Math.min(
+        0.035 + env.weatherStrength * 0.12 + (1 - daylight) * 0.015,
+        0.08,
+      );
     }
 
     const shimmerTarget = isDesertZone(zone.id) ? daylight * 0.04 : 0.005;

@@ -98,10 +98,7 @@ export function spawnDustBurst(world, count) {
 export function createBurst(world, position, color, count) {
   const burstColor = color.startsWith("#") ? color : `#${color}`;
   const flashScale = 0.8 + Math.random() * 0.4;
-  const flashGeo = getCachedGeometry(
-    "burst_flash",
-    () => new THREE.SphereGeometry(1, 12, 12),
-  );
+  const flashGeo = getCachedGeometry("burst_flash", () => new THREE.SphereGeometry(1, 12, 12));
   const flash = new THREE.Mesh(
     flashGeo,
     new THREE.MeshBasicMaterial({
@@ -137,7 +134,11 @@ export function createBurst(world, position, color, count) {
     particle.position.x += (Math.random() - 0.5) * 0.5;
     particle.position.y += (Math.random() - 0.5) * 0.5;
     particle.position.z += (Math.random() - 0.5) * 0.5;
-    particle.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+    particle.rotation.set(
+      Math.random() * Math.PI,
+      Math.random() * Math.PI,
+      Math.random() * Math.PI,
+    );
     const power = isLarge ? 4 : 8;
     particle.userData.velocity = new THREE.Vector3(
       (Math.random() - 0.5) * power,
@@ -252,7 +253,10 @@ export function spawnAtmosphericDebris(world, biomeId) {
   const group = new THREE.Group();
   if (biomeId === "desert" || biomeId === "broken_highway") {
     const mat = new THREE.MeshStandardMaterial({ color: "#a88a64", wireframe: true });
-    const tumble = new THREE.Mesh(getCachedGeometry("tumbleweed", () => new THREE.SphereGeometry(0.35, 6, 6)), mat);
+    const tumble = new THREE.Mesh(
+      getCachedGeometry("tumbleweed", () => new THREE.SphereGeometry(0.35, 6, 6)),
+      mat,
+    );
     group.add(tumble);
     group.userData.type = "tumbleweed";
   } else if (biomeId === "ghost_town" || biomeId === "military") {
@@ -275,16 +279,26 @@ export function spawnAtmosphericDebris(world, biomeId) {
     group.userData.type = isEmber ? "ember" : "ash";
   } else if (Math.random() > 0.5) {
     const mat = new THREE.MeshStandardMaterial({ color: "#d1d1d1", side: THREE.DoubleSide });
-    const paper = new THREE.Mesh(getCachedGeometry("paper", () => new THREE.PlaneGeometry(0.25, 0.35)), mat);
+    const paper = new THREE.Mesh(
+      getCachedGeometry("paper", () => new THREE.PlaneGeometry(0.25, 0.35)),
+      mat,
+    );
     group.add(paper);
     group.userData.type = "paper";
   } else {
     // Fallback drone
     const mat = new THREE.MeshStandardMaterial({ color: "#222", metalness: 0.8 });
-    const body = new THREE.Mesh(getCachedGeometry("drone_body", () => new THREE.BoxGeometry(0.8, 0.15, 0.8)), mat);
+    const body = new THREE.Mesh(
+      getCachedGeometry("drone_body", () => new THREE.BoxGeometry(0.8, 0.15, 0.8)),
+      mat,
+    );
     const eye = new THREE.Mesh(
       getCachedGeometry("drone_eye", () => new THREE.SphereGeometry(0.1, 8, 8)),
-      new THREE.MeshStandardMaterial({ color: "#ff0000", emissive: "#ff0000", emissiveIntensity: 2 }),
+      new THREE.MeshStandardMaterial({
+        color: "#ff0000",
+        emissive: "#ff0000",
+        emissiveIntensity: 2,
+      }),
     );
     eye.position.set(0, 0, 0.4);
     group.add(body, eye);
@@ -293,14 +307,17 @@ export function spawnAtmosphericDebris(world, biomeId) {
   }
 
   const side = Math.random() > 0.5 ? 1 : -1;
-  const targetY = group.userData.isDrone ? 5 + Math.random() * 8
-    : group.userData.type === "ember" ? 0.5 + Math.random() * 6
-    : 0.2 + Math.random() * 3;
+  const targetY = group.userData.isDrone
+    ? 5 + Math.random() * 8
+    : group.userData.type === "ember"
+      ? 0.5 + Math.random() * 6
+      : 0.2 + Math.random() * 3;
   group.position.set(side * (6 + Math.random() * 15), targetY, 100 + Math.random() * 50);
   group.userData.vx = (Math.random() - 0.5) * 4 + side * -5;
-  group.userData.vy = group.userData.type === "ember"
-    ? 1 + Math.random() * 4 // Embers float upward
-    : (Math.random() - 0.5) * 2;
+  group.userData.vy =
+    group.userData.type === "ember"
+      ? 1 + Math.random() * 4 // Embers float upward
+      : (Math.random() - 0.5) * 2;
   group.userData.vz = -15 - Math.random() * 15;
   group.userData.rv = new THREE.Vector3(Math.random() * 4, Math.random() * 4, Math.random() * 4);
   group.userData.life = group.userData.type === "ember" ? 3 + Math.random() * 4 : 6.0;

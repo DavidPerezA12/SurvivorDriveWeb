@@ -46,24 +46,15 @@ export function createRoadsideProp(index, terrainBumpTexture) {
   });
 
   if (kind === 0) {
-    const base = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.4, 0.5, 0.4, 8),
-      mConc,
-    );
-    const pole = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.1, 0.15, 6, 8),
-      mSteel,
-    );
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.5, 0.4, 8), mConc);
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.15, 6, 8), mSteel);
     const arm = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.1, 0.14), mSteel);
     const bH = 2.2;
     base.position.y = 0.2;
     pole.position.y = bH + 2.5;
     arm.position.set(0, bH + 5.15, 0.15);
     arm.rotation.z = (Math.random() - 0.5) * 0.1;
-    const lL = new THREE.Mesh(
-      new THREE.BoxGeometry(0.5, 0.15, 0.2),
-      mEm("#ffc080", 0.95),
-    );
+    const lL = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.15, 0.2), mEm("#ffc080", 0.95));
     const lR = lL.clone();
     lL.position.set(-0.8, bH + 4.9, 0.28);
     lR.position.set(0.8, bH + 4.9, 0.28);
@@ -77,30 +68,18 @@ export function createRoadsideProp(index, terrainBumpTexture) {
     pR.position.set(0.8, 1.45, 0);
     pL.rotation.z = (Math.random() - 0.5) * 0.1;
     pR.rotation.z = (Math.random() - 0.5) * 0.1;
-    const face = new THREE.Mesh(
-      new THREE.BoxGeometry(2.2, 1.2, 0.1),
-      mRust(0.35),
-    );
+    const face = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.2, 0.1), mRust(0.35));
     face.position.set(0, 2.3, 0);
     face.rotation.z = (Math.random() - 0.5) * 0.2;
-    const bar = new THREE.Mesh(
-      new THREE.BoxGeometry(0.1, 0.25, 1.9),
-      mEm("#1a1a1a", 0),
-    );
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.25, 1.9), mEm("#1a1a1a", 0));
     bar.position.set(0, 2.3, 0.1);
     root.add(pL, pR, face, bar);
   } else if (kind === 2) {
     // Vehículo oxidado más realista
-    const ch = new THREE.Mesh(
-      new THREE.BoxGeometry(1.6, 0.6, 3.2),
-      mRust(0.22),
-    );
+    const ch = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.6, 3.2), mRust(0.22));
     ch.position.set(0, 0.4, 0);
     ch.rotation.set(0.1, Math.random(), 0.15);
-    const c2 = new THREE.Mesh(
-      new THREE.BoxGeometry(0.9, 0.5, 1.2),
-      mRust(0.18),
-    );
+    const c2 = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.5, 1.2), mRust(0.18));
     c2.position.set(-0.1, 0.9, -0.2);
     c2.rotation.z = -0.1;
 
@@ -124,10 +103,7 @@ export function createRoadsideProp(index, terrainBumpTexture) {
       w.rotation.set(Math.random(), Math.random(), Math.random());
       root.add(w);
     }
-    const hood = new THREE.Mesh(
-      new THREE.BoxGeometry(1.2, 0.25, 1.0),
-      mRust(0.25),
-    );
+    const hood = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.25, 1.0), mRust(0.25));
     hood.position.set(0, 0.5, 1.5);
     hood.rotation.x = -0.15;
     root.add(ch, c2, hood);
@@ -139,10 +115,7 @@ export function createRoadsideProp(index, terrainBumpTexture) {
       root.add(st);
     }
     for (const y of [0.45, 0.95]) {
-      const rail = new THREE.Mesh(
-        new THREE.BoxGeometry(3.0, 0.15, 0.08),
-        mEm("#9aa0a8", 0.1),
-      );
+      const rail = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.15, 0.08), mEm("#9aa0a8", 0.1));
       rail.position.set(0, y, 0.1);
       rail.rotation.z = (Math.random() - 0.5) * 0.05;
       root.add(rail);
@@ -154,10 +127,7 @@ export function createRoadsideProp(index, terrainBumpTexture) {
     b.position.set(0.6, 1.75, 0);
     a.rotation.y = Math.random() * 0.2;
     b.rotation.y = Math.random() * 0.2;
-    const g = new THREE.Mesh(
-      new THREE.BoxGeometry(1.4, 0.45, 0.1),
-      mRust(0.35),
-    );
+    const g = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.45, 0.1), mRust(0.35));
     g.position.set(0, 2.8, 0.3);
     g.rotation.z = (Math.random() - 0.5) * 0.2;
     const low = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.2, 1.8), mSteel);
@@ -195,19 +165,12 @@ export function createRoadsideProp(index, terrainBumpTexture) {
     });
     for (let t = 0; t < 4; t += 1) {
       const tor = new THREE.Mesh(
-        new THREE.TorusGeometry(
-          0.25 + Math.random() * 0.05,
-          0.05,
-          8,
-          20,
-        ).applyMatrix4(new THREE.Matrix4().makeRotationX(Math.PI / 2)),
+        new THREE.TorusGeometry(0.25 + Math.random() * 0.05, 0.05, 8, 20).applyMatrix4(
+          new THREE.Matrix4().makeRotationX(Math.PI / 2),
+        ),
         wM,
       );
-      tor.position.set(
-        (Math.random() - 0.5) * 0.2,
-        0.1 + t * 0.15,
-        (Math.random() - 0.5) * 0.2,
-      );
+      tor.position.set((Math.random() - 0.5) * 0.2, 0.1 + t * 0.15, (Math.random() - 0.5) * 0.2);
       tor.rotation.set(Math.random() * 0.4, Math.random() * 0.4, 0);
       root.add(tor);
     }
@@ -215,30 +178,18 @@ export function createRoadsideProp(index, terrainBumpTexture) {
     const oMat = mRust(0.28);
     for (const dx of [0, 0.6, -0.6]) {
       if (Math.random() > 0.8) continue;
-      const dr = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.22, 0.22, 0.6, 12),
-        oMat,
-      );
+      const dr = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.6, 12), oMat);
       dr.position.set(dx, 0.3, (Math.random() - 0.5) * 0.2);
       dr.rotation.set(Math.random() * 0.2, 0, Math.random() * 0.2);
       root.add(dr);
     }
-    const cr = new THREE.Mesh(
-      new THREE.BoxGeometry(0.5, 0.08, 0.25),
-      mEm("#4a2e18", 0),
-    );
+    const cr = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.08, 0.25), mEm("#4a2e18", 0));
     cr.position.set(0.25, 0.05, 0.15);
     root.add(cr);
   } else if (kind === 9) {
-    const postA = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.15, 0.18, 1.5, 8),
-      mConc,
-    );
+    const postA = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.18, 1.5, 8), mConc);
     postA.position.set(-0.3, 0.75, 0.3);
-    const postB = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.15, 0.18, 1.5, 8),
-      mConc,
-    );
+    const postB = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.18, 1.5, 8), mConc);
     postB.position.set(-0.3, 0.75, -0.6);
     const w = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 1.1), mSteel);
     w.position.set(-0.3, 1.3, -0.15);
@@ -259,36 +210,21 @@ export function createRoadsideProp(index, terrainBumpTexture) {
     const p1 = p0.clone();
     p1.position.set(0.4, 0.8, 0.05);
     p1.rotation.z = (Math.random() - 0.5) * 0.2;
-    const board = new THREE.Mesh(
-      new THREE.BoxGeometry(1.0, 0.45, 0.06),
-      mEm("#1e1612", 0.12),
-    );
+    const board = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.45, 0.06), mEm("#1e1612", 0.12));
     board.position.set(0, 1.0, 0.1);
     board.rotation.z = (Math.random() - 0.5) * 0.3;
-    const br = new THREE.Mesh(
-      new THREE.BoxGeometry(0.08, 0.25, 0.08),
-      mRust(0.35),
-    );
+    const br = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.25, 0.08), mRust(0.35));
     br.position.set(0, 0.2, 0.15);
     br.rotation.set(0, 0, -0.4);
     root.add(p0, p1, board, br);
   } else if (kind === 11) {
     // Estructura de tubería
-    const pipe = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.3, 0.3, 2.5, 12),
-      mRust(0.4),
-    );
+    const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 2.5, 12), mRust(0.4));
     pipe.rotation.z = Math.PI / 2;
     pipe.position.set(0, 0.4, 0);
-    const joint = new THREE.Mesh(
-      new THREE.SphereGeometry(0.35, 12, 12),
-      mRust(0.3),
-    );
+    const joint = new THREE.Mesh(new THREE.SphereGeometry(0.35, 12, 12), mRust(0.3));
     joint.position.set(1.2, 0.4, 0);
-    const pipe2 = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.3, 0.3, 1.5, 12),
-      mRust(0.4),
-    );
+    const pipe2 = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 1.5, 12), mRust(0.4));
     pipe2.position.set(1.2, 1.15, 0);
     root.add(pipe, joint, pipe2);
   } else if (kind === 12) {
@@ -302,28 +238,18 @@ export function createRoadsideProp(index, terrainBumpTexture) {
     root.add(wall1, wall2);
   } else if (kind === 13) {
     // Árbol muerto más complejo
-    const tr = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.12, 0.2, 1.2, 6),
-      mDead,
-    );
+    const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.2, 1.2, 6), mDead);
     tr.position.set(0, 0.6, 0.05);
     tr.rotation.x = (Math.random() - 0.5) * 0.2;
     tr.rotation.z = (Math.random() - 0.5) * 0.2;
     for (let r = 0; r < 4; r++) {
-      const arm = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.04, 0.08, 0.8, 5),
-        mDead,
-      );
+      const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.08, 0.8, 5), mDead);
       arm.position.set(
         (Math.random() - 0.5) * 0.3,
         0.6 + Math.random() * 0.5,
         (Math.random() - 0.5) * 0.3,
       );
-      arm.rotation.set(
-        (Math.random() - 0.5) * 1.5,
-        Math.random() * 2,
-        (Math.random() - 0.5) * 1.5,
-      );
+      arm.rotation.set((Math.random() - 0.5) * 1.5, Math.random() * 2, (Math.random() - 0.5) * 1.5);
       root.add(arm);
     }
     root.add(tr);
@@ -356,33 +282,21 @@ export function createRoadsideProp(index, terrainBumpTexture) {
     legL.position.set(-gWidth / 2, gHeight / 2, 0);
     const legR = legL.clone();
     legR.position.set(gWidth / 2, gHeight / 2, 0);
-    const beam = new THREE.Mesh(
-      new THREE.BoxGeometry(gWidth + 1, 0.8, 0.8),
-      mSteel,
-    );
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(gWidth + 1, 0.8, 0.8), mSteel);
     beam.position.set(0, gHeight - 0.4, 0);
     // Large rusted sign on the gantry
     const sign = new THREE.Mesh(new THREE.BoxGeometry(8, 3, 0.2), mRust(0.3));
     sign.position.set(-gWidth * 0.2, gHeight - 1, 0.5);
-    const sign2 = new THREE.Mesh(
-      new THREE.BoxGeometry(6, 2.5, 0.2),
-      mRust(0.25),
-    );
+    const sign2 = new THREE.Mesh(new THREE.BoxGeometry(6, 2.5, 0.2), mRust(0.25));
     sign2.position.set(gWidth * 0.15, gHeight - 1, 0.5);
     root.add(legL, legR, beam, sign, sign2);
     root.userData.isGantry = true;
   } else if (kind === 16) {
     // Communication Tower
     const tH = 18;
-    const base = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.8, 1.2, 2, 4),
-      mConc,
-    );
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 1.2, 2, 4), mConc);
     base.position.y = 1;
-    const tower = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.1, 0.6, tH, 4),
-      mSteel,
-    );
+    const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.6, tH, 4), mSteel);
     tower.position.y = tH / 2 + 1.5;
     // Dishes
     const dishMat = new THREE.MeshStandardMaterial({
@@ -390,29 +304,20 @@ export function createRoadsideProp(index, terrainBumpTexture) {
       roughness: 0.6,
     });
     for (let d = 0; d < 3; d++) {
-      const dish = new THREE.Mesh(
-        new THREE.SphereGeometry(0.8, 8, 8, 0, Math.PI),
-        dishMat,
-      );
+      const dish = new THREE.Mesh(new THREE.SphereGeometry(0.8, 8, 8, 0, Math.PI), dishMat);
       dish.position.set(0, tH - 2 - d * 3, 0.4);
       dish.rotation.x = Math.PI / 2 + (Math.random() - 0.5) * 0.5;
       dish.rotation.y = Math.random() * Math.PI;
       root.add(dish);
     }
     // Red blinking light
-    const redLight = new THREE.Mesh(
-      new THREE.SphereGeometry(0.15),
-      mEm("#ff0000", 2),
-    );
+    const redLight = new THREE.Mesh(new THREE.SphereGeometry(0.15), mEm("#ff0000", 2));
     redLight.position.y = tH + 1.6;
     root.add(base, tower, redLight);
   } else if (kind === 17) {
     // Industrial Silo
     const sH = 6;
-    const silo = new THREE.Mesh(
-      new THREE.CylinderGeometry(2, 2, sH, 12),
-      mRust(0.2),
-    );
+    const silo = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, sH, 12), mRust(0.2));
     silo.position.y = sH / 2;
     const top = new THREE.Mesh(
       new THREE.SphereGeometry(2.1, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2),
@@ -433,7 +338,13 @@ export function createRoadsideProp(index, terrainBumpTexture) {
     triShape.lineTo(-triSize * 0.87, -triSize * 0.5);
     triShape.lineTo(triSize * 0.87, -triSize * 0.5);
     triShape.closePath();
-    const triGeo = new THREE.ExtrudeGeometry(triShape, { depth: 0.08, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.02, bevelSegments: 1 });
+    const triGeo = new THREE.ExtrudeGeometry(triShape, {
+      depth: 0.08,
+      bevelEnabled: true,
+      bevelThickness: 0.02,
+      bevelSize: 0.02,
+      bevelSegments: 1,
+    });
     const board = new THREE.Mesh(triGeo, mEm("#c45a20", 0.35));
     board.position.set(0, 3.0, 0.05);
     const post = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.8, 6), mSteel);
@@ -462,8 +373,18 @@ export function createRoadsideProp(index, terrainBumpTexture) {
     windowHole.position.set(0, 1.2, -4.2);
     // Wheels
     const wMat = new THREE.MeshStandardMaterial({ color: "#0d0b0a", roughness: 1 });
-    for (const [wx, wz] of [[1.9, -5.5], [-1.9, -5.5], [1.9, -3.8], [-1.9, -3.8]]) {
-      const wh = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.25, 12).applyMatrix4(new THREE.Matrix4().makeRotationZ(Math.PI / 2)), wMat);
+    for (const [wx, wz] of [
+      [1.9, -5.5],
+      [-1.9, -5.5],
+      [1.9, -3.8],
+      [-1.9, -3.8],
+    ]) {
+      const wh = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.6, 0.6, 0.25, 12).applyMatrix4(
+          new THREE.Matrix4().makeRotationZ(Math.PI / 2),
+        ),
+        wMat,
+      );
       wh.position.set(wx, 0.25, wz);
       root.add(wh);
     }
@@ -471,15 +392,28 @@ export function createRoadsideProp(index, terrainBumpTexture) {
   } else if (kind === 20) {
     // Junk pile (misc debris cluster)
     const junkMats = [mRust(0.3), mRust(0.2), mSteel, mDirt, mConc];
-    const basePile = new THREE.Mesh(new THREE.DodecahedronGeometry(1.6 + Math.random() * 0.8, 1), mDirt);
+    const basePile = new THREE.Mesh(
+      new THREE.DodecahedronGeometry(1.6 + Math.random() * 0.8, 1),
+      mDirt,
+    );
     basePile.position.y = 0.4;
     basePile.scale.y = 0.4;
     root.add(basePile);
     for (let j = 0; j < 12; j++) {
       const mat = junkMats[Math.floor(Math.random() * junkMats.length)];
-      const junkGeo = Math.random() > 0.5
-        ? new THREE.BoxGeometry(0.2 + Math.random() * 0.8, 0.08 + Math.random() * 0.3, 0.3 + Math.random() * 1.2)
-        : new THREE.CylinderGeometry(0.08 + Math.random() * 0.2, 0.08 + Math.random() * 0.2, 0.3 + Math.random() * 1.5, 6);
+      const junkGeo =
+        Math.random() > 0.5
+          ? new THREE.BoxGeometry(
+              0.2 + Math.random() * 0.8,
+              0.08 + Math.random() * 0.3,
+              0.3 + Math.random() * 1.2,
+            )
+          : new THREE.CylinderGeometry(
+              0.08 + Math.random() * 0.2,
+              0.08 + Math.random() * 0.2,
+              0.3 + Math.random() * 1.5,
+              6,
+            );
       const junk = new THREE.Mesh(junkGeo, mat);
       junk.position.set(
         (Math.random() - 0.5) * 2.0,
@@ -496,7 +430,10 @@ export function createRoadsideProp(index, terrainBumpTexture) {
     pipe.position.set(0, 0.35, 0);
     const joint = new THREE.Mesh(new THREE.SphereGeometry(0.45, 10, 10), mRust(0.3));
     joint.position.set(1.6, 0.25, 0);
-    const leak = new THREE.Mesh(new THREE.CircleGeometry(0.3, 8), new THREE.MeshStandardMaterial({ color: "#1a120a", roughness: 1 }));
+    const leak = new THREE.Mesh(
+      new THREE.CircleGeometry(0.3, 8),
+      new THREE.MeshStandardMaterial({ color: "#1a120a", roughness: 1 }),
+    );
     leak.rotation.x = -Math.PI / 2;
     leak.position.set(-1.2, 0.02, 0.4);
     root.add(pipe, joint, leak);
@@ -540,7 +477,10 @@ export function createRoadsideProp(index, terrainBumpTexture) {
     // Fuel tank (large rusted cylinder)
     const tank = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 3.2, 14), mRust(0.22));
     tank.position.y = 1.6;
-    const top = new THREE.Mesh(new THREE.SphereGeometry(1.2, 14, 6, 0, Math.PI * 2, 0, Math.PI / 2), mRust(0.18));
+    const top = new THREE.Mesh(
+      new THREE.SphereGeometry(1.2, 14, 6, 0, Math.PI * 2, 0, Math.PI / 2),
+      mRust(0.18),
+    );
     top.position.y = 3.2;
     const ladder = new THREE.Mesh(new THREE.BoxGeometry(0.35, 2.8, 0.08), mSteel);
     ladder.position.set(1.22, 1.6, 0);
@@ -554,7 +494,9 @@ export function createRoadsideProp(index, terrainBumpTexture) {
     frame.position.set(0, 0.35, 0);
     frame.rotation.y = Math.random() * Math.PI;
     frame.rotation.z = (Math.random() - 0.5) * 0.6;
-    const wheelGeo = new THREE.TorusGeometry(0.28, 0.06, 6, 14).applyMatrix4(new THREE.Matrix4().makeRotationX(Math.PI / 2));
+    const wheelGeo = new THREE.TorusGeometry(0.28, 0.06, 6, 14).applyMatrix4(
+      new THREE.Matrix4().makeRotationX(Math.PI / 2),
+    );
     const wMat = new THREE.MeshStandardMaterial({ color: "#0d0b0a", roughness: 1 });
     const w1 = new THREE.Mesh(wheelGeo, wMat);
     w1.position.set(0, 0.2, 0.55);
@@ -613,7 +555,12 @@ export function createRoadsideProp(index, terrainBumpTexture) {
     const tireMat = new THREE.MeshStandardMaterial({ color: "#151312", roughness: 0.95 });
     const stackCount = 2 + Math.floor(Math.random() * 4);
     for (let t = 0; t < stackCount; t++) {
-      const tire = new THREE.Mesh(new THREE.TorusGeometry(0.35 + Math.random() * 0.1, 0.08, 6, 14).applyMatrix4(new THREE.Matrix4().makeRotationX(Math.PI / 2)), tireMat);
+      const tire = new THREE.Mesh(
+        new THREE.TorusGeometry(0.35 + Math.random() * 0.1, 0.08, 6, 14).applyMatrix4(
+          new THREE.Matrix4().makeRotationX(Math.PI / 2),
+        ),
+        tireMat,
+      );
       tire.position.set((Math.random() - 0.5) * 0.15, 0.1 + t * 0.18, (Math.random() - 0.5) * 0.15);
       tire.rotation.z = (Math.random() - 0.5) * 0.2;
       root.add(tire);
@@ -645,7 +592,10 @@ export function createRoadsideProp(index, terrainBumpTexture) {
     ribs.rotation.z = Math.PI / 2;
     ribs.position.set(0, 0.15, 0);
     for (let r = 0; r < 5; r++) {
-      const rib = new THREE.Mesh(new THREE.TorusGeometry(0.1 + r * 0.04, 0.015, 4, 8, Math.PI), boneMat);
+      const rib = new THREE.Mesh(
+        new THREE.TorusGeometry(0.1 + r * 0.04, 0.015, 4, 8, Math.PI),
+        boneMat,
+      );
       rib.position.set(-0.4 + r * 0.2, 0.12, 0);
       rib.rotation.y = Math.PI / 2;
       root.add(rib);
@@ -669,12 +619,19 @@ export function createRoadsideProp(index, terrainBumpTexture) {
   } else if (kind === 34) {
     // Radio antenna / mast (fallen or standing)
     const isFallen = Math.random() > 0.5;
-    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.1, isFallen ? 4.0 : 6.0, 8), mSteel);
+    const mast = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.06, 0.1, isFallen ? 4.0 : 6.0, 8),
+      mSteel,
+    );
     mast.position.set(0, isFallen ? 0.3 : 3.0, 0);
     if (isFallen) mast.rotation.z = Math.PI / 2 + (Math.random() - 0.5) * 0.3;
     for (let w = 0; w < 3; w++) {
       const wire = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 2.5, 4), mSteel);
-      wire.position.set((Math.random() - 0.5) * 1.5, isFallen ? 0.8 + w * 0.4 : 4.0 + w * 0.8, (Math.random() - 0.5) * 0.3);
+      wire.position.set(
+        (Math.random() - 0.5) * 1.5,
+        isFallen ? 0.8 + w * 0.4 : 4.0 + w * 0.8,
+        (Math.random() - 0.5) * 0.3,
+      );
       wire.rotation.z = (Math.random() - 0.5) * 0.3;
       root.add(wire);
     }

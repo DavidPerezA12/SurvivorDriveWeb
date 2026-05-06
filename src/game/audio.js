@@ -93,14 +93,8 @@ export function updateEngineSound(world, state, speedFactor, skidding) {
   const targetVol = 0.028 + speedFactor * 0.022;
   try {
     ea.osc.frequency.linearRampToValueAtTime(targetFreq, t + 0.08);
-    ea.gain.gain.linearRampToValueAtTime(
-      targetVol * (state.options.volume / 100),
-      t + 0.08,
-    );
-    ea.filter.frequency.linearRampToValueAtTime(
-      80 + speedFactor * 220,
-      t + 0.08,
-    );
+    ea.gain.gain.linearRampToValueAtTime(targetVol * (state.options.volume / 100), t + 0.08);
+    ea.filter.frequency.linearRampToValueAtTime(80 + speedFactor * 220, t + 0.08);
   } catch {
     /* invalid audio node */
   }
@@ -148,10 +142,7 @@ export function playSkidSound(world) {
   }
 
   const t = ctx.currentTime;
-  sa.gain.gain.linearRampToValueAtTime(
-    0.045 * (world.audio.gain?.gain?.value ?? 0.5),
-    t + 0.08,
-  );
+  sa.gain.gain.linearRampToValueAtTime(0.045 * (world.audio.gain?.gain?.value ?? 0.5), t + 0.08);
 }
 
 export function stopSkidSound(world) {
