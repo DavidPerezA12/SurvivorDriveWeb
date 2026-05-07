@@ -28,6 +28,18 @@ import { createCar } from "./car.js";
 
 import { recycleRoadsideProp, recycleCityRoadsideProp } from "../world/movement.js";
 
+function configureRepeatingTextureSet(textureSet, repeatX, repeatY, anisotropy) {
+  const textures = [textureSet.map, textureSet.bumpMap, textureSet.roughnessMap].filter(Boolean);
+
+  for (const texture of textures) {
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(repeatX, repeatY);
+  }
+
+  textureSet.map.anisotropy = anisotropy;
+}
+
 export function setupThree(
   world,
   state,
@@ -37,56 +49,33 @@ export function setupThree(
   onResize,
 ) {
   world.renderer.outputColorSpace = THREE.SRGBColorSpace;
-
   world.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-
   world.renderer.toneMappingExposure = 1.05;
-
   world.renderer.shadowMap.enabled = true;
-
   world.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-
   world.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
   world.pmrem = new THREE.PMREMGenerator(world.renderer);
 
   const room = new RoomEnvironment();
-
   world.envTexture = world.pmrem.fromScene(room, 0.0).texture;
-
   room.dispose();
 
   world.scene.fog = new THREE.FogExp2("#9e7447", 0.005);
-
   world.scene.background = new THREE.Color("#120b08");
 
   const ambient = new THREE.HemisphereLight("#a88768", "#211108", 0.6);
-
-  world.scene.add(ambient);
-
+  const fill = new THREE.DirectionalLight("#606f7d", 0.35);
+  fill.position.set(-20, 15, -10);
+  world.scene.add(ambient, fill);
   world.lights.ambient = ambient;
 
-  const fill = new THREE.DirectionalLight("#606f7d", 0.35);
-
-  fill.position.set(-20, 15, -10);
-
-  world.scene.add(fill);
-
   const starGeo = new THREE.BufferGeometry();
-
-  const starPos = [];
-
-  for (let i = 0; i < 400; i++) {
-    const x = (Math.random() - 0.5) * 500;
-
-    const y = 10 + Math.random() * 200;
-
-    const z = -140;
-
-    starPos.push(x, y, z);
+  const starPositions = [];
+  for (let i = 0; i < 400; i += 1) {
+    starPositions.push((Math.random() - 0.5) * 500, 10 + Math.random() * 200, -140);
   }
 
-  starGeo.setAttribute("position", new THREE.Float32BufferAttribute(starPos, 3));
+  starGeo.setAttribute("position", new THREE.Float32BufferAttribute(starPositions, 3));
 
   const starMat = new THREE.PointsMaterial({
     color: "#fff",
@@ -96,62 +85,28 @@ export function setupThree(
   });
 
   const stars = new THREE.Points(starGeo, starMat);
-
   world.scene.add(stars);
-
   world.lights.stars = stars;
 
   const sun = new THREE.DirectionalLight("#fff0d4", 1.2);
-
   sun.position.set(16, 28, 10);
-
   sun.castShadow = true;
-
+  Object.assign(sun.shadow.camera, {
+    near: 0.5,
+    far: 150,
+    left: -50,
+    right: 50,
+    top: 50,
+    bottom: -50,
+  });
   sun.shadow.mapSize.set(2048, 2048);
-
-  sun.shadow.camera.near = 0.5;
-
-  sun.shadow.camera.far = 150;
-
-  sun.shadow.camera.left = -50;
-
-  sun.shadow.camera.right = 50;
-
-  sun.shadow.camera.top = 50;
-
-  sun.shadow.camera.bottom = -50;
-
   sun.shadow.bias = -0.0005;
-
+  world.lights.sun = sun;
   world.scene.add(sun);
 
-  world.lights.sun = sun;
-
+  const anisotropy = world.renderer.capabilities.getMaxAnisotropy();
   const terrainData = createTerrainTexture();
-
-  terrainData.map.wrapS = THREE.RepeatWrapping;
-
-  terrainData.map.wrapT = THREE.RepeatWrapping;
-
-  terrainData.map.repeat.set(8, 20);
-
-  terrainData.map.anisotropy = world.renderer.capabilities.getMaxAnisotropy();
-
-  if (terrainData.bumpMap) {
-    terrainData.bumpMap.wrapS = THREE.RepeatWrapping;
-
-    terrainData.bumpMap.wrapT = THREE.RepeatWrapping;
-
-    terrainData.bumpMap.repeat.set(8, 20);
-  }
-
-  if (terrainData.roughnessMap) {
-    terrainData.roughnessMap.wrapS = THREE.RepeatWrapping;
-
-    terrainData.roughnessMap.wrapT = THREE.RepeatWrapping;
-
-    terrainData.roughnessMap.repeat.set(8, 20);
-  }
+  configureRepeatingTextureSet(terrainData, 8, 20, anisotropy);
 
   const sandMaterial = new THREE.MeshStandardMaterial({
     color: "#d48a4f",
@@ -164,40 +119,12 @@ export function setupThree(
   });
 
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(450, 600, 32, 32), sandMaterial);
-
   ground.rotation.x = -Math.PI / 2;
-
   ground.position.z = 150;
-
   ground.receiveShadow = true;
 
-  world.scene.add(ground);
-
   const roadData = createRoadTexture();
-
-  roadData.map.wrapS = THREE.RepeatWrapping;
-
-  roadData.map.wrapT = THREE.RepeatWrapping;
-
-  roadData.map.repeat.set(1, 20);
-
-  roadData.map.anisotropy = world.renderer.capabilities.getMaxAnisotropy();
-
-  if (roadData.bumpMap) {
-    roadData.bumpMap.wrapS = THREE.RepeatWrapping;
-
-    roadData.bumpMap.wrapT = THREE.RepeatWrapping;
-
-    roadData.bumpMap.repeat.set(1, 20);
-  }
-
-  if (roadData.roughnessMap) {
-    roadData.roughnessMap.wrapS = THREE.RepeatWrapping;
-
-    roadData.roughnessMap.wrapT = THREE.RepeatWrapping;
-
-    roadData.roughnessMap.repeat.set(1, 20);
-  }
+  configureRepeatingTextureSet(roadData, 1, 20, anisotropy);
 
   const roadMaterial = new THREE.MeshStandardMaterial({
     color: "#666666",
@@ -210,40 +137,13 @@ export function setupThree(
   });
 
   const road = new THREE.Mesh(new THREE.PlaneGeometry(14, 600, 16, 64), roadMaterial);
-
   road.rotation.x = -Math.PI / 2;
-
   road.position.set(0, 0.03, 150);
-
   road.receiveShadow = true;
-
-  world.scene.add(road);
+  world.scene.add(ground, road);
 
   const shoulderData = createShoulderTexture();
-
-  shoulderData.map.wrapS = THREE.RepeatWrapping;
-
-  shoulderData.map.wrapT = THREE.RepeatWrapping;
-
-  shoulderData.map.repeat.set(1, 20);
-
-  shoulderData.map.anisotropy = world.renderer.capabilities.getMaxAnisotropy();
-
-  if (shoulderData.bumpMap) {
-    shoulderData.bumpMap.wrapS = THREE.RepeatWrapping;
-
-    shoulderData.bumpMap.wrapT = THREE.RepeatWrapping;
-
-    shoulderData.bumpMap.repeat.set(1, 20);
-  }
-
-  if (shoulderData.roughnessMap) {
-    shoulderData.roughnessMap.wrapS = THREE.RepeatWrapping;
-
-    shoulderData.roughnessMap.wrapT = THREE.RepeatWrapping;
-
-    shoulderData.roughnessMap.repeat.set(1, 20);
-  }
+  configureRepeatingTextureSet(shoulderData, 1, 20, anisotropy);
 
   const shoulderMaterial = new THREE.MeshStandardMaterial({
     color: "#6f553a",
@@ -257,45 +157,32 @@ export function setupThree(
 
   world.roadShoulders = [-8.2, 8.2].map((x) => {
     const shoulder = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 600, 4, 64), shoulderMaterial);
-
     shoulder.rotation.x = -Math.PI / 2;
-
     shoulder.position.set(x, 0.02, 150);
-
     shoulder.receiveShadow = true;
-
     world.scene.add(shoulder);
-
     return shoulder;
   });
 
-  world.groundSurface = ground;
+  Object.assign(world, {
+    groundSurface: ground,
+    roadSurface: road,
+    roadTexture: roadData.map,
+    roadBumpTexture: roadData.bumpMap,
+    roadRoughnessTexture: roadData.roughnessMap,
+    terrainTexture: terrainData.map,
+    terrainBumpTexture: terrainData.bumpMap,
+    terrainRoughnessTexture: terrainData.roughnessMap,
+    shoulderTexture: shoulderData.map,
+    shoulderBumpTexture: shoulderData.bumpMap,
+    shoulderRoughnessTexture: shoulderData.roughnessMap,
+  });
 
-  world.roadSurface = road;
-
-  world.roadTexture = roadData.map;
-
-  world.roadBumpTexture = roadData.bumpMap;
-
-  world.roadRoughnessTexture = roadData.roughnessMap;
-
-  world.terrainTexture = terrainData.map;
-
-  world.terrainBumpTexture = terrainData.bumpMap;
-
-  world.terrainRoughnessTexture = terrainData.roughnessMap;
-
-  world.shoulderTexture = shoulderData.map;
-
-  world.shoulderBumpTexture = shoulderData.bumpMap;
-
-  world.shoulderRoughnessTexture = shoulderData.roughnessMap;
-
-  world.materials.ground = sandMaterial;
-
-  world.materials.road = roadMaterial;
-
-  world.materials.shoulder = shoulderMaterial;
+  Object.assign(world.materials, {
+    ground: sandMaterial,
+    road: roadMaterial,
+    shoulder: shoulderMaterial,
+  });
 
   for (let i = 0; i < 160; i += 1) {
     const dune = createDune({

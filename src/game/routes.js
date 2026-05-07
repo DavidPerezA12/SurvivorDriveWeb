@@ -8,7 +8,7 @@ export const GameRoute = {
   GAMEOVER: "gameover",
 };
 
-export const RUN_ROUTES = new Set([GameRoute.RUN_DESERT, GameRoute.RUN_CITY]);
+const RUN_ROUTES = new Set([GameRoute.RUN_DESERT, GameRoute.RUN_CITY]);
 
 export function isRunRoute(route) {
   return RUN_ROUTES.has(route);

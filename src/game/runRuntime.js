@@ -1,8 +1,60 @@
 import * as THREE from "three";
 
-import { createChunkScheduler, fillChunkQueue, getChunksToSpawn } from "./chunks.js";
+import {
+  createChunkScheduler,
+  fillChunkQueue,
+  getChunksToSpawn,
+  getChunkTemplate,
+  resolveRandomKind,
+} from "./chunks.js";
+import {
+  initAudio,
+  updateEngineSound,
+  playSkidSound,
+  stopSkidSound,
+  updateAudioVolume,
+  beep,
+} from "./audio.js";
+import { obstacleHitsCar, randomLane, collidesWithCar } from "./collision.js";
+import {
+  biomeCatalog,
+  objectiveCatalog,
+  equipmentCatalog,
+  encounterConfig,
+  pickupCatalog,
+  upgradeCatalog,
+} from "./content.js";
+import { createEventManager, tryTriggerEvent, updateEvent, getEventEffects } from "./events.js";
+import { registerRunResult, unlockCity } from "./persistence.js";
+import { routeForBiome } from "./routes.js";
+import {
+  choosePickupType,
+  createRunState,
+  resolveCollision,
+  resolvePickup,
+  spawnEncounter,
+  updateRunProgression,
+} from "./simulation.js";
+import {
+  clearAllPools,
+  createBurst,
+  createShockwave,
+  spawnDustMote,
+  spawnDustBurst,
+  spawnSkidMark,
+  spawnAtmosphericDebris,
+  removePoolEntry as disposePoolEntry,
+} from "./spawn.js";
 import { getZoneByDistance } from "./zones.js";
-import { shakeState } from "../ui/hudUpdates.js";
+import { weightedKey } from "./random.js";
+import { flashMessage, shakeState, triggerShake, updateHUD } from "../ui/hudUpdates.js";
+import { createFootprintMarker, createMileMarker } from "../world/environment.js";
+import { isDesertZone } from "../world/environmentRuntime.js";
+import { createObstacleMesh } from "../world/meshes/obstacles.js";
+import { createOverheadMesh } from "../world/meshes/overheads.js";
+import { createPickupMesh } from "../world/meshes/pickups.js";
+import { createPropMesh } from "../world/meshes/props.js";
+import { moveWorld } from "../world/movement.js";
 
 const CHUNK_Z_BASE = 52;
 
@@ -11,64 +63,23 @@ export function createRunRuntime({
   state,
   saveData,
   hud,
-  biomeCatalog,
-  objectiveCatalog,
-  equipmentCatalog,
-  encounterConfig,
-  pickupCatalog,
+  totalRouteDistance = 7.2,
   environmentRuntime,
-  createRunState,
-  registerRunResult,
-  unlockCity,
   saveState,
-  isDesert,
-  updateHUD,
-  flashMessage,
-  beep,
-  triggerShake,
-  clearAllPools,
-  removePoolEntry: disposePoolEntry,
-  createBurst,
-  createShockwave,
-  spawnDustMote,
-  spawnDustBurst,
-  spawnSkidMark,
-  spawnAtmosphericDebris,
-  moveWorld,
-  collidesWithCar,
-  obstacleHitsCar,
-  randomLane,
-  createObstacleMesh,
-  createPickupMesh,
-  createPropMesh,
-  createOverheadMesh,
-  createFootprintMarker,
-  createMileMarker,
-  getChunkTemplate,
-  resolveRandomKind,
-  createEventManager,
-  tryTriggerEvent,
-  updateEvent,
-  getEventEffects,
-  resolveCollision,
-  choosePickupType,
-  resolvePickup,
-  updateRunProgression,
-  spawnEncounter,
-  initAudio,
-  updateEngineSound,
-  playSkidSound,
-  stopSkidSound,
-  updateAudioVolume,
-  rebuildCarAppearance,
   setRoute,
-  routeForBiome,
 }) {
   let chunkScheduler = createChunkScheduler();
   let lastZoneId = null;
 
   function resetRun(biome = "desert") {
-    world.run = createRunState(saveData, biome, biomeCatalog, objectiveCatalog, equipmentCatalog);
+    world.run = createRunState(
+      saveData,
+      biome,
+      biomeCatalog,
+      objectiveCatalog,
+      equipmentCatalog,
+      upgradeCatalog,
+    );
 
     const zone = getZoneByDistance(world.run.distance);
     lastZoneId = zone.id;
@@ -79,7 +90,7 @@ export function createRunRuntime({
     world.chunkScheduler = chunkScheduler;
 
     world.environment.biome = zone.id;
-    world.environment.targetWeather = isDesert(zone.id) ? "clear" : "smog";
+    world.environment.targetWeather = isDesertZone(zone.id) ? "clear" : "smog";
     world.environment.weather = "clear";
     world.environment.weatherStrength = 0;
     world.environment.weatherTimer = 18;
@@ -123,7 +134,7 @@ export function createRunRuntime({
     run.pickupTimer = 0.55;
 
     const zone = getZoneByDistance(run.distance);
-    world.environment.targetWeather = isDesert(zone.id) ? "clear" : "smog";
+    world.environment.targetWeather = isDesertZone(zone.id) ? "clear" : "smog";
     world.environment.weatherTimer = Math.min(world.environment.weatherTimer, 8);
 
     setRoute(routeForBiome(nextBiome));
@@ -202,7 +213,7 @@ export function createRunRuntime({
     updateEntities(dt);
     moveWorld(world, dt, 1);
 
-    if (run.distance >= 7.2) {
+    if (run.distance >= totalRouteDistance) {
       run.endReason = "Atravesaste la ruta completa y alcanzaste el refugio.";
       finishRun(true);
       return;
@@ -641,21 +652,6 @@ export function createRunRuntime({
     return min + Math.random() * Math.max(0, max - min);
   }
 
-  function chooseWeightedKey(weights = {}, fallback = null) {
-    const entries = Object.entries(weights).filter(([, weight]) => weight > 0);
-    const total = entries.reduce((sum, [, weight]) => sum + weight, 0);
-
-    if (total <= 0) return fallback;
-
-    let roll = Math.random() * total;
-    for (const [key, weight] of entries) {
-      roll -= weight;
-      if (roll <= 0) return key;
-    }
-
-    return entries[0]?.[0] ?? fallback;
-  }
-
   function normalizePropKind(kind) {
     const aliases = {
       barrel: "pipeline",
@@ -692,7 +688,7 @@ export function createRunRuntime({
       world.propPool.push(marker);
     }
 
-    const kind = normalizePropKind(chooseWeightedKey(zone.props, "rock"));
+    const kind = normalizePropKind(weightedKey(zone.props, "rock"));
     const side = Math.random() > 0.5 ? 1 : -1;
     const zDist = 120 + Math.random() * 80;
     const xDist = (kind === "castle" ? 28 + Math.random() * 24 : 18 + Math.random() * 55) * side;
@@ -1370,11 +1366,8 @@ export function createRunRuntime({
   return {
     resetRun,
     startRun,
-    transitionRunToBiome,
-    finishRun,
     updateRun,
     updateCinematic,
     destroyObstacle,
-    rebuildCarAppearance,
   };
 }

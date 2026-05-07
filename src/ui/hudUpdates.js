@@ -86,17 +86,6 @@ export function updateHUD() {
 
   if (hud.threat) hud.threat.textContent = `${Math.round(run.threat)}%`;
 
-  if (hud.eventChip) {
-    const activeEvent = world.eventManager.activeEvent;
-    if (activeEvent) {
-      const eventDef = eventCatalog[activeEvent];
-      hud.eventChip.style.display = "flex";
-      if (hud.eventName) hud.eventName.textContent = eventDef.name;
-    } else {
-      hud.eventChip.style.display = "none";
-    }
-  }
-
   if (hud.weather) hud.weather.textContent = run.weatherLabel;
 
   if (hud.cycle) hud.cycle.textContent = run.cycleLabel;
@@ -148,7 +137,7 @@ export function updateHUD() {
   });
 }
 
-export function formatObjectiveProgress(run) {
+function formatObjectiveProgress(run) {
   if (!Number.isFinite(run.objectiveTarget)) {
     return `${run.objectiveProgress.toFixed(1)} km`;
   }

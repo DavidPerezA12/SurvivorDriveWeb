@@ -594,10 +594,6 @@ export function getZoneByDistance(distanceKm) {
   return zoneEntries[zoneEntries.length - 1];
 }
 
-export function getZoneById(id) {
-  return zoneCatalog[id] ?? null;
-}
-
 export function getAllZones() {
   return zoneEntries;
 }
@@ -671,27 +667,4 @@ export const pickupCatalog = {
     color: "#ff4444",
     geometry: "cylinder",
   },
-};
-
-// ── Obstacle catalog (extended with new types) ───────────────────────────
-export const obstacleCatalog = {
-  // ── Existing types (from content.js) ──
-  barrier: { label: "Barrier", category: "wall", damage: 18, isWall: true },
-  tower: { label: "Tower", category: "enemy", damage: 35, isWall: true, isEnemy: true },
-  raider: { label: "Raider", category: "enemy", damage: 22, isEnemy: true },
-  wreck: { label: "Wreck", category: "debris", damage: 20 },
-  scrap: { label: "Scrap", category: "debris", damage: 16 },
-  mutant: { label: "Mutant", category: "enemy", damage: 25, isEnemy: true },
-  ramp: { label: "Ramp", category: "feature", damage: 0, isRamp: true },
-
-  // ── New types ──
-  barricade: { label: "Barricade", category: "wall", damage: 22, isWall: true },
-  debris: { label: "Debris", category: "debris", damage: 12 },
-  oil_spill: { label: "Oil Spill", category: "hazard", damage: 5, noDestroy: true },
-  fallen_sign: { label: "Fallen Sign", category: "debris", damage: 10 },
-  mine: { label: "Land Mine", category: "hazard", damage: 40 },
-  military_barrier: { label: "Mil. Barrier", category: "wall", damage: 30, isWall: true },
-  half_gate: { label: "Half Gate", category: "wall", damage: 25, isWall: true },
-  rock: { label: "Rock", category: "natural", damage: 15, isWall: true },
-  pothole: { label: "Pothole", category: "hazard", damage: 8, noDestroy: true },
 };

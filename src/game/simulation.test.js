@@ -15,8 +15,9 @@ import {
   encounterConfig,
   objectiveCatalog,
   pickupCatalog,
+  upgradeCatalog,
 } from "./content.js";
-import { hydrateSave, deepMerge } from "./persistence.js";
+import { hydrateSave, deepMerge, saveSaveData } from "./persistence.js";
 import { defaultSaveData } from "./persistence.js";
 
 test("applyLoadout returns correct multipliers for default equip", () => {
@@ -45,6 +46,16 @@ test("applyLoadout multiply stacks correctly", () => {
     Math.abs(merged.armor - expectedArmor) < 0.001,
     `armor should be ${expectedArmor}, got ${merged.armor}`,
   );
+});
+
+test("applyLoadout uses upgrade catalog stats", () => {
+  const loadout = {
+    chassis: "scout",
+    tires: "grip",
+    rig: "ram",
+  };
+  const { merged } = applyLoadout(loadout, equipmentCatalog, { fuel_tank: 2 }, upgradeCatalog);
+  assert.ok(Math.abs(merged.reserve - 0.92 * 1.16) < 0.001);
 });
 
 function makeSaveData() {
@@ -153,6 +164,29 @@ test("hydrateSave merges defaults with partial data", () => {
   assert.equal(hydrated.options.volume, 30);
   assert.equal(hydrated.options.quality, "medium");
   assert.equal(hydrated.unlocks.city, false);
+});
+
+test("saveSaveData persists permanent upgrades", () => {
+  const originalLocalStorage = globalThis.localStorage;
+  let storedValue = "";
+  globalThis.localStorage = {
+    setItem(_key, value) {
+      storedValue = value;
+    },
+  };
+
+  try {
+    const saveData = makeSaveData();
+    saveData.upgrades.fuel_tank = 2;
+    saveSaveData(saveData);
+    assert.equal(JSON.parse(storedValue).upgrades.fuel_tank, 2);
+  } finally {
+    if (originalLocalStorage === undefined) {
+      delete globalThis.localStorage;
+    } else {
+      globalThis.localStorage = originalLocalStorage;
+    }
+  }
 });
 
 test("choosePickupType respects fuel scarcity", () => {

@@ -13,6 +13,7 @@
  */
 
 import { getZoneByDistance } from "./zones.js";
+import { weightedChoice, weightedKey } from "./random.js";
 
 // ── Chunk template definitions ──────────────────────────────────────────
 
@@ -33,7 +34,7 @@ import { getZoneByDistance } from "./zones.js";
  * }
  */
 
-export const chunkTemplates = {
+const chunkTemplates = {
   // ── Basic chunks ──
   straight_empty: {
     id: "straight_empty",
@@ -429,20 +430,13 @@ function selectNextChunk(scheduler, zone) {
     return scheduler.lastChunkEndM - scheduler.lastSpecialDistance >= t.minDistanceSince * 1000;
   });
 
-  // Weighted random selection
-  const totalWeight = eligible.reduce((sum, t) => sum + t.weight, 0);
-  let roll = Math.random() * totalWeight;
-  for (const template of eligible) {
-    roll -= template.weight;
-    if (roll <= 0) {
-      if (isSpecialChunk(template)) {
-        scheduler.lastSpecialDistance = scheduler.lastChunkEndM;
-      }
-      return template;
-    }
+  const fallback = { key: "straight_empty", ...chunkTemplates.straight_empty };
+  const template = weightedChoice(eligible, (entry) => entry.weight, fallback);
+  if (isSpecialChunk(template)) {
+    scheduler.lastSpecialDistance = scheduler.lastChunkEndM;
   }
-  // Fallback: empty straight
-  return { key: "straight_empty", ...chunkTemplates.straight_empty };
+
+  return template;
 }
 
 /**
@@ -504,11 +498,5 @@ export function resolveRandomKind(slotKind, zone, catalogWeights) {
   const weights = catalogWeights;
   if (!weights || Object.keys(weights).length === 0) return null;
 
-  const total = Object.values(weights).reduce((s, w) => s + w, 0);
-  let roll = Math.random() * total;
-  for (const [kind, weight] of Object.entries(weights)) {
-    roll -= weight;
-    if (roll <= 0) return kind;
-  }
-  return Object.keys(weights)[0];
+  return weightedKey(weights, Object.keys(weights)[0]);
 }

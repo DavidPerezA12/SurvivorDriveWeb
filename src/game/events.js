@@ -17,6 +17,7 @@
  */
 
 import { getZoneByDistance } from "./zones.js";
+import { weightedChoice } from "./random.js";
 
 // ── Event definitions ───────────────────────────────────────────────────
 
@@ -49,7 +50,6 @@ export const eventCatalog = {
     durationMax: 18,
     effects: {
       spawnChaser: 1, // number of chaser vehicles
-      chaserSpeed: 1.05, // slightly faster than player base
       chaserDamage: 15,
       chaserShootInterval: 1.5,
     },
@@ -66,7 +66,6 @@ export const eventCatalog = {
     durationMax: 20,
     effects: {
       spawnChaser: 2,
-      chaserSpeed: 1.08,
       chaserDamage: 20,
       chaserShootInterval: 1.2,
     },
@@ -83,7 +82,6 @@ export const eventCatalog = {
     durationMax: 25,
     effects: {
       spawnChaser: 3,
-      chaserSpeed: 1.12,
       chaserDamage: 28,
       chaserShootInterval: 0.9,
     },
@@ -100,8 +98,6 @@ export const eventCatalog = {
     durationMax: 10,
     effects: {
       spawnBarrierWall: true, // full-width barrier wall with gaps
-      gapCount: 1, // number of passable gaps
-      gapWidth: 1.8, // width of each gap in world units
     },
     hudMessage: "¡Carretera cortada!",
     hudColor: "#ffaa00",
@@ -117,9 +113,6 @@ export const eventCatalog = {
     effects: {
       spawnFuelPickups: 4,
       spawnRepairPickups: 2,
-      spawnAmbush: true, // enemies after collecting
-      ambushDelay: 3, // seconds after first pickup
-      ambushEnemies: 3,
     },
     hudMessage: "Gasolinera avistada",
     hudColor: "#78d36f",
@@ -168,8 +161,6 @@ export function createEventManager() {
     activeEvent: null, // currently active event
     eventTimer: 0, // remaining duration of active event
     eventCooldown: 0, // cooldown before next event can trigger
-    eventHudTimer: 0, // timer for HUD message display
-    chasers: [], // active chaser vehicles (if chase event)
     eventStartDistance: 0, // distance when event started
   };
 }
@@ -203,37 +194,27 @@ export function tryTriggerEvent(eventMgr, distanceKm) {
   if (!zone) return null;
 
   const available = getAvailableEvents(zone, eventMgr);
-  const totalWeight = available.reduce((s, e) => s + e.weight, 0);
-  let roll = Math.random() * totalWeight;
+  const entry = weightedChoice(available, (event) => event.weight);
+  if (!entry) return null;
 
-  for (const entry of available) {
-    roll -= entry.weight;
-    if (roll <= 0) {
-      if (entry.id === "none") {
-        // Set cooldown and return
-        eventMgr.eventCooldown =
-          zone.events.cooldownMin +
-          Math.random() * (zone.events.cooldownMax - zone.events.cooldownMin);
-        return null;
-      }
-
-      const eventDef = eventCatalog[entry.id];
-      if (!eventDef) return null;
-
-      const duration =
-        eventDef.durationMin + Math.random() * (eventDef.durationMax - eventDef.durationMin);
-
-      eventMgr.activeEvent = entry.id;
-      eventMgr.eventTimer = duration;
-      eventMgr.eventHudTimer = 3.0; // show message for 3 seconds
-      eventMgr.eventStartDistance = distanceKm;
-      eventMgr.eventCooldown = 0; // cooldown starts after event ends
-
-      return { eventId: entry.id, duration, event: eventDef };
-    }
+  if (entry.id === "none") {
+    eventMgr.eventCooldown =
+      zone.events.cooldownMin + Math.random() * (zone.events.cooldownMax - zone.events.cooldownMin);
+    return null;
   }
 
-  return null;
+  const eventDef = eventCatalog[entry.id];
+  if (!eventDef) return null;
+
+  const duration =
+    eventDef.durationMin + Math.random() * (eventDef.durationMax - eventDef.durationMin);
+
+  eventMgr.activeEvent = entry.id;
+  eventMgr.eventTimer = duration;
+  eventMgr.eventStartDistance = distanceKm;
+  eventMgr.eventCooldown = 0; // cooldown starts after event ends
+
+  return { eventId: entry.id, duration, event: eventDef };
 }
 
 /**
@@ -244,11 +225,6 @@ export function updateEvent(eventMgr, dt, distanceKm) {
   // Update cooldown
   if (eventMgr.eventCooldown > 0) {
     eventMgr.eventCooldown -= dt;
-  }
-
-  // Update HUD message timer
-  if (eventMgr.eventHudTimer > 0) {
-    eventMgr.eventHudTimer -= dt;
   }
 
   // Update active event
@@ -296,30 +272,4 @@ export function getEventEffects(eventMgr) {
   const eventDef = eventCatalog[eventMgr.activeEvent];
   if (!eventDef) return null;
   return eventDef.effects;
-}
-
-/**
- * Force-start a specific event (for debug or scripted moments).
- */
-export function forceEvent(eventMgr, eventId, distanceKm) {
-  const eventDef = eventCatalog[eventId];
-  if (!eventDef) return false;
-
-  const duration =
-    eventDef.durationMin + Math.random() * (eventDef.durationMax - eventDef.durationMin);
-
-  eventMgr.activeEvent = eventId;
-  eventMgr.eventTimer = duration;
-  eventMgr.eventHudTimer = 3.0;
-  eventMgr.eventStartDistance = distanceKm;
-  eventMgr.eventCooldown = 0;
-  return true;
-}
-
-/**
- * End the current event immediately.
- */
-export function endEvent(eventMgr) {
-  eventMgr.activeEvent = null;
-  eventMgr.eventTimer = 0;
 }

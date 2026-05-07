@@ -6,29 +6,8 @@ export function moveWorld(world, dt, speedFactor) {
   const flow = world.run ? world.run.speed : 18;
   const amount = flow * dt * speedFactor;
 
-  if (world.propPool) {
-    for (let i = world.propPool.length - 1; i >= 0; i--) {
-      const prop = world.propPool[i];
-      prop.position.z -= amount * (prop.userData.speedFactor ?? 1);
-
-      if (prop.position.z < -42) {
-        world.scene.remove(prop);
-        world.propPool.splice(i, 1);
-      }
-    }
-  }
-
-  if (world.overheadPool) {
-    for (let i = world.overheadPool.length - 1; i >= 0; i--) {
-      const oh = world.overheadPool[i];
-      oh.position.z -= amount * (oh.userData.speedFactor ?? 1);
-
-      if (oh.position.z < -42) {
-        world.scene.remove(oh);
-        world.overheadPool.splice(i, 1);
-      }
-    }
-  }
+  moveTransientPool(world, "propPool", amount, -42);
+  moveTransientPool(world, "overheadPool", amount, -42);
 
   scrollTextureSet(world, "road", amount);
   scrollTextureSet(world, "terrain", amount);
@@ -126,6 +105,21 @@ export function moveWorld(world, dt, speedFactor) {
 
     if (detail.position.z < -20) {
       recycleRoadDetail(detail);
+    }
+  }
+}
+
+function moveTransientPool(world, poolName, amount, minZ) {
+  const pool = world[poolName];
+  if (!pool) return;
+
+  for (let i = pool.length - 1; i >= 0; i -= 1) {
+    const item = pool[i];
+    item.position.z -= amount * (item.userData.speedFactor ?? 1);
+
+    if (item.position.z < minZ) {
+      world.scene.remove(item);
+      pool.splice(i, 1);
     }
   }
 }

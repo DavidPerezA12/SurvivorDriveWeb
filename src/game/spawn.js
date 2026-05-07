@@ -2,7 +2,7 @@ import * as THREE from "three";
 
 const GEOMETRY_CACHE = new Map();
 
-export function getCachedGeometry(key, factory) {
+function getCachedGeometry(key, factory) {
   if (!GEOMETRY_CACHE.has(key)) {
     const geometry = factory();
     geometry.userData.cached = true;
@@ -11,7 +11,7 @@ export function getCachedGeometry(key, factory) {
   return GEOMETRY_CACHE.get(key);
 }
 
-export function disposeMesh(mesh) {
+function disposeMesh(mesh) {
   if (!mesh) return;
   mesh.traverse((child) => {
     if (child.isMesh) {

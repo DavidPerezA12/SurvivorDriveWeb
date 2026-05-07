@@ -1,7 +1,7 @@
 // Car collision AABB constants (shared across all collision checks)
-export const CAR_Z = 1.2;
-export const CAR_HALF_X = 0.85;
-export const CAR_HALF_Z = 2.2;
+const CAR_Z = 1.2;
+const CAR_HALF_X = 0.85;
+const CAR_HALF_Z = 2.2;
 
 export function collidesWithCar(x, z, radius, y = 1.1, verticalRadius = 1.8) {
   return function (run) {
@@ -13,13 +13,13 @@ export function collidesWithCar(x, z, radius, y = 1.1, verticalRadius = 1.8) {
   };
 }
 
-export function pointToObstacleFootprintDistSq(px, pz, cx, cz, halfX, halfZ) {
+function pointToObstacleFootprintDistSq(px, pz, cx, cz, halfX, halfZ) {
   const dx = Math.max(0, Math.abs(px - cx) - halfX);
   const dz = Math.max(0, Math.abs(pz - cz) - halfZ);
   return dx * dx + dz * dz;
 }
 
-export function circleIntersectsCarAabb(
+function circleIntersectsCarAabb(
   cx,
   cz,
   radius,

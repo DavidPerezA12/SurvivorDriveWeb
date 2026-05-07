@@ -10,7 +10,7 @@ export const InputAction = {
   BACK: "back",
 };
 
-export const KEY_TO_ACTION = {
+const KEY_TO_ACTION = {
   ArrowLeft: InputAction.STEER_LEFT,
   ArrowRight: InputAction.STEER_RIGHT,
   ArrowUp: InputAction.ACCELERATE,
@@ -27,7 +27,7 @@ export const KEY_TO_ACTION = {
   Backspace: InputAction.BACK,
 };
 
-export const CODE_TO_ACTION = {
+const CODE_TO_ACTION = {
   ArrowLeft: InputAction.STEER_LEFT,
   KeyA: InputAction.STEER_LEFT,
   ArrowRight: InputAction.STEER_RIGHT,

@@ -48,12 +48,6 @@ export default [
     },
   },
   {
-    ignores: [
-      "dist/",
-      "node_modules/",
-      "public/",
-      "patch_*.cjs",
-      "enhance_*.cjs",
-    ],
+    ignores: ["dist/", "node_modules/", "public/"],
   },
 ];

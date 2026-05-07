@@ -60,12 +60,13 @@ export function hydrateSave(rawSave) {
   return hydrated;
 }
 
-export function serializeSave(saveData) {
+function serializeSave(saveData) {
   return JSON.stringify({
     schemaVersion,
     options: saveData.options,
     loadout: saveData.loadout,
     progression: saveData.progression,
+    upgrades: saveData.upgrades,
     unlocks: saveData.unlocks,
     stats: saveData.stats,
   });

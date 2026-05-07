@@ -16,39 +16,66 @@ import { createOilSpill, createMine, createPothole } from "./obstacles/hazards.j
 import { createRamp } from "./obstacles/features.js";
 
 export function createObstacleMesh(kind, models = {}) {
-  const rustMat = new THREE.MeshStandardMaterial({
-    color: "#4d3a2e",
-    roughness: 0.95,
-    metalness: 0.4,
-  });
-  const darkMetal = new THREE.MeshStandardMaterial({
-    color: "#222",
-    roughness: 0.8,
-    metalness: 0.6,
-  });
-  const tireMat = new THREE.MeshStandardMaterial({
-    color: "#111",
-    roughness: 0.9,
-  });
+  let rustMat;
+  let darkMetal;
+  let tireMat;
 
-  if (kind === "raider") return createRaider(models, tireMat);
-  if (kind === "tower") return createTower(models, rustMat, darkMetal);
-  if (kind === "mutant") return createMutant(models);
+  const getRustMat = () => {
+    rustMat ??= new THREE.MeshStandardMaterial({
+      color: "#4d3a2e",
+      roughness: 0.95,
+      metalness: 0.4,
+    });
+    return rustMat;
+  };
 
-  if (kind === "barrier") return createBarrier(models);
-  if (kind === "military_barrier") return createMilitaryBarrier(models);
-  if (kind === "half_gate") return createHalfGate(models);
-  if (kind === "rock") return createRock(models);
+  const getDarkMetal = () => {
+    darkMetal ??= new THREE.MeshStandardMaterial({
+      color: "#222",
+      roughness: 0.8,
+      metalness: 0.6,
+    });
+    return darkMetal;
+  };
 
-  if (kind === "wreck") return createWreck(models, tireMat);
-  if (kind === "debris") return createDebris(models);
-  if (kind === "fallen_sign") return createFallenSign(models);
+  const getTireMat = () => {
+    tireMat ??= new THREE.MeshStandardMaterial({
+      color: "#111",
+      roughness: 0.9,
+    });
+    return tireMat;
+  };
 
-  if (kind === "oil_spill") return createOilSpill(models);
-  if (kind === "mine") return createMine(models);
-  if (kind === "pothole") return createPothole(models);
-
-  if (kind === "ramp") return createRamp(models);
-
-  return createScrap(models, darkMetal);
+  switch (kind) {
+    case "raider":
+      return createRaider(models, getTireMat());
+    case "tower":
+      return createTower(models, getRustMat(), getDarkMetal());
+    case "mutant":
+      return createMutant(models);
+    case "barrier":
+      return createBarrier(models);
+    case "military_barrier":
+      return createMilitaryBarrier(models);
+    case "half_gate":
+      return createHalfGate(models);
+    case "rock":
+      return createRock(models);
+    case "wreck":
+      return createWreck(models, getTireMat());
+    case "debris":
+      return createDebris(models);
+    case "fallen_sign":
+      return createFallenSign(models);
+    case "oil_spill":
+      return createOilSpill(models);
+    case "mine":
+      return createMine(models);
+    case "pothole":
+      return createPothole(models);
+    case "ramp":
+      return createRamp(models);
+    default:
+      return createScrap(models, getDarkMetal());
+  }
 }

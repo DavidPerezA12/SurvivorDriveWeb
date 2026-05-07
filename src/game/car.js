@@ -1,9 +1,86 @@
 import * as THREE from "three";
 
-export function stateColor(state, equipmentCatalog) {
+function getChassisColor(state, equipmentCatalog) {
   return (
     equipmentCatalog.chassis.find((item) => item.id === state.equipment.chassis)?.color ?? "#d8b36b"
   );
+}
+
+function addHeadlights(
+  group,
+  { xBase = 0.6, y = 0.5, z = 1.8, targetScale = 1.2, targetY = 0.4, targetZ = 10 } = {},
+) {
+  const headlights = [];
+
+  for (const side of [1, -1]) {
+    const light = new THREE.SpotLight("#fffdeb", 0, 18, Math.PI / 4, 0.5, 1);
+    const x = side * xBase;
+    light.position.set(x, y, z);
+    light.target.position.set(x * targetScale, targetY, targetZ);
+    group.add(light);
+    group.add(light.target);
+    headlights.push(light);
+  }
+
+  return headlights;
+}
+
+function addBrakeLights(group, { xBase = 0.7, y = 0.6, z = -1.8, distance = 3 } = {}) {
+  const brakeLights = [];
+
+  for (const side of [1, -1]) {
+    const light = new THREE.PointLight("#ff0000", 0, distance);
+    light.position.set(side * xBase, y, z);
+    group.add(light);
+    brakeLights.push(light);
+  }
+
+  return brakeLights;
+}
+
+function addBoosterNozzle({
+  rigGroup,
+  flames,
+  boostMaterial,
+  x,
+  y,
+  z,
+  nozzleRadiusTop = 0.15,
+  nozzleRadiusBottom = 0.2,
+  nozzleLength = 0.8,
+  nozzleSegments = 8,
+  flameRadius = 0.12,
+  flameLength = 0.5,
+  flameSegments = 6,
+  lightDistance = 3,
+  lightOffsetZ = -0.3,
+  meshOffsetZ = -0.2,
+}) {
+  const nozzle = new THREE.Mesh(
+    new THREE.CylinderGeometry(nozzleRadiusTop, nozzleRadiusBottom, nozzleLength, nozzleSegments),
+    boostMaterial,
+  );
+  nozzle.position.set(x, y, z);
+  nozzle.rotation.x = Math.PI / 2;
+  rigGroup.add(nozzle);
+
+  const flame = new THREE.PointLight("#0088ff", 0, lightDistance);
+  flame.position.set(x, y, z + lightOffsetZ);
+  rigGroup.add(flame);
+  flames.push(flame);
+
+  const flameMesh = new THREE.Mesh(
+    new THREE.ConeGeometry(flameRadius, flameLength, flameSegments),
+    new THREE.MeshBasicMaterial({
+      color: "#00ccff",
+      transparent: true,
+      opacity: 0,
+    }),
+  );
+  flameMesh.position.set(x, y, z + meshOffsetZ);
+  flameMesh.rotation.x = -Math.PI / 2;
+  rigGroup.add(flameMesh);
+  flame.userData.mesh = flameMesh;
 }
 
 export function createCar(world, state, equipmentCatalog) {
@@ -16,7 +93,7 @@ export function createCar(world, state, equipmentCatalog) {
   if (world.assets.models["player"]) {
     const clone = world.assets.models["player"].clone();
     const wheels = [];
-    const carColor = stateColor(state, equipmentCatalog);
+    const carColor = getChassisColor(state, equipmentCatalog);
 
     clone.traverse((child) => {
       if (child.isMesh) {
@@ -75,27 +152,8 @@ export function createCar(world, state, equipmentCatalog) {
     mainHull.add(ram);
     group.userData.ram = ram;
 
-    // Faros (Headlights)
-    const headlights = [];
-    for (let i = 0; i < 2; i++) {
-      const light = new THREE.SpotLight("#fffdeb", 0, 18, Math.PI / 4, 0.5, 1);
-      light.position.set(i === 0 ? 0.6 : -0.6, 0.5, 1.8);
-      light.target.position.set(i === 0 ? 0.8 : -0.8, 0.4, 10);
-      group.add(light);
-      group.add(light.target);
-      headlights.push(light);
-    }
-    group.userData.headlights = headlights;
-
-    // Luces de freno (Brake lights)
-    const brakeLights = [];
-    for (let i = 0; i < 2; i++) {
-      const bLight = new THREE.PointLight("#ff0000", 0, 3);
-      bLight.position.set(i === 0 ? 0.7 : -0.7, 0.6, -1.8);
-      group.add(bLight);
-      brakeLights.push(bLight);
-    }
-    group.userData.brakeLights = brakeLights;
+    group.userData.headlights = addHeadlights(group, { targetScale: 4 / 3 });
+    group.userData.brakeLights = addBrakeLights(group);
 
     // --- External Visual Rig Attachments ---
     const rig = state.equipment.rig;
@@ -137,27 +195,14 @@ export function createCar(world, state, equipmentCatalog) {
       const boostMat = new THREE.MeshStandardMaterial({ color: "#555", metalness: 0.9 });
       const flames = [];
       for (const side of [-1, 1]) {
-        const nozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, 0.8, 8), boostMat);
-        nozzle.position.set(side * 0.5, 0.6, -1.9);
-        nozzle.rotation.x = Math.PI / 2;
-        rigGroup.add(nozzle);
-        // Small blue flame glow
-        const flame = new THREE.PointLight("#0088ff", 0, 3);
-        flame.position.set(side * 0.5, 0.6, -2.2);
-        rigGroup.add(flame);
-        flames.push(flame);
-
-        const flameGeo = new THREE.ConeGeometry(0.12, 0.5, 6);
-        const flameMat = new THREE.MeshBasicMaterial({
-          color: "#00ccff",
-          transparent: true,
-          opacity: 0,
+        addBoosterNozzle({
+          rigGroup,
+          flames,
+          boostMaterial: boostMat,
+          x: side * 0.5,
+          y: 0.6,
+          z: -1.9,
         });
-        const fMesh = new THREE.Mesh(flameGeo, flameMat);
-        fMesh.position.set(side * 0.5, 0.6, -2.1);
-        fMesh.rotation.x = -Math.PI / 2;
-        rigGroup.add(fMesh);
-        flame.userData.mesh = fMesh;
       }
       group.userData.boosterFlames = flames;
     }
@@ -167,7 +212,7 @@ export function createCar(world, state, equipmentCatalog) {
   }
 
   const bodyMaterial = new THREE.MeshPhysicalMaterial({
-    color: stateColor(state, equipmentCatalog),
+    color: getChassisColor(state, equipmentCatalog),
     metalness: 0.7,
     roughness: 0.2,
     clearcoat: 1.0,
@@ -646,25 +691,24 @@ export function createCar(world, state, equipmentCatalog) {
               [-0.5, 0.5, -2.5],
             ];
     for (const [nx, ny, nz] of nozzlePositions) {
-      const nozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.22, 0.9, 10), boostMat);
-      nozzle.position.set(nx, ny, nz);
-      nozzle.rotation.x = Math.PI / 2;
-      rigGroup.add(nozzle);
-      const flame = new THREE.PointLight("#0088ff", 0, 4);
-      flame.position.set(nx, ny, nz - 0.35);
-      rigGroup.add(flame);
-      flames.push(flame);
-      const flameGeo = new THREE.ConeGeometry(0.14, 0.6, 8);
-      const flameMat = new THREE.MeshBasicMaterial({
-        color: "#00ccff",
-        transparent: true,
-        opacity: 0,
+      addBoosterNozzle({
+        rigGroup,
+        flames,
+        boostMaterial: boostMat,
+        x: nx,
+        y: ny,
+        z: nz,
+        nozzleRadiusTop: 0.16,
+        nozzleRadiusBottom: 0.22,
+        nozzleLength: 0.9,
+        nozzleSegments: 10,
+        flameRadius: 0.14,
+        flameLength: 0.6,
+        flameSegments: 8,
+        lightDistance: 4,
+        lightOffsetZ: -0.35,
+        meshOffsetZ: -0.3,
       });
-      const fMesh = new THREE.Mesh(flameGeo, flameMat);
-      fMesh.position.set(nx, ny, nz - 0.3);
-      fMesh.rotation.x = -Math.PI / 2;
-      rigGroup.add(fMesh);
-      flame.userData.mesh = fMesh;
     }
     group.userData.boosterFlames = flames;
   }
@@ -794,29 +838,18 @@ export function createCar(world, state, equipmentCatalog) {
     return wheelGroup;
   });
 
-  // Faros (Headlights)
-  const headlights = [];
-  for (let i = 0; i < 2; i++) {
-    const light = new THREE.SpotLight("#fffdeb", 0, 18, Math.PI / 4, 0.5, 1);
-    const lx = (i === 0 ? 0.6 : -0.6) * (chassisName === "hauler" ? 1.4 : 1);
-    light.position.set(lx, 0.6, 2);
-    light.target.position.set(lx * 1.2, 0.5, 10);
-    group.add(light);
-    group.add(light.target);
-    headlights.push(light);
-  }
-  group.userData.headlights = headlights;
-
-  // Luces de freno (Brake lights)
-  const brakeLights = [];
-  for (let i = 0; i < 2; i++) {
-    const bLight = new THREE.PointLight("#ff0000", 0, 3);
-    const lx = (i === 0 ? 0.7 : -0.7) * (chassisName === "hauler" ? 1.4 : 1);
-    bLight.position.set(lx, 0.7, -2);
-    group.add(bLight);
-    brakeLights.push(bLight);
-  }
-  group.userData.brakeLights = brakeLights;
+  const lightScale = chassisName === "hauler" ? 1.4 : 1;
+  group.userData.headlights = addHeadlights(group, {
+    xBase: 0.6 * lightScale,
+    y: 0.6,
+    z: 2,
+    targetY: 0.5,
+  });
+  group.userData.brakeLights = addBrakeLights(group, {
+    xBase: 0.7 * lightScale,
+    y: 0.7,
+    z: -2,
+  });
 
   return group;
 }

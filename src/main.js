@@ -4,36 +4,17 @@ import * as THREE from "three";
 
 import { setupTouchControls } from "./controls/touch.js";
 import { loadAssets } from "./game/assets.js";
-import {
-  initAudio,
-  updateAudioVolume,
-  beep,
-  updateEngineSound,
-  playSkidSound,
-  stopSkidSound,
-} from "./game/audio.js";
+import { updateAudioVolume } from "./game/audio.js";
 import { rebuildCarAppearance } from "./game/car.js";
-import { getChunkTemplate, resolveRandomKind } from "./game/chunks.js";
-import { obstacleHitsCar, randomLane, collidesWithCar } from "./game/collision.js";
 import {
-  biomeCatalog,
-  contentManifest,
   equipmentCatalog,
-  encounterConfig,
   environmentProfiles as rawEnvironmentProfiles,
-  objectiveCatalog,
-  pickupCatalog,
   skyPalette as rawSkyPalette,
 } from "./game/content.js";
-import {
-  createEventManager,
-  tryTriggerEvent,
-  updateEvent,
-  getEventEffects,
-} from "./game/events.js";
+import { createEventManager } from "./game/events.js";
 import { createInputState } from "./game/input.js";
 import { createGameLoop } from "./game/loop.js";
-import { loadSaveData, saveSaveData, registerRunResult, unlockCity } from "./game/persistence.js";
+import { loadSaveData, saveSaveData } from "./game/persistence.js";
 import {
   GameRoute,
   biomeFromRoute,
@@ -43,48 +24,23 @@ import {
 } from "./game/routes.js";
 import { createRunRuntime } from "./game/runRuntime.js";
 import { setupThree } from "./game/sceneSetup.js";
-import {
-  choosePickupType,
-  createRunState,
-  resolveCollision,
-  resolvePickup,
-  spawnEncounter,
-  updateRunProgression,
-} from "./game/simulation.js";
-import {
-  clearAllPools,
-  spawnDustMote,
-  spawnDustBurst,
-  createBurst,
-  createShockwave,
-  spawnSkidMark,
-  spawnAtmosphericDebris,
-  removePoolEntry,
-} from "./game/spawn.js";
 import { mountApp } from "./game/ui.js";
 import { setupUIController } from "./game/uiController.js";
 import { configurePlayerActions, tryJump, useFire } from "./player/actions.js";
-import { configureHudUpdates, updateHUD, flashMessage, triggerShake } from "./ui/hudUpdates.js";
+import { configureHudUpdates, updateHUD, flashMessage } from "./ui/hudUpdates.js";
 import {
   createEnvironmentRuntime,
   hydrateEnvironmentProfiles,
   hydrateSkyPalette,
   isDesertZone,
 } from "./world/environmentRuntime.js";
-import { createFootprintMarker, createMileMarker } from "./world/environment.js";
 import { getZoneByDistance } from "./game/zones.js";
-import { createObstacleMesh } from "./world/meshes/obstacles.js";
-import { createOverheadMesh } from "./world/meshes/overheads.js";
-import { createPickupMesh } from "./world/meshes/pickups.js";
-import { createPropMesh } from "./world/meshes/props.js";
-import { moveWorld } from "./world/movement.js";
 
 const app = document.querySelector("#app");
 const ui = mountApp(app);
 const { canvas, atmosphere, screens, hud } = ui;
 
-export { hud };
-export const TOTAL_ROUTE_DISTANCE = 7.2;
+const TOTAL_ROUTE_DISTANCE = 7.2;
 
 document.body.dataset.help = "collapsed";
 
@@ -93,6 +49,7 @@ const state = {
   options: saveData.options,
   equipment: saveData.loadout,
   progression: saveData.progression,
+  upgrades: saveData.upgrades,
   unlocks: saveData.unlocks,
   stats: saveData.stats,
 };
@@ -100,7 +57,7 @@ const state = {
 const environmentProfiles = hydrateEnvironmentProfiles(rawEnvironmentProfiles);
 const skyPalette = hydrateSkyPalette(rawSkyPalette);
 
-export const world = {
+const world = {
   scene: new THREE.Scene(),
   renderer: new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true }),
   camera: new THREE.PerspectiveCamera(60, 1, 0.1, 500),
@@ -142,7 +99,6 @@ export const world = {
     ctx: null,
     gain: null,
   },
-  manifest: contentManifest,
   environment: {
     cycle: 0.48,
     biome: "desert",
@@ -184,57 +140,10 @@ const runRuntime = createRunRuntime({
   state,
   saveData,
   hud,
-  biomeCatalog,
-  objectiveCatalog,
-  equipmentCatalog,
-  encounterConfig,
-  pickupCatalog,
+  totalRouteDistance: TOTAL_ROUTE_DISTANCE,
   environmentRuntime,
-  createRunState,
-  registerRunResult,
-  unlockCity,
   saveState,
-  isDesert,
-  updateHUD,
-  flashMessage,
-  beep,
-  triggerShake,
-  clearAllPools,
-  createBurst,
-  createShockwave,
-  spawnDustMote,
-  spawnDustBurst,
-  spawnSkidMark,
-  spawnAtmosphericDebris,
-  moveWorld,
-  collidesWithCar,
-  obstacleHitsCar,
-  randomLane,
-  createObstacleMesh,
-  createPickupMesh,
-  createPropMesh,
-  createOverheadMesh,
-  createFootprintMarker,
-  createMileMarker,
-  getChunkTemplate,
-  resolveRandomKind,
-  createEventManager,
-  tryTriggerEvent,
-  updateEvent,
-  getEventEffects,
-  resolveCollision,
-  choosePickupType,
-  resolvePickup,
-  updateRunProgression,
-  spawnEncounter,
-  initAudio,
-  updateEngineSound,
-  playSkidSound,
-  stopSkidSound,
-  updateAudioVolume,
-  removePoolEntry,
   setRoute,
-  routeForBiome,
 });
 
 configureHudUpdates({
@@ -253,11 +162,11 @@ function saveState() {
   saveSaveData(saveData);
 }
 
-export function isPlaying() {
+function isPlaying() {
   return isRunRoute(world.route);
 }
 
-export function currentBiome() {
+function currentBiome() {
   if (world.run) {
     return getZoneByDistance(world.run.distance).id;
   }

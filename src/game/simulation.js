@@ -1,4 +1,6 @@
-export function applyLoadout(loadout, equipmentCatalog, upgrades = {}) {
+import { weightedKey } from "./random.js";
+
+export function applyLoadout(loadout, equipmentCatalog, upgrades = {}, upgradeCatalog = {}) {
   const selected = {
     chassis:
       equipmentCatalog.chassis.find((item) => item.id === loadout.chassis) ??
@@ -27,15 +29,9 @@ export function applyLoadout(loadout, equipmentCatalog, upgrades = {}) {
     }
   }
 
-  const upgradeStats = {
-    fuel_tank: { reserve: 0.08 },
-    ammo_rack: { ammoCap: 0.1 },
-    armor_plating: { armor: 0.07 },
-  };
-
   for (const [upgradeId, level] of Object.entries(upgrades ?? {})) {
     if (!level) continue;
-    const stats = upgradeStats[upgradeId];
+    const stats = upgradeCatalog[upgradeId]?.stats;
     if (!stats) continue;
     for (const [key, value] of Object.entries(stats)) {
       merged[key] = (merged[key] ?? 1) * (1 + value * level);
@@ -51,8 +47,14 @@ export function createRunState(
   biomeCatalog,
   objectiveCatalog,
   equipmentCatalog,
+  upgradeCatalog = {},
 ) {
-  const { merged } = applyLoadout(saveData.loadout, equipmentCatalog, saveData.upgrades);
+  const { merged } = applyLoadout(
+    saveData.loadout,
+    equipmentCatalog,
+    saveData.upgrades,
+    upgradeCatalog,
+  );
   const biomeMeta = biomeCatalog[biome];
   const startingDistance = biome === "city" ? biomeCatalog.desert.checkpointKm : 0;
   const ammoMax = Math.max(4, Math.round(8 * merged.ammoCap));
@@ -150,20 +152,13 @@ export function spawnEncounter(run, biome, encounterConfig) {
   if ("barrier" in table) table.barrier += threat * 0.04;
   if ("scrap" in table) table.scrap = Math.max(0.08, table.scrap - threat * 0.12);
 
-  const totalWeight = Object.values(table).reduce((sum, weight) => sum + Math.max(0, weight), 0);
-  if (totalWeight <= 0) return "scrap";
-
-  let roll = Math.random() * totalWeight;
-  let cumulative = 0;
-  for (const [kind, weight] of Object.entries(table)) {
-    cumulative += Math.max(0, weight);
-    if (roll <= cumulative) return kind;
-  }
-  return Object.keys(table).find((kind) => kind !== "none") ?? "scrap";
+  return weightedKey(table, Object.keys(table).find((kind) => kind !== "none") ?? "scrap");
 }
 
 export function choosePickupType(run, biome, encounterConfig) {
   const config = encounterConfig[biome];
+  if (!config?.weightedPickups?.length) return "coin";
+
   const scarcityBoost = run.fuel < 40 ? ["ammo", "repair"] : [];
   const pool = config.weightedPickups.concat(scarcityBoost);
   return pool[Math.floor(Math.random() * pool.length)];

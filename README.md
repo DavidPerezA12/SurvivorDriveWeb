@@ -134,14 +134,6 @@ Todavía faltan, por ejemplo:
 - Modelos 3D finales y pipeline de assets
 - Exploración abierta y capa narrativa real
 
-## Siguientes pasos razonables
-
-- Mejorar el feeling del coche y la cámara
-- Añadir enemigos y patrones de tráfico
-- Subir la calidad del entorno (props y pass final de assets)
-- Seguir partiendo lógica pesada de `main.js` en módulos de juego
-- Introducir assets 3D reales (GLB, pipeline)
-
 ## Autoría
 
 Proyecto original: David Perez  

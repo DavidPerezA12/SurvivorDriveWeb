@@ -1,51 +1,9 @@
-import { zoneCatalog } from "./zones.js";
+import { pickupCatalog, zoneCatalog } from "./zones.js";
+import { buildWeightedPool } from "./random.js";
 
-// ── Unchanged exports ──────────────────────────────────────────────────
 export const storageKey = "survivor-drive-web-state";
 export const schemaVersion = 1;
 export const speedPips = 12;
-
-export const contentManifest = {
-  vehicles: {
-    scout: { key: "vehicle.scout", source: "web-native" },
-    hauler: { key: "vehicle.hauler", source: "web-native" },
-    interceptor: { key: "vehicle.interceptor", source: "web-native" },
-  },
-  environment: {
-    desert: { key: "environment.desert", source: "web-native" },
-    city: { key: "environment.city", source: "web-native" },
-  },
-  pickups: {
-    coin: { key: "pickup.coin", source: "da-reference" },
-    jump: { key: "pickup.jump", source: "da-reference" },
-    fire: { key: "pickup.fire", source: "da-reference" },
-    ammo: { key: "pickup.ammo", source: "web-native" },
-    fuel: { key: "pickup.fuel", source: "web-native" },
-    repair: { key: "pickup.repair", source: "web-native" },
-  },
-  enemies: {
-    raider: { key: "enemy.raider", source: "web-native" },
-    tower: { key: "enemy.tower", source: "web-native" },
-    barrier: { key: "enemy.barrier", source: "web-native" },
-    wreck: { key: "enemy.wreck", source: "web-native" },
-  },
-  fx: {
-    dust: { key: "fx.dust", source: "web-native" },
-    shockwave: { key: "fx.shockwave", source: "web-native" },
-    missileTrail: { key: "fx.missile-trail", source: "web-native" },
-  },
-  audio: {
-    engine: { key: "audio.engine", source: "procedural" },
-    skid: { key: "audio.skid", source: "procedural" },
-    ui: { key: "audio.ui", source: "procedural" },
-    climate: { key: "audio.climate", source: "planned" },
-  },
-  ui: {
-    hud: { key: "ui.hud", source: "web-native" },
-    options: { key: "ui.options", source: "da-reference" },
-    equipment: { key: "ui.equipment", source: "da-reference" },
-  },
-};
 
 export const equipmentCatalog = {
   chassis: [
@@ -170,9 +128,6 @@ export function getUpgradeCost(upgradeId, level, catalog = upgradeCatalog) {
   return upgrade.costs?.[level] ?? null;
 }
 
-// ── biomeCatalog — mapped from new zone system ─────────────────────────
-// "desert" represents the wasteland segment (zones garage→desert)
-// "city"   represents the urban/military segment (zones military→refuge)
 export const biomeCatalog = {
   desert: {
     id: "desert",
@@ -244,7 +199,6 @@ export const environmentProfiles = {
   },
 };
 
-// ── skyPalette — built from zone visuals ───────────────────────────────
 function rgbToHex(r, g, b) {
   const hr = Math.min(255, Math.max(0, Math.round(r)))
     .toString(16)
@@ -282,60 +236,34 @@ export const skyPalette = Object.fromEntries(
   Object.keys(zoneCatalog).map((id) => [id, zoneVisualToSkyPalette(id)]),
 );
 
-// ── pickupCatalog — canonical source is zones.js ───────────────────────
-export { pickupCatalog } from "./zones.js";
+export { pickupCatalog };
+
+function sumWeights(zones, selectWeights, { exclude } = {}) {
+  const totals = {};
+
+  for (const zone of zones) {
+    for (const [kind, weight] of Object.entries(selectWeights(zone))) {
+      if (kind === exclude) continue;
+      totals[kind] = (totals[kind] ?? 0) + weight;
+    }
+  }
+
+  return totals;
+}
+
+function averageWeights(weights, divisor) {
+  return Object.fromEntries(
+    Object.entries(weights).map(([kind, weight]) => [kind, divisor > 0 ? weight / divisor : 0]),
+  );
+}
+
 function buildEncounterBiome(zoneIds) {
   const zones = zoneIds.map((id) => zoneCatalog[id]).filter(Boolean);
-  const n = zones.length;
+  const obstacleWeights = sumWeights(zones, (zone) => zone.obstacles.weights);
+  const pickupWeights = sumWeights(zones, (zone) => zone.pickups.weights, { exclude: "none" });
 
-  // Aggregate obstacle weights across zones in the group
-  const rawObs = {};
-  for (let zi = 0; zi < zones.length; zi++) {
-    const zone = zones[zi];
-    const obsWeights = zone.obstacles.weights;
-    const keys = Object.keys(obsWeights);
-    for (let ki = 0; ki < keys.length; ki++) {
-      const kind = keys[ki];
-      rawObs[kind] = (rawObs[kind] || 0) + obsWeights[kind];
-    }
-  }
-
-  // Normalise by zone count
-  const obstacleBias = {};
-  const obsKeys = Object.keys(rawObs);
-  for (let oi = 0; oi < obsKeys.length; oi++) {
-    const key = obsKeys[oi];
-    obstacleBias[key] = rawObs[key] / n;
-  }
-
-  // Aggregate pickup weights across zones
-  const rawPu = {};
-  for (let zi2 = 0; zi2 < zones.length; zi2++) {
-    const puZone = zones[zi2];
-    const puWeights = puZone.pickups.weights;
-    const puKeys = Object.keys(puWeights);
-    for (let pi = 0; pi < puKeys.length; pi++) {
-      const puKind = puKeys[pi];
-      if (puKind === "none") continue;
-      rawPu[puKind] = (rawPu[puKind] || 0) + puWeights[puKind];
-    }
-  }
-
-  // Convert weights to a weighted array (higher weight = more entries)
-  const weightedPickups = [];
-  let totalWeight = 0;
-  const puAllKeys = Object.keys(rawPu);
-  for (let ti = 0; ti < puAllKeys.length; ti++) {
-    totalWeight += rawPu[puAllKeys[ti]];
-  }
-  const targetCount = 20;
-  for (let pj = 0; pj < puAllKeys.length; pj++) {
-    const pk = puAllKeys[pj];
-    const count = Math.max(1, Math.round((rawPu[pk] / totalWeight) * targetCount));
-    for (let c = 0; c < count; c++) {
-      weightedPickups.push(pk);
-    }
-  }
+  const obstacleBias = averageWeights(obstacleWeights, zones.length);
+  const weightedPickups = buildWeightedPool(pickupWeights);
 
   return { obstacleBias, weightedPickups };
 }

@@ -173,7 +173,12 @@ function hydrateOptionsUI(state) {
 }
 
 function updateLoadoutUI({ state, hud, equipmentCatalog }) {
-  const { selected, merged } = applyLoadout(state.equipment, equipmentCatalog, state.upgrades);
+  const { selected, merged } = applyLoadout(
+    state.equipment,
+    equipmentCatalog,
+    state.upgrades,
+    upgradeCatalog,
+  );
   hud.loadout.innerHTML = `
     <article>
       <h3>${selected.chassis.name}</h3>
@@ -251,7 +256,12 @@ function updateUpgradeStatsUI({ state, hud, equipmentCatalog }) {
   if (!hud.runScrapBank) return;
   hud.runScrapBank.textContent = state.progression.scrapBank ?? 0;
   if (hud.upgradeStats) {
-    const { merged } = applyLoadout(state.equipment, equipmentCatalog, state.upgrades);
+    const { merged } = applyLoadout(
+      state.equipment,
+      equipmentCatalog,
+      state.upgrades,
+      upgradeCatalog,
+    );
     hud.upgradeStats.innerHTML = `
       <div><span>Velocidad</span><strong>x${merged.speed.toFixed(2)}</strong></div>
       <div><span>Manejo</span><strong>x${merged.handling.toFixed(2)}</strong></div>

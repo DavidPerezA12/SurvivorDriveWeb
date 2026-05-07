@@ -1,4 +1,4 @@
-export function prepareFadableObject(node) {
+function prepareFadableObject(node) {
   node.traverse((child) => {
     if (!child.isMesh) return;
     const materials = Array.isArray(child.material) ? child.material : [child.material];
