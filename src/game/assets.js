@@ -1,18 +1,31 @@
 import * as THREE from "three";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { FBXLoader } from "three/addons/loaders/FBXLoader.js";
 
-const modelsToLoad = {
+import { createProceduralModel } from "./proceduralAssets.js";
+
+const modelManifest = {
   player: { path: "models/ferrari.glb", type: "gltf" },
   raider: { path: "models/raider.fbx", type: "fbx" },
   barrel: { path: "models/barrel.fbx", type: "fbx" },
   barrier: { path: "models/barrier.fbx", type: "fbx" },
-  crate: { path: "models/crate.fbx", type: "fbx" },
+  crate: { type: "procedural" },
   building: { path: "models/house.fbx", type: "fbx" },
   rock: { path: "models/rock.fbx", type: "fbx" },
   tower: { path: "models/tower.fbx", type: "fbx" },
   tree: { path: "models/tree.fbx", type: "fbx" },
   wreck: { path: "models/wreck.fbx", type: "fbx" },
+};
+
+const modelTransforms = {
+  player: { scale: 1.1, rotationY: Math.PI },
+  raider: { scale: 0.015 },
+  building: { scale: 0.06 },
+  tree: { scale: 0.02 },
+  tower: { scale: 0.03 },
+  barrel: { scale: 0.018 },
+  crate: { scale: 0.018 },
+  barrier: { scale: 0.018 },
+  rock: { scale: 0.025 },
+  wreck: { scale: 0.015 },
 };
 
 const assetAlias = {
@@ -27,37 +40,102 @@ const assetAlias = {
 };
 
 export async function loadAssets(world) {
+  const loaders = await createLoaders();
+  const restoreConsoleWarn = silenceExpectedFbxWarnings();
+
+  try {
+    await loadModels(world.assets.models, loaders);
+  } finally {
+    restoreConsoleWarn();
+    loaders.dispose();
+  }
+
+  assignAliases(world.assets.models);
+}
+
+async function createLoaders() {
+  const [{ GLTFLoader }, { DRACOLoader }, { FBXLoader }] = await Promise.all([
+    import("three/addons/loaders/GLTFLoader.js"),
+    import("three/addons/loaders/DRACOLoader.js"),
+    import("three/addons/loaders/FBXLoader.js"),
+  ]);
+
   const manager = new THREE.LoadingManager();
   const gltfLoader = new GLTFLoader(manager);
+  const dracoLoader = new DRACOLoader(manager);
+  dracoLoader.setDecoderPath("/draco/gltf/");
+  gltfLoader.setDRACOLoader(dracoLoader);
+
   const fbxLoader = new FBXLoader(manager);
 
-  const promises = Object.entries(modelsToLoad).map(([name, info]) => {
-    return new Promise((resolve) => {
-      const loader = info.type === "gltf" ? gltfLoader : fbxLoader;
-      loader.load(
-        info.path,
-        (result) => {
-          let model = info.type === "gltf" ? result.scene : result;
-          normalizeModel(model, name);
-          world.assets.models[name] = model;
-          resolve();
-        },
-        undefined,
-        (error) => {
-          console.error(`Error loading model ${name}:`, error);
-          resolve();
-        },
-      );
-    });
+  return {
+    fbxLoader,
+    gltfLoader,
+    dispose: () => dracoLoader.dispose(),
+  };
+}
+
+async function loadModels(models, loaders) {
+  await Promise.all(
+    Object.entries(modelManifest).map(async ([name, info]) => {
+      const model = await loadModel(name, info, loaders);
+      if (model) models[name] = model;
+    }),
+  );
+}
+
+function loadModel(name, info, loaders) {
+  if (info.type === "procedural") {
+    return Promise.resolve(createProceduralModel(name));
+  }
+
+  const loader = info.type === "gltf" ? loaders.gltfLoader : loaders.fbxLoader;
+
+  return new Promise((resolve) => {
+    loader.load(
+      info.path,
+      (result) => {
+        const model = info.type === "gltf" ? result.scene : result;
+        normalizeModel(model, name);
+        resolve(model);
+      },
+      undefined,
+      (error) => {
+        console.error(`Error loading model ${name}:`, error);
+        resolve(null);
+      },
+    );
   });
+}
 
-  await Promise.all(promises);
-
+function assignAliases(models) {
   Object.entries(assetAlias).forEach(([alias, target]) => {
-    if (world.assets.models[target]) {
-      world.assets.models[alias] = world.assets.models[target];
+    if (models[target]) {
+      models[alias] = models[target];
     }
   });
+}
+
+function silenceExpectedFbxWarnings() {
+  const originalWarn = console.warn;
+
+  console.warn = (...args) => {
+    if (isExpectedFbxWarning(args)) return;
+    originalWarn(...args);
+  };
+
+  return () => {
+    console.warn = originalWarn;
+  };
+}
+
+function isExpectedFbxWarning(args) {
+  const message = args.map((arg) => String(arg)).join(" ");
+  return (
+    message.includes("THREE.FBXLoader") &&
+    (message.includes("map is not supported in three.js") ||
+      message.includes("unknown material type"))
+  );
 }
 
 function normalizeModel(model, name) {
@@ -76,34 +154,19 @@ function normalizeModel(model, name) {
     }
   });
 
-  switch (name) {
-    case "player":
-      model.scale.set(1.1, 1.1, 1.1);
-      model.rotation.y = Math.PI;
-      break;
-    case "raider":
-      model.scale.set(0.015, 0.015, 0.015);
-      break;
-    case "building":
-      model.scale.set(0.06, 0.06, 0.06);
-      break;
-    case "tree":
-      model.scale.set(0.02, 0.02, 0.02);
-      break;
-    case "tower":
-      model.scale.set(0.03, 0.03, 0.03);
-      break;
-    case "barrel":
-    case "crate":
-    case "barrier":
-      model.scale.set(0.018, 0.018, 0.018);
-      break;
-    case "rock":
-      model.scale.set(0.025, 0.025, 0.025);
-      break;
-    case "wreck":
-      model.scale.set(0.015, 0.015, 0.015);
-      break;
+  applyModelTransform(model, name);
+}
+
+function applyModelTransform(model, name) {
+  const transform = modelTransforms[name];
+  if (!transform) return;
+
+  if (transform.scale) {
+    model.scale.setScalar(transform.scale);
+  }
+
+  if (transform.rotationY !== undefined) {
+    model.rotation.y = transform.rotationY;
   }
 }
 

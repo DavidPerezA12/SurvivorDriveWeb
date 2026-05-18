@@ -60,11 +60,7 @@ export function moveWorld(world, dt, speedFactor) {
     }
 
     if (Math.random() < 0.015) {
-      prop.traverse((child) => {
-        if (child.material && child.material.emissive) {
-          child.material.emissiveIntensity = Math.random() > 0.2 ? 0.45 : 0.05;
-        }
-      });
+      flickerEmissiveMaterials(prop.userData.emissiveMaterials);
     }
   }
 
@@ -106,6 +102,12 @@ export function moveWorld(world, dt, speedFactor) {
     if (detail.position.z < -20) {
       recycleRoadDetail(detail);
     }
+  }
+}
+
+function flickerEmissiveMaterials(materials = []) {
+  for (const material of materials) {
+    material.emissiveIntensity = Math.random() > 0.2 ? 0.45 : 0.05;
   }
 }
 

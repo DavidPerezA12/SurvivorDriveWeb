@@ -1,6 +1,7 @@
 import * as THREE from "three";
 
 import { getAllZones, getZoneByDistance, zoneBlendFactor } from "../game/zones.js";
+import { prepareFadableObject } from "./meshes/roadside.js";
 
 const URBAN_ZONES = new Set(["ghost_town", "military", "refuge"]);
 const DESERT_ZONES = new Set(["garage", "broken_highway", "desert"]);
@@ -81,6 +82,7 @@ export function createEnvironmentRuntime({
   const tempColorB = new THREE.Color();
   const tempColorC = new THREE.Color();
   const tempColorD = new THREE.Color();
+  let lastBiomePresentationKey = null;
 
   function setMaterialBlend(material, blend) {
     const clamped = THREE.MathUtils.clamp(blend, 0, 1);
@@ -95,13 +97,14 @@ export function createEnvironmentRuntime({
   function setNodeBlend(node, blend) {
     const clamped = THREE.MathUtils.clamp(blend, 0, 1);
     node.visible = clamped > 0.015;
-    node.traverse((child) => {
-      if (!child.isMesh) return;
-      const materials = Array.isArray(child.material) ? child.material : [child.material];
-      for (const material of materials) {
-        if (material) setMaterialBlend(material, clamped);
-      }
-    });
+
+    if (!node.userData.fadeMaterials) {
+      prepareFadableObject(node);
+    }
+
+    for (const material of node.userData.fadeMaterials) {
+      setMaterialBlend(material, clamped);
+    }
   }
 
   function syncBiomePresentation() {
@@ -114,6 +117,13 @@ export function createEnvironmentRuntime({
     const nextUrban = nextZone ? (isUrbanZone(nextZone.id) ? 1 : 0) : currentUrban;
     const urbanFactor = THREE.MathUtils.lerp(currentUrban, nextUrban, blend);
     const desertFactor = 1 - urbanFactor;
+    const presentationKey = `${zone.id}:${nextZone?.id ?? "none"}:${blend.toFixed(3)}:${urbanFactor.toFixed(3)}`;
+
+    if (presentationKey === lastBiomePresentationKey) {
+      return;
+    }
+
+    lastBiomePresentationKey = presentationKey;
 
     for (const prop of world.roadsideProps) setNodeBlend(prop, desertFactor);
     for (const prop of world.roadsideBackdrop) setNodeBlend(prop, desertFactor);

@@ -1,14 +1,34 @@
-function prepareFadableObject(node) {
+export function collectVisualMaterials(node) {
+  const materials = [];
+
   node.traverse((child) => {
     if (!child.isMesh) return;
-    const materials = Array.isArray(child.material) ? child.material : [child.material];
-    for (const material of materials) {
+    const childMaterials = Array.isArray(child.material) ? child.material : [child.material];
+    for (const material of childMaterials) {
       if (!material) continue;
-      if (material.userData.baseOpacity == null) {
-        material.userData.baseOpacity = material.opacity ?? 1;
-      }
+      materials.push(material);
     }
   });
+
+  return materials;
+}
+
+export function prepareFadableObject(node) {
+  const materials = collectVisualMaterials(node);
+  const emissiveMaterials = [];
+
+  for (const material of materials) {
+    if (material.userData.baseOpacity == null) {
+      material.userData.baseOpacity = material.opacity ?? 1;
+    }
+
+    if (material.emissive) {
+      emissiveMaterials.push(material);
+    }
+  }
+
+  node.userData.fadeMaterials = materials;
+  node.userData.emissiveMaterials = emissiveMaterials;
 }
 
 export function applyRoadsideShadows(node) {
