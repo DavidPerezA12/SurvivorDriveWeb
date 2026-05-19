@@ -28,6 +28,67 @@ import { createCar } from "./car.js";
 
 import { recycleRoadsideProp, recycleCityRoadsideProp } from "../world/movement.js";
 
+const SCENE_BUDGETS = {
+  low: {
+    pixelRatio: 1,
+    shadowMapSize: 512,
+    stars: 90,
+    dunes: 20,
+    roadsideProps: 34,
+    roadsideBackdrop: 10,
+    cityProps: 18,
+    cityBackdrop: 8,
+    boulders: 36,
+    dustBands: 12,
+    heatShimmer: 3,
+    farBackdrop: 8,
+    roadDetails: 24,
+    groundSegments: [12, 12],
+    roadSegments: [4, 24],
+    shoulderSegments: [2, 24],
+  },
+  medium: {
+    pixelRatio: 1.25,
+    shadowMapSize: 1024,
+    stars: 140,
+    dunes: 34,
+    roadsideProps: 52,
+    roadsideBackdrop: 14,
+    cityProps: 26,
+    cityBackdrop: 10,
+    boulders: 58,
+    dustBands: 18,
+    heatShimmer: 4,
+    farBackdrop: 10,
+    roadDetails: 32,
+    groundSegments: [18, 18],
+    roadSegments: [8, 36],
+    shoulderSegments: [3, 36],
+  },
+  high: {
+    pixelRatio: 1.6,
+    shadowMapSize: 1536,
+    stars: 220,
+    dunes: 52,
+    roadsideProps: 76,
+    roadsideBackdrop: 20,
+    cityProps: 38,
+    cityBackdrop: 14,
+    boulders: 88,
+    dustBands: 24,
+    heatShimmer: 6,
+    farBackdrop: 14,
+    roadDetails: 42,
+    groundSegments: [28, 28],
+    roadSegments: [12, 52],
+    shoulderSegments: [4, 52],
+  },
+};
+
+function getSceneBudget(state) {
+  return SCENE_BUDGETS[state.options.quality] ?? SCENE_BUDGETS.medium;
+}
+
 function configureRepeatingTextureSet(textureSet, repeatX, repeatY, anisotropy) {
   const textures = [textureSet.map, textureSet.bumpMap, textureSet.roughnessMap].filter(Boolean);
 
@@ -48,12 +109,14 @@ export function setupThree(
   isDesertBiome,
   onResize,
 ) {
+  const budget = getSceneBudget(state);
+
   world.renderer.outputColorSpace = THREE.SRGBColorSpace;
   world.renderer.toneMapping = THREE.ACESFilmicToneMapping;
   world.renderer.toneMappingExposure = 1.05;
-  world.renderer.shadowMap.enabled = true;
+  world.renderer.shadowMap.enabled = state.options.quality === "high";
   world.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  world.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  world.renderer.setPixelRatio(Math.min(window.devicePixelRatio, budget.pixelRatio));
   world.pmrem = new THREE.PMREMGenerator(world.renderer);
 
   const room = new RoomEnvironment();
@@ -71,7 +134,7 @@ export function setupThree(
 
   const starGeo = new THREE.BufferGeometry();
   const starPositions = [];
-  for (let i = 0; i < 400; i += 1) {
+  for (let i = 0; i < budget.stars; i += 1) {
     starPositions.push((Math.random() - 0.5) * 500, 10 + Math.random() * 200, -140);
   }
 
@@ -90,7 +153,7 @@ export function setupThree(
 
   const sun = new THREE.DirectionalLight("#fff0d4", 1.2);
   sun.position.set(16, 28, 10);
-  sun.castShadow = true;
+  sun.castShadow = state.options.quality === "high";
   Object.assign(sun.shadow.camera, {
     near: 0.5,
     far: 150,
@@ -99,7 +162,7 @@ export function setupThree(
     top: 50,
     bottom: -50,
   });
-  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.mapSize.set(budget.shadowMapSize, budget.shadowMapSize);
   sun.shadow.bias = -0.0005;
   world.lights.sun = sun;
   world.scene.add(sun);
@@ -118,7 +181,10 @@ export function setupThree(
     metalness: 0.05,
   });
 
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(450, 600, 32, 32), sandMaterial);
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(450, 600, ...budget.groundSegments),
+    sandMaterial,
+  );
   ground.rotation.x = -Math.PI / 2;
   ground.position.z = 150;
   ground.receiveShadow = true;
@@ -136,7 +202,10 @@ export function setupThree(
     metalness: 0.1,
   });
 
-  const road = new THREE.Mesh(new THREE.PlaneGeometry(14, 600, 16, 64), roadMaterial);
+  const road = new THREE.Mesh(
+    new THREE.PlaneGeometry(14, 600, ...budget.roadSegments),
+    roadMaterial,
+  );
   road.rotation.x = -Math.PI / 2;
   road.position.set(0, 0.03, 150);
   road.receiveShadow = true;
@@ -156,7 +225,10 @@ export function setupThree(
   });
 
   world.roadShoulders = [-8.2, 8.2].map((x) => {
-    const shoulder = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 600, 4, 64), shoulderMaterial);
+    const shoulder = new THREE.Mesh(
+      new THREE.PlaneGeometry(2.5, 600, ...budget.shoulderSegments),
+      shoulderMaterial,
+    );
     shoulder.rotation.x = -Math.PI / 2;
     shoulder.position.set(x, 0.02, 150);
     shoulder.receiveShadow = true;
@@ -184,7 +256,7 @@ export function setupThree(
     shoulder: shoulderMaterial,
   });
 
-  for (let i = 0; i < 160; i += 1) {
+  for (let i = 0; i < budget.dunes; i += 1) {
     const dune = createDune({
       bumpMap: world.terrainBumpTexture,
       roughnessMap: world.terrainRoughnessTexture,
@@ -197,7 +269,7 @@ export function setupThree(
     world.dunes.push(dune);
   }
 
-  for (let i = 0; i < 220; i += 1) {
+  for (let i = 0; i < budget.roadsideProps; i += 1) {
     const prop = createRoadsideProp(i, world.terrainBumpTexture);
     recycleRoadsideProp(prop, true);
 
@@ -206,7 +278,7 @@ export function setupThree(
     world.roadsideProps.push(prop);
   }
 
-  for (let i = 0; i < 70; i += 1) {
+  for (let i = 0; i < budget.roadsideBackdrop; i += 1) {
     const b = createBackdropMesa(i, world.terrainBumpTexture);
 
     world.scene.add(b);
@@ -214,7 +286,7 @@ export function setupThree(
     world.roadsideBackdrop.push(b);
   }
 
-  for (let i = 0; i < 90; i += 1) {
+  for (let i = 0; i < budget.cityProps; i += 1) {
     const prop = createCityRoadsideProp(i);
 
     recycleCityRoadsideProp(prop, true);
@@ -226,7 +298,7 @@ export function setupThree(
     world.cityProps.push(prop);
   }
 
-  for (let i = 0; i < 45; i += 1) {
+  for (let i = 0; i < budget.cityBackdrop; i += 1) {
     const skyline = createCityBackdrop(i);
 
     skyline.visible = false;
@@ -236,7 +308,7 @@ export function setupThree(
     world.cityBackdrop.push(skyline);
   }
 
-  for (let i = 0; i < 280; i += 1) {
+  for (let i = 0; i < budget.boulders; i += 1) {
     const boulder = createScatteredBoulder({
       bumpMap: world.terrainBumpTexture,
       roughnessMap: world.terrainRoughnessTexture,
@@ -249,7 +321,7 @@ export function setupThree(
     world.boulders.push(boulder);
   }
 
-  for (let i = 0; i < 80; i += 1) {
+  for (let i = 0; i < budget.dustBands; i += 1) {
     const band = new THREE.Mesh(
       new THREE.PlaneGeometry(30, 10),
       new THREE.MeshBasicMaterial({
@@ -263,6 +335,7 @@ export function setupThree(
     band.position.set((Math.random() - 0.5) * 55, 1.5 + Math.random() * 6, i * 12);
 
     band.rotation.y = (Math.random() - 0.5) * 0.8;
+    band.userData.offset = Math.random() * Math.PI * 2;
 
     world.scene.add(band);
 
@@ -271,7 +344,7 @@ export function setupThree(
 
   world.heatShimmer = [];
 
-  for (let i = 0; i < 16; i++) {
+  for (let i = 0; i < budget.heatShimmer; i++) {
     const shimmerGeo = new THREE.PlaneGeometry(
       15 + Math.random() * 20,
       6 + Math.random() * 8,
@@ -308,7 +381,7 @@ export function setupThree(
     world.heatShimmer.push(shimmer);
   }
 
-  for (let i = 0; i < 35; i++) {
+  for (let i = 0; i < budget.farBackdrop; i++) {
     const far = createFarBackdropElement(i, isDesertBiome(getCurrentBiome()) ? "desert" : "city");
 
     world.scene.add(far);
@@ -316,7 +389,7 @@ export function setupThree(
     world.farBackdrop.push(far);
   }
 
-  for (let i = 0; i < 100; i++) {
+  for (let i = 0; i < budget.roadDetails; i++) {
     const detail = createRoadDetail();
 
     world.scene.add(detail);

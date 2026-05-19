@@ -44,6 +44,7 @@ import {
   spawnSkidMark,
   spawnAtmosphericDebris,
   removePoolEntry as disposePoolEntry,
+  getCachedGeometry,
 } from "./spawn.js";
 import { getZoneByDistance } from "./zones.js";
 import { weightedKey } from "./random.js";
@@ -55,8 +56,14 @@ import { createOverheadMesh } from "../world/meshes/overheads.js";
 import { createPickupMesh } from "../world/meshes/pickups.js";
 import { createPropMesh } from "../world/meshes/props.js";
 import { moveWorld } from "../world/movement.js";
+import { disposeObjectResources } from "../renderer/resources.js";
 
 const CHUNK_Z_BASE = 52;
+const PERFORMANCE_LIMITS = {
+  low: { particles: 70, props: 18, obstacles: 28, pickups: 16, projectiles: 14 },
+  medium: { particles: 95, props: 24, obstacles: 34, pickups: 18, projectiles: 18 },
+  high: { particles: 130, props: 32, obstacles: 44, pickups: 24, projectiles: 24 },
+};
 
 export function createRunRuntime({
   world,
@@ -70,6 +77,7 @@ export function createRunRuntime({
 }) {
   let chunkScheduler = createChunkScheduler();
   let lastZoneId = null;
+  let hudUpdateTimer = 0;
 
   function resetRun(biome = "desert") {
     world.run = createRunState(
@@ -219,7 +227,11 @@ export function createRunRuntime({
       return;
     }
 
-    updateHUD();
+    hudUpdateTimer -= dt;
+    if (hudUpdateTimer <= 0) {
+      hudUpdateTimer = 0.1;
+      updateHUD();
+    }
   }
 
   function updateEvents(dt, zone) {
@@ -420,19 +432,29 @@ export function createRunRuntime({
   }
 
   function updateParticlesAndAudio(run, dt) {
-    const dustRate = run.grounded ? run.speed * 0.45 + (run.skidding ? run.speed * 1.6 : 0) : 0;
-    if (Math.random() < dt * dustRate) spawnDustMote(world);
-    if (run.skidding && Math.random() < dt * 14) spawnSkidMark(world);
+    const dustRate = run.grounded ? run.speed * 0.18 + (run.skidding ? run.speed * 0.65 : 0) : 0;
+    if (canSpawnParticle() && Math.random() < dt * dustRate) spawnDustMote(world);
+    if (canSpawnParticle(2) && run.skidding && Math.random() < dt * 5) spawnSkidMark(world);
 
-    if (run.grounded && run.speedFactor > 0.3 && Math.random() < dt * run.speedFactor * 10) {
+    if (
+      canSpawnParticle() &&
+      run.grounded &&
+      run.speedFactor > 0.3 &&
+      Math.random() < dt * run.speedFactor * 3
+    ) {
       spawnExhaustPuff(run);
     }
 
-    if (run.skidding && Math.abs(run.lateralVel) > 3 && Math.random() < dt * 8) {
+    if (
+      canSpawnParticle() &&
+      run.skidding &&
+      Math.abs(run.lateralVel) > 3 &&
+      Math.random() < dt * 3
+    ) {
       spawnSkidSparks(run);
     }
 
-    if (run.speedFactor > 0.85 && Math.random() < dt * 18) {
+    if (canSpawnParticle() && run.speedFactor > 0.85 && Math.random() < dt * 5) {
       spawnSpeedStreak(run);
     }
 
@@ -444,7 +466,7 @@ export function createRunRuntime({
   function spawnExhaustPuff(run) {
     const exhaustColor = run.speedFactor > 0.85 ? "#222" : "#444";
     const exhaust = new THREE.Mesh(
-      new THREE.SphereGeometry(0.06 + Math.random() * 0.08, 4, 4),
+      getCachedGeometry("exhaust_puff", () => new THREE.SphereGeometry(0.1, 4, 4)),
       new THREE.MeshBasicMaterial({
         color: exhaustColor,
         transparent: true,
@@ -452,6 +474,7 @@ export function createRunRuntime({
         depthWrite: false,
       }),
     );
+    exhaust.scale.setScalar(0.6 + Math.random() * 0.8);
 
     const side = Math.random() > 0.5 ? 1 : -1;
     exhaust.position.set(
@@ -476,7 +499,7 @@ export function createRunRuntime({
   function spawnSkidSparks(run) {
     for (let i = 0; i < 2 + Math.floor(Math.random() * 3); i += 1) {
       const spark = new THREE.Mesh(
-        new THREE.BoxGeometry(0.03, 0.03, 0.03),
+        getCachedGeometry("skid_spark", () => new THREE.BoxGeometry(0.03, 0.03, 0.03)),
         new THREE.MeshBasicMaterial({
           color: "#ffaa44",
           transparent: true,
@@ -502,13 +525,14 @@ export function createRunRuntime({
 
   function spawnSpeedStreak(run) {
     const streak = new THREE.Mesh(
-      new THREE.BoxGeometry(0.05, 0.05, 2 + Math.random() * 4),
+      getCachedGeometry("speed_streak", () => new THREE.BoxGeometry(0.05, 0.05, 1)),
       new THREE.MeshBasicMaterial({
         color: "#fff",
         transparent: true,
         opacity: 0.3,
       }),
     );
+    streak.scale.z = 2 + Math.random() * 4;
     streak.position.set(
       run.x + (Math.random() - 0.5) * 3,
       run.y + 0.5 + (Math.random() - 0.5) * 1.5,
@@ -562,9 +586,11 @@ export function createRunRuntime({
 
     const camSwayY = roadShake * 3 + run.suspensionY * 0.25;
     const camFovTarget = run.skidding ? 61.2 : 60;
-
-    world.camera.fov = THREE.MathUtils.lerp(world.camera.fov, camFovTarget, dt * 2);
-    world.camera.updateProjectionMatrix();
+    const nextFov = THREE.MathUtils.lerp(world.camera.fov, camFovTarget, dt * 2);
+    if (Math.abs(nextFov - world.camera.fov) > 0.01) {
+      world.camera.fov = nextFov;
+      world.camera.updateProjectionMatrix();
+    }
     world.camera.position.x += (run.camSwayXSmoothed - world.camera.position.x) * dt * 2.5;
     world.camera.position.y += (6.2 + run.y * 0.35 + camSwayY - world.camera.position.y) * dt * 2.5;
     world.camera.position.z += (-11.5 - world.camera.position.z) * dt * 2.5;
@@ -613,8 +639,8 @@ export function createRunRuntime({
 
     run.propTimer = (run.propTimer || 0) - dt;
     if (run.propTimer <= 0) {
-      spawnProp(zone);
-      run.propTimer = randomRange(0.18, 0.45);
+      if (world.propPool.length < getPerformanceLimits().props) spawnProp(zone);
+      run.propTimer = randomRange(0.5, 1.1);
     }
 
     run.obstacleTimer -= dt;
@@ -642,10 +668,18 @@ export function createRunRuntime({
       run.pickupTimer = randomRange(zone.pickups.spawnIntervalMin, zone.pickups.spawnIntervalMax);
     }
 
-    const debrisRate = world.eventEffects?.particleSpawn === "dust_storm" ? 14 : 8.5;
-    if (Math.random() < dt * debrisRate) {
+    const debrisRate = world.eventEffects?.particleSpawn === "dust_storm" ? 3 : 1.4;
+    if (canSpawnParticle() && Math.random() < dt * debrisRate) {
       spawnAtmosphericDebris(world, zone.id);
     }
+  }
+
+  function getPerformanceLimits() {
+    return PERFORMANCE_LIMITS[state.options.quality] ?? PERFORMANCE_LIMITS.medium;
+  }
+
+  function canSpawnParticle(extraSlots = 1) {
+    return world.particles.length + extraSlots <= getPerformanceLimits().particles;
   }
 
   function randomRange(min = 0, max = min) {
@@ -839,6 +873,7 @@ export function createRunRuntime({
 
   function spawnObstacleAt(kind, x, z) {
     if (!kind || kind === "none") return null;
+    if (world.obstaclePool.length >= getPerformanceLimits().obstacles) return null;
 
     const obstacle = createObstacleMesh(kind, world.assets.models);
     obstacle.castShadow = true;
@@ -913,6 +948,8 @@ export function createRunRuntime({
   }
 
   function spawnPickupAt(type, x, z, y = 1.2) {
+    if (world.pickupPool.length >= getPerformanceLimits().pickups) return null;
+
     const group = createPickupMesh(type, pickupCatalog, world.assets.models, y);
     group.position.set(x, y, z);
 
@@ -930,6 +967,7 @@ export function createRunRuntime({
 
     if (obstacle.userData.marker) {
       world.scene.remove(obstacle.userData.marker);
+      disposeObjectResources(obstacle.userData.marker);
       obstacle.userData.marker = null;
     }
 
@@ -984,8 +1022,10 @@ export function createRunRuntime({
   }
 
   function spawnEnemyProjectile(obstacle) {
+    if (world.projectilePool.length >= getPerformanceLimits().projectiles) return;
+
     const projectile = new THREE.Mesh(
-      new THREE.SphereGeometry(0.16, 10, 10),
+      getCachedGeometry("enemy_projectile", () => new THREE.SphereGeometry(0.16, 10, 10)),
       new THREE.MeshBasicMaterial({
         color: "#ffb36a",
         transparent: true,
@@ -1213,6 +1253,7 @@ export function createRunRuntime({
 
       if (debris.position.y < -5 || debris.userData.life <= 0) {
         world.scene.remove(debris);
+        disposeObjectResources(debris);
         return false;
       }
 
@@ -1231,6 +1272,7 @@ export function createRunRuntime({
 
       if (pickup.position.z < -12) {
         world.scene.remove(pickup);
+        disposeObjectResources(pickup);
         return false;
       }
 
@@ -1244,6 +1286,7 @@ export function createRunRuntime({
         createBurst(world, pickup.position, config.color, 12);
         beep(world, 320, 0.05, "triangle");
         world.scene.remove(pickup);
+        disposeObjectResources(pickup);
         return false;
       }
 
@@ -1252,6 +1295,13 @@ export function createRunRuntime({
   }
 
   function updateParticles(dt) {
+    const maxParticles = getPerformanceLimits().particles;
+    while (world.particles.length > maxParticles) {
+      const particle = world.particles.shift();
+      world.scene.remove(particle);
+      disposeObjectResources(particle);
+    }
+
     world.particles = world.particles.filter((particle) => {
       const data = particle.userData ?? {};
 
@@ -1283,6 +1333,7 @@ export function createRunRuntime({
 
       if (particle.material.opacity <= 0) {
         world.scene.remove(particle);
+        disposeObjectResources(particle);
         return false;
       }
 
@@ -1296,6 +1347,7 @@ export function createRunRuntime({
     const progress = data.age / data.lifetime;
     if (progress >= 1) {
       world.scene.remove(particle);
+      disposeObjectResources(particle);
       return false;
     }
 
@@ -1321,6 +1373,7 @@ export function createRunRuntime({
 
     if (particle.userData.life <= 0 || particle.position.z < -20) {
       world.scene.remove(particle);
+      disposeObjectResources(particle);
       return false;
     }
 
@@ -1351,11 +1404,13 @@ export function createRunRuntime({
         }
 
         world.scene.remove(projectile);
+        disposeObjectResources(projectile);
         return false;
       }
 
       if (projectile.position.z < -10 || projectile.material.opacity <= 0.1) {
         world.scene.remove(projectile);
+        disposeObjectResources(projectile);
         return false;
       }
 

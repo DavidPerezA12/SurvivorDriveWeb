@@ -1,6 +1,7 @@
 import * as THREE from "three";
 
 import { createProceduralModel } from "./proceduralAssets.js";
+import { markPersistentObjectResources } from "../renderer/resources.js";
 
 const modelManifest = {
   player: { path: "models/ferrari.glb", type: "gltf" },
@@ -86,7 +87,7 @@ async function loadModels(models, loaders) {
 
 function loadModel(name, info, loaders) {
   if (info.type === "procedural") {
-    return Promise.resolve(createProceduralModel(name));
+    return Promise.resolve(markPersistentObjectResources(createProceduralModel(name)));
   }
 
   const loader = info.type === "gltf" ? loaders.gltfLoader : loaders.fbxLoader;
@@ -97,6 +98,7 @@ function loadModel(name, info, loaders) {
       (result) => {
         const model = info.type === "gltf" ? result.scene : result;
         normalizeModel(model, name);
+        markPersistentObjectResources(model);
         resolve(model);
       },
       undefined,

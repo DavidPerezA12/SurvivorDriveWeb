@@ -1,6 +1,7 @@
 import { recycleRoadDetail } from "./meshes/roadDetails.js";
 import { recycleFarBackdrop, recycleBackdrop, recycleCityBackdrop } from "./meshes/backdrops.js";
 import { recycleEnvironmentObject } from "./environment.js";
+import { disposeObjectResources } from "../renderer/resources.js";
 
 export function moveWorld(world, dt, speedFactor) {
   const flow = world.run ? world.run.speed : 18;
@@ -121,6 +122,7 @@ function moveTransientPool(world, poolName, amount, minZ) {
 
     if (item.position.z < minZ) {
       world.scene.remove(item);
+      disposeObjectResources(item);
       pool.splice(i, 1);
     }
   }

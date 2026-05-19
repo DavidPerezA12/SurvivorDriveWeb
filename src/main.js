@@ -212,14 +212,15 @@ function setupUI() {
 }
 
 function applyOptions() {
-  const qualityRatio = { low: 1, medium: 1.4, high: 2 };
+  const qualityRatio = { low: 0.85, medium: 1, high: 1.25 };
   const resolutionRatio = {
     auto: qualityRatio[state.options.quality],
-    performance: 1,
-    balanced: 1.35,
-    quality: 2,
+    performance: 0.85,
+    balanced: 1,
+    quality: 1.25,
   };
-  const shadows = { low: false, medium: true, high: true };
+  const shadows = { low: false, medium: false, high: true };
+  const shadowMapSize = { low: 512, medium: 1024, high: 1536 };
 
   world.renderer.setPixelRatio(
     Math.min(
@@ -228,6 +229,12 @@ function applyOptions() {
     ),
   );
   world.renderer.shadowMap.enabled = shadows[state.options.quality];
+  if (world.lights.sun) {
+    const size = shadowMapSize[state.options.quality] ?? shadowMapSize.medium;
+    world.lights.sun.shadow.mapSize.set(size, size);
+    world.lights.sun.shadow.map?.dispose?.();
+    world.lights.sun.shadow.map = null;
+  }
   updateAudioVolume(state, world);
 }
 

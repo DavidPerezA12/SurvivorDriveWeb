@@ -1,8 +1,11 @@
 import * as THREE from "three";
 
-const GEOMETRY_CACHE = new Map();
+import { disposeObjectResources } from "../renderer/resources.js";
 
-function getCachedGeometry(key, factory) {
+const GEOMETRY_CACHE = new Map();
+const MATERIAL_CACHE = new Map();
+
+export function getCachedGeometry(key, factory) {
   if (!GEOMETRY_CACHE.has(key)) {
     const geometry = factory();
     geometry.userData.cached = true;
@@ -11,30 +14,23 @@ function getCachedGeometry(key, factory) {
   return GEOMETRY_CACHE.get(key);
 }
 
-function disposeMesh(mesh) {
-  if (!mesh) return;
-  mesh.traverse((child) => {
-    if (child.isMesh) {
-      if (child.geometry && !child.geometry.userData.cached) child.geometry.dispose();
-      if (child.material) {
-        const materials = Array.isArray(child.material) ? child.material : [child.material];
-        for (const mat of materials) {
-          if (mat && mat !== child.parent?.material) mat.dispose();
-        }
-      }
-    }
-  });
+export function getCachedMaterial(key, factory) {
+  if (!MATERIAL_CACHE.has(key)) {
+    const material = factory();
+    material.userData.cached = true;
+    MATERIAL_CACHE.set(key, material);
+  }
+  return MATERIAL_CACHE.get(key);
 }
 
 export function removePoolEntry(world, poolName, mesh) {
   if (mesh.userData.marker) {
     world.scene.remove(mesh.userData.marker);
-    if (mesh.userData.marker.geometry) mesh.userData.marker.geometry.dispose();
-    if (mesh.userData.marker.material) mesh.userData.marker.material.dispose();
+    disposeObjectResources(mesh.userData.marker);
     mesh.userData.marker = null;
   }
   world.scene.remove(mesh);
-  disposeMesh(mesh);
+  disposeObjectResources(mesh);
 }
 
 export function clearAllPools(world) {
@@ -68,12 +64,17 @@ export function spawnDustMote(world) {
   const geo = getCachedGeometry("dust", () => new THREE.SphereGeometry(0.06, 5, 5));
   const p = new THREE.Mesh(
     geo,
-    new THREE.MeshBasicMaterial({
-      color: col,
-      transparent: true,
-      opacity: 0.45,
-    }),
+    getCachedMaterial(
+      "dust",
+      () =>
+        new THREE.MeshBasicMaterial({
+          color: "#caa56f",
+          transparent: true,
+          opacity: 0.45,
+        }),
+    ).clone(),
   );
+  p.material.color.copy(col);
   p.position.set(
     run.x + (Math.random() - 0.5) * 0.55,
     0.1 + Math.random() * 0.08,
@@ -121,11 +122,8 @@ export function createBurst(world, position, color, count) {
       : getCachedGeometry("burst_small", () => new THREE.TetrahedronGeometry(0.1, 0));
     const particle = new THREE.Mesh(
       geo,
-      new THREE.MeshStandardMaterial({
+      new THREE.MeshBasicMaterial({
         color: isLarge ? "#333" : burstColor,
-        emissive: isLarge ? "#000" : burstColor,
-        emissiveIntensity: isLarge ? 0 : 2.0,
-        roughness: 0.8,
         transparent: true,
         opacity: 1.0,
       }),
@@ -229,13 +227,17 @@ export function spawnSkidMark(world) {
   const run = world.run;
   for (const dx of [-1.15, 1.15]) {
     const mark = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.35, 0.65),
-      new THREE.MeshBasicMaterial({
-        color: "#050404",
-        transparent: true,
-        opacity: 0.6,
-        depthWrite: false,
-      }),
+      getCachedGeometry("skid_mark", () => new THREE.PlaneGeometry(0.35, 0.65)),
+      getCachedMaterial(
+        "skid_mark",
+        () =>
+          new THREE.MeshBasicMaterial({
+            color: "#050404",
+            transparent: true,
+            opacity: 0.6,
+            depthWrite: false,
+          }),
+      ).clone(),
     );
     mark.rotation.x = -Math.PI / 2;
     mark.rotation.z = -run.lateralVel * 0.05;
@@ -264,17 +266,17 @@ export function spawnAtmosphericDebris(world, biomeId) {
     const isEmber = Math.random() > 0.4;
     const particle = new THREE.Mesh(
       getCachedGeometry("ash_ember", () => new THREE.SphereGeometry(0.09, 4, 4)),
-      new THREE.MeshBasicMaterial({
-        color: isEmber ? "#ff8822" : "#888888",
-        transparent: true,
-        opacity: isEmber ? 0.85 : 0.4,
-        depthWrite: false,
-      }),
+      getCachedMaterial(
+        isEmber ? "ember" : "ash",
+        () =>
+          new THREE.MeshBasicMaterial({
+            color: isEmber ? "#ff8822" : "#888888",
+            transparent: true,
+            opacity: isEmber ? 0.85 : 0.4,
+            depthWrite: false,
+          }),
+      ).clone(),
     );
-    if (isEmber) {
-      const glow = new THREE.PointLight("#ff6600", 0.6, 3);
-      particle.add(glow);
-    }
     group.add(particle);
     group.userData.type = isEmber ? "ember" : "ash";
   } else if (Math.random() > 0.5) {

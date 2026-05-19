@@ -4,11 +4,11 @@ export const defaultSaveData = {
   schemaVersion,
   options: {
     volume: 60,
-    quality: "medium",
+    quality: "low",
     fullscreen: false,
-    weatherFx: true,
+    weatherFx: false,
     dayNight: true,
-    resolutionScale: "auto",
+    resolutionScale: "performance",
   },
   loadout: {
     chassis: equipmentCatalog.chassis[0].id,
