@@ -1,6 +1,35 @@
 import * as THREE from "three";
 
+const PICKUP_CACHE = new Map();
+
 export function createPickupMesh(type, pickupCatalog, models = {}, y = 1.2) {
+  const cacheKey = `${type}:${y}`;
+
+  if (!PICKUP_CACHE.has(cacheKey)) {
+    const template = buildPickupMeshRaw(type, pickupCatalog, models, y);
+    template.traverse((node) => {
+      if (node.isMesh) {
+        if (node.geometry) node.geometry.userData.persistentResource = true;
+        const materials = Array.isArray(node.material) ? node.material : [node.material];
+        for (const mat of materials) {
+          if (mat) mat.userData.persistentResource = true;
+        }
+      }
+    });
+    PICKUP_CACHE.set(cacheKey, template);
+  }
+
+  const template = PICKUP_CACHE.get(cacheKey);
+  const clone = template.clone();
+  clone.userData = {
+    ...template.userData,
+    bobTimer: Math.random() * Math.PI * 2,
+    spinSpeed: 1.5 + Math.random() * 1.0,
+  };
+  return clone;
+}
+
+function buildPickupMeshRaw(type, pickupCatalog, models = {}, y = 1.2) {
   const config = pickupCatalog[type] || pickupCatalog.coin;
   const group = new THREE.Group();
   const mesh = createPickupCoreMesh(type, config, models);

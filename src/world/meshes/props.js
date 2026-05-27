@@ -1,13 +1,42 @@
 import * as THREE from "three";
 
-export function createPropMesh(kind, models = {}) {
-  const group = new THREE.Group();
+const PROP_CACHE = new Map();
 
+export function createPropMesh(kind, models = {}) {
   if (models[kind]) {
+    const group = new THREE.Group();
     const clone = models[kind].clone();
     group.add(clone);
     return group;
   }
+
+  const hasVariation = ["building", "tree", "ruin", "wreckage", "crater", "rock"].includes(kind);
+  const variationCount = hasVariation ? 3 : 1;
+  const variationIndex = Math.floor(Math.random() * variationCount);
+  const cacheKey = `${kind}_${variationIndex}`;
+
+  if (!PROP_CACHE.has(cacheKey)) {
+    const template = buildPropMeshRaw(kind, models);
+    template.traverse((node) => {
+      if (node.isMesh) {
+        if (node.geometry) node.geometry.userData.persistentResource = true;
+        const materials = Array.isArray(node.material) ? node.material : [node.material];
+        for (const mat of materials) {
+          if (mat) mat.userData.persistentResource = true;
+        }
+      }
+    });
+    PROP_CACHE.set(cacheKey, template);
+  }
+
+  const template = PROP_CACHE.get(cacheKey);
+  const clone = template.clone();
+  clone.userData = { ...template.userData };
+  return clone;
+}
+
+function buildPropMeshRaw(kind, models = {}) {
+  const group = new THREE.Group();
 
   if (kind === "building") {
     const baseColor = new THREE.Color().setHSL(

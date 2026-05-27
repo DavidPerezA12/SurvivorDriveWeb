@@ -15,7 +15,35 @@ import { createOilSpill, createMine, createPothole } from "./obstacles/hazards.j
 
 import { createRamp } from "./obstacles/features.js";
 
+const OBSTACLE_CACHE = new Map();
+
 export function createObstacleMesh(kind, models = {}) {
+  const hasVariation = ["rock", "debris", "wreck", "scrap"].includes(kind);
+  const variationCount = hasVariation ? 3 : 1;
+  const variationIndex = Math.floor(Math.random() * variationCount);
+  const cacheKey = `${kind}_${variationIndex}`;
+
+  if (!OBSTACLE_CACHE.has(cacheKey)) {
+    const template = buildObstacleMeshRaw(kind, models);
+    template.traverse((node) => {
+      if (node.isMesh) {
+        if (node.geometry) node.geometry.userData.persistentResource = true;
+        const materials = Array.isArray(node.material) ? node.material : [node.material];
+        for (const mat of materials) {
+          if (mat) mat.userData.persistentResource = true;
+        }
+      }
+    });
+    OBSTACLE_CACHE.set(cacheKey, template);
+  }
+
+  const template = OBSTACLE_CACHE.get(cacheKey);
+  const clone = template.clone();
+  clone.userData = { ...template.userData };
+  return clone;
+}
+
+function buildObstacleMeshRaw(kind, models = {}) {
   let rustMat;
   let darkMetal;
   let tireMat;

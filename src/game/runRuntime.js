@@ -45,6 +45,7 @@ import {
   spawnAtmosphericDebris,
   removePoolEntry as disposePoolEntry,
   getCachedGeometry,
+  getCachedMaterial,
 } from "./spawn.js";
 import { getZoneByDistance } from "./zones.js";
 import { weightedKey } from "./random.js";
@@ -60,9 +61,9 @@ import { disposeObjectResources } from "../renderer/resources.js";
 
 const CHUNK_Z_BASE = 52;
 const PERFORMANCE_LIMITS = {
-  low: { particles: 70, props: 18, obstacles: 28, pickups: 16, projectiles: 14 },
-  medium: { particles: 95, props: 24, obstacles: 34, pickups: 18, projectiles: 18 },
-  high: { particles: 130, props: 32, obstacles: 44, pickups: 24, projectiles: 24 },
+  low: { particles: 42, props: 12, obstacles: 22, pickups: 12, projectiles: 8 },
+  medium: { particles: 70, props: 18, obstacles: 28, pickups: 16, projectiles: 12 },
+  high: { particles: 95, props: 24, obstacles: 34, pickups: 20, projectiles: 16 },
 };
 
 export function createRunRuntime({
@@ -1024,26 +1025,72 @@ export function createRunRuntime({
   function spawnEnemyProjectile(obstacle) {
     if (world.projectilePool.length >= getPerformanceLimits().projectiles) return;
 
-    const projectile = new THREE.Mesh(
-      getCachedGeometry("enemy_projectile", () => new THREE.SphereGeometry(0.16, 10, 10)),
-      new THREE.MeshBasicMaterial({
-        color: "#ffb36a",
-        transparent: true,
-        opacity: 0.95,
-      }),
-    );
+    const zone = getZoneByDistance(world.run?.distance ?? 0);
+    const isAdvancedZone =
+      zone.id === "military" || zone.id === "refuge" || zone.id === "ghost_town";
+    const canShootMissile = obstacle.userData.isChaser || isAdvancedZone;
+    const shootHomingMissile = canShootMissile && Math.random() < 0.25;
+
+    let projectile;
     const gunY = obstacle.position.y + (obstacle.userData.projectileY ?? 1.05);
 
-    projectile.position.set(obstacle.position.x, gunY, obstacle.position.z - 0.8);
-    projectile.userData = {
-      speed: 24 + Math.random() * 8,
-      drift: (Math.random() - 0.5) * 1.4,
-      damage: 7 + Math.round(Math.random() * 3),
-    };
+    if (shootHomingMissile) {
+      const geo = getCachedGeometry("missile_cone", () =>
+        new THREE.ConeGeometry(0.18, 0.7, 8).rotateX(Math.PI / 2),
+      );
+      const mat = getCachedMaterial(
+        "missile_projectile",
+        () =>
+          new THREE.MeshBasicMaterial({
+            color: "#ff2200",
+            transparent: true,
+            opacity: 0.95,
+          }),
+      ).clone();
+
+      projectile = new THREE.Mesh(geo, mat);
+
+      projectile.position.set(obstacle.position.x, gunY, obstacle.position.z - 0.8);
+      projectile.userData = {
+        isHoming: true,
+        isMissile: true,
+        speed: 15 + Math.random() * 3,
+        drift: 0,
+        damage: 22,
+        xTrackSpeed: 3.2,
+      };
+
+      beep(world, 380, 0.08, "triangle");
+      setTimeout(() => {
+        if (world.run && world.route !== "gameover") {
+          beep(world, 380, 0.08, "triangle");
+        }
+      }, 100);
+      flashMessage("Alerta: misil aproximandose");
+    } else {
+      const geo = getCachedGeometry("enemy_projectile", () => new THREE.SphereGeometry(0.16, 8, 8));
+      const mat = getCachedMaterial(
+        "enemy_projectile",
+        () =>
+          new THREE.MeshBasicMaterial({
+            color: "#ffb36a",
+            transparent: true,
+            opacity: 0.95,
+          }),
+      ).clone();
+
+      projectile = new THREE.Mesh(geo, mat);
+      projectile.position.set(obstacle.position.x, gunY, obstacle.position.z - 0.8);
+      projectile.userData = {
+        speed: 24 + Math.random() * 8,
+        drift: (Math.random() - 0.5) * 1.4,
+        damage: 7 + Math.round(Math.random() * 3),
+      };
+    }
 
     world.scene.add(projectile);
     world.projectilePool.push(projectile);
-    createBurst(world, projectile.position, "#ffb36a", 3);
+    createBurst(world, projectile.position, shootHomingMissile ? "#ff2200" : "#ffb36a", 3);
   }
 
   function updateEntities(dt) {
@@ -1109,10 +1156,51 @@ export function createRunRuntime({
     obstacle.rotation.z = -laneDiff * 0.05;
     obstacle.userData.shotCooldown -= dt;
 
+    const zone = getZoneByDistance(run.distance);
+
     if (Math.random() < dt * 0.8) {
-      const zone = getZoneByDistance(run.distance);
       obstacle.userData.laneTarget = Math.random() > 0.3 ? run.x : randomLane(zone.lanes);
     }
+
+    // 1. Obstacle Evasion (Evasión de obstáculos estáticos)
+    for (const obs of world.obstaclePool) {
+      if (obs !== obstacle && !obs.userData.isEnemy && !obs.userData.isChaser) {
+        const distZ = obs.position.z - obstacle.position.z;
+        if (distZ > 0 && distZ < 15) {
+          const distX = obs.position.x - obstacle.position.x;
+          if (Math.abs(distX) < 1.6) {
+            const laneHalfWidth = (zone.roadWidth ?? 14) * 0.5 - 1.5;
+            const steerDir = distX >= 0 ? -1 : 1;
+            obstacle.userData.laneTarget = THREE.MathUtils.clamp(
+              obstacle.position.x + steerDir * 2.8,
+              -laneHalfWidth,
+              laneHalfWidth,
+            );
+          }
+        }
+      }
+    }
+
+    // 2. Raider-to-Raider Separation (Separación de enemigos)
+    for (const other of world.obstaclePool) {
+      if (other !== obstacle && (other.userData.isEnemy || other.userData.isChaser)) {
+        const distZ = Math.abs(other.position.z - obstacle.position.z);
+        const distX = other.position.x - obstacle.position.x;
+        if (distZ < 4 && Math.abs(distX) < 1.8) {
+          const pushDir = distX >= 0 ? -1 : 1;
+          obstacle.position.x += pushDir * 1.8 * dt;
+          obstacle.userData.laneTarget += pushDir * 0.5 * dt;
+        }
+      }
+    }
+
+    // Clamp lane target to road boundaries to be extra safe
+    const maxRoadX = (zone.roadWidth ?? 14) * 0.5 - 1.0;
+    obstacle.userData.laneTarget = THREE.MathUtils.clamp(
+      obstacle.userData.laneTarget,
+      -maxRoadX,
+      maxRoadX,
+    );
 
     obstacle.position.x += (obstacle.userData.laneTarget - obstacle.position.x) * dt * 2.5;
 
@@ -1380,10 +1468,63 @@ export function createRunRuntime({
     return true;
   }
 
+  function spawnMissileSmokeParticle(position) {
+    if (world.particles.length + 1 > getPerformanceLimits().particles) return;
+
+    const isFire = Math.random() > 0.45;
+    const geo = getCachedGeometry("missile_smoke", () => new THREE.SphereGeometry(0.12, 5, 5));
+    const mat = getCachedMaterial(
+      isFire ? "missile_smoke_fire" : "missile_smoke_ember",
+      () =>
+        new THREE.MeshBasicMaterial({
+          color: isFire ? "#ff4400" : "#ffbb00",
+          transparent: true,
+          opacity: 0.85,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+        }),
+    ).clone();
+
+    const particle = new THREE.Mesh(geo, mat);
+    particle.position.copy(position);
+    particle.position.x += (Math.random() - 0.5) * 0.15;
+    particle.position.y += (Math.random() - 0.5) * 0.15;
+    particle.position.z += (Math.random() - 0.5) * 0.15;
+
+    particle.userData = {
+      velocity: new THREE.Vector3(
+        (Math.random() - 0.5) * 0.6,
+        0.2 + Math.random() * 0.5,
+        12 + Math.random() * 6,
+      ),
+      fade: 3.8 + Math.random() * 1.2,
+    };
+
+    world.scene.add(particle);
+    world.particles.push(particle);
+  }
+
   function updateProjectiles(run, dt) {
     world.projectilePool = world.projectilePool.filter((projectile) => {
-      projectile.position.z -= dt * projectile.userData.speed;
-      projectile.position.x += projectile.userData.drift * dt;
+      const data = projectile.userData;
+
+      // 1. Homing Steering Logic
+      if (data.isHoming) {
+        const diffX = run.x - projectile.position.x;
+        const steerX = Math.sign(diffX) * Math.min(Math.abs(diffX), data.xTrackSpeed * dt);
+        projectile.position.x += steerX;
+
+        // Tilt the missile cone along Y and Z for awesome aesthetics
+        projectile.rotation.y = steerX * 3.5;
+        projectile.rotation.z = steerX * -2.0;
+
+        if (Math.random() < dt * 9) {
+          spawnMissileSmokeParticle(projectile.position);
+        }
+      }
+
+      projectile.position.z -= dt * data.speed;
+      projectile.position.x += data.drift * dt;
       projectile.material.opacity -= dt * 0.12;
 
       if (
@@ -1396,11 +1537,26 @@ export function createRunRuntime({
         )(run)
       ) {
         if (run.invulnerable <= 0) {
-          run.health -= projectile.userData.damage;
+          run.health -= data.damage;
           run.invulnerable = 0.45;
-          flashMessage(`Disparo recibido: -${projectile.userData.damage} hull`);
-          triggerShake(0.7);
-          beep(world, 94, 0.05, "square");
+          flashMessage(
+            data.isMissile
+              ? `Impacto de misil: -${data.damage} hull`
+              : `Disparo recibido: -${data.damage} hull`,
+          );
+          triggerShake(data.isMissile ? 1.8 : 0.7);
+          beep(
+            world,
+            data.isMissile ? 65 : 94,
+            data.isMissile ? 0.22 : 0.05,
+            data.isMissile ? "sawtooth" : "square",
+          );
+        }
+
+        // Explode the missile visually!
+        if (data.isMissile) {
+          createBurst(world, projectile.position, "#ff2200", 12);
+          createShockwave(world, projectile.position, "#ff4400", 0.3, 1.8, 0.18);
         }
 
         world.scene.remove(projectile);

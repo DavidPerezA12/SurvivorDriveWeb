@@ -162,7 +162,7 @@ test("hydrateSave merges defaults with partial data", () => {
   const partial = { options: { volume: 30 } };
   const hydrated = hydrateSave(partial);
   assert.equal(hydrated.options.volume, 30);
-  assert.equal(hydrated.options.quality, "medium");
+  assert.equal(hydrated.options.quality, "low");
   assert.equal(hydrated.unlocks.city, false);
 });
 
