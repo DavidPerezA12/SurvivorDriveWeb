@@ -1,140 +1,100 @@
 # Survivor Drive Web
 
-Reboot de **Survivor Drive** para navegador con **Vite + Three.js**.
+**Survivor Drive Web** es un videojuego arcade de conduccion survival para navegador. El proyecto se plantea como un reboot desde cero: una carrera infinita postapocaliptica con vehiculos armados, recursos limitados, objetos 3D con funcion jugable clara y progresion entre runs.
 
-Es un juego arcade web independiente: menú, equipamiento, opciones persistentes, HUD, conducción en wasteland, obstáculos, pickups, salto, habilidad de fuego, pausa y game over.
+La referencia de tono es algo tipo **The Last Driver**: avance automatico, camara arcade, esquivar amenazas, disparar, recoger recursos, morir, mejorar el coche y volver a intentarlo. La meta no es clonar ese juego, sino construir una version mas legible, mas coherente y mejor controlada.
 
-## Estado actual
+## Vision
 
-La versión actual es un **vertical slice jugable**:
+Un endless runner 3D de conduccion survival: **Mad Max arcade para navegador**.
 
-- Flujo completo de pantallas: menú, opciones, equipamiento, partida, pausa y game over
-- Escena 3D en tiempo real con Three.js
-- Coche configurable con diferencias básicas de estadísticas
-- Carretera infinita, desierto y ruta urbana (bioma ciudad) con transición según progresión
-- Obstáculos con mejor lectura visual
-- Pickups de monedas, salto, fuego, munición, combustible y reparación
-- Controles de teclado y botones en pantalla
-- Opciones persistidas en `localStorage`
-- Ciclo día-noche y clima dinámico configurable
-- Supervivencia con combustible y munición
-- Raiders con fuego entrante y presión creciente de amenaza
-- Audio procedural básico
+El jugador conduce por una carretera infinita generada por tramos. El coche avanza siempre. La habilidad esta en leer la carretera, esquivar obstaculos, chocar lo minimo posible, recoger gasolina, municion y chatarra, disparar cuando conviene, reparar el vehiculo y mejorar entre runs.
 
-## Stack
+Todo objeto 3D debe tener sentido. Si aparece en pantalla, debe afectar al juego: bloquear, amenazar, recompensar, proteger, romper, explotar, indicar ruta, crear riesgo o modificar una decision.
 
-- `Vite`
-- `Three.js`
-- JavaScript modular sencillo, sin framework UI
+## Gameplay Principal
 
-## Arranque
+- Carrera infinita con avance automatico.
+- Control lateral del vehiculo, salto y disparo.
+- Esquivar obstaculos y elegir rutas seguras.
+- Gestionar gasolina, vida, municion y reparaciones.
+- Recoger chatarra para mejoras permanentes.
+- Destruir amenazas con armas montadas en el coche.
+- Sobrevivir cada vez mas distancia.
+- Morir, mejorar el vehiculo y repetir.
 
-Instala dependencias:
+## Recursos
 
-```bash
-npm install
-```
+| Recurso | Funcion |
+| --- | --- |
+| Gasolina | Mantiene viva la run. Si se agota, el coche se detiene y termina la partida. |
+| Vida / blindaje | Absorbe choques, disparos y explosiones. |
+| Municion | Permite limpiar zombies, raiders, barriles o bloqueos destructibles. |
+| Chatarra | Moneda de mejora entre runs. |
+| Repuestos | Reparacion parcial durante la carrera. |
 
-Lanza el proyecto en desarrollo:
+## Amenazas y Objetos 3D
 
-```bash
-npm run dev
-```
+Los objetos deben ser reconocibles, fisicos y utiles para el gameplay:
 
-Abre la URL que imprima Vite en consola. Por defecto suele ser:
+- Coches abandonados: obstaculos duros, crean slalom.
+- Barricadas: bloquean carriles, algunas son destructibles.
+- Barriles explosivos: riesgo si se choca, oportunidad si se disparan.
+- Minas: obligan a cambiar de trayectoria.
+- Grietas y agujeros: requieren salto o desvio.
+- Zombies/mutantes: se pueden atropellar o disparar.
+- Raiders: vehiculos enemigos que presionan al jugador.
+- Gasolineras destruidas: puntos de riesgo/recompensa.
+- Puestos militares: zonas densas con torretas, minas y barricadas.
+- Chatarra visible: pickups colocados para tentar rutas peligrosas.
 
-- **Desarrollo** (`npm run dev`): `http://127.0.0.1:5173/` (puerto 5173)
-- **Preview del build** (`npm run preview`): `http://127.0.0.1:4173/` (puerto 4173)
+## Inspiracion: The Last Driver
 
-Si el puerto está ocupado, Vite elige otro; confía en la línea `Local:` de la terminal.
+Segun resenas de la epoca, **The Last Driver** era un juego iOS de supervivencia arcade donde el coche avanzaba automaticamente y el jugador controlaba izquierda/derecha, salto y disparo. El objetivo era llegar lo mas lejos posible mientras se esquivaban coches, zombies, rocas y otros peligros, recogiendo recursos y monedas para mejorar el coche.
 
-## Importante
+Elementos que queremos conservar:
 
-No abras [`index.html`](./index.html) directamente con `file://` para desarrollo.
+- Runs cortas y repetibles.
+- Avance automatico.
+- Controles simples.
+- Acciones claras: esquivar, saltar, disparar.
+- Progresion por mejoras.
+- Fantasia postapocaliptica directa.
 
-Este proyecto usa Vite para servir módulos ES. Si abres el archivo raíz en local, puedes encontrarte una pantalla en blanco.
+Elementos que queremos evitar:
 
-Si quieres abrir una versión compilada fuera del servidor de desarrollo:
+- Grind excesivo.
+- Controles torpes.
+- Objetos aleatorios sin coherencia.
+- Demasiado ruido visual.
+- Falta de identidad propia.
 
-```bash
-npm run build
-```
+Referencias consultadas:
 
-Y luego usa:
+- [AppSpy - The Last Driver Review](https://www.appspy.com/the-last-driver/review/)
+- [Capsule Computers - The Last Driver Review](https://www.capsulecomputers.com.au/2012/08/the-last-driver-review/)
+- [AppAdvice - You're The Last Driver, How Will You Stay Alive?](https://appadvice.com/appnn/2012/08/quickadvice-thelastdriver)
 
-- [`dist/index.html`](./dist/index.html)
+## Documentacion
 
-## Controles
+- [Diseno de juego](docs/GAME_DESIGN.md)
+- [Especificacion tecnica](docs/TECH_SPEC.md)
+- [Plan de MVP](docs/MVP_PLAN.md)
+- [Direccion de objetos 3D](docs/OBJECTS_3D.md)
 
-- `A` / `D`: mover a izquierda y derecha
-- `←` / `→`: mover a izquierda y derecha
-- `Space`: usar salto si tienes cargas
-- `F`: usar habilidad de fuego si tienes cargas
-- `Esc`: pausar o reanudar
+## Tecnologia Propuesta
 
-El pulso de fuego consume:
+La implementacion final se definira antes del wipe completo del codigo, pero la base recomendada es:
 
-- `1` carga de fuego
-- `2` de munición
+- **Vite** como entorno de desarrollo.
+- **TypeScript** para hacer la logica mas mantenible.
+- **Three.js** para render 3D.
+- **Rapier** opcional para fisicas/colisiones si el prototipo lo necesita.
+- **Web Audio API** para motor, disparos, impactos y ambiente.
+- **localStorage** para progreso inicial.
+- Tests para logica pura: recursos, damage model, generacion, mejoras y economia.
 
-También hay botones en pantalla para:
+## Estado del Reboot
 
-- `Jump`
-- `Fire`
-- `Pause`
+Este repositorio contiene codigo anterior que se considera descartable. La siguiente fase es definir bien el juego y la tecnologia, guardar esta documentacion como referencia, y despues limpiar la implementacion vieja para construir un MVP nuevo.
 
-## Scripts
-
-- `npm run dev`: servidor de desarrollo (Vite, puerto por defecto 5173)
-- `npm run build`: build de producción
-- `npm run preview`: vista previa del `dist/` (Vite, puerto por defecto 4173)
-- `npm run test`: pruebas con el runner de `node --test`
-
-## Estructura
-
-```text
-SurvivorDriveWeb/
-├── src/
-│   ├── main.js           # entrada: Three.js, bucle, integración UI ↔ simulación
-│   ├── style.css         # layout HUD/UI y estilos globales
-│   └── game/
-│       ├── assets.js     # carga y normalización de modelos runtime
-│       ├── content.js    # catálogos, manifiestos de pickups, perfiles de entorno
-│       ├── input.js      # teclado / toque y estado de entrada
-│       ├── loop.js       # requestAnimationFrame, dt clamp y render
-│       ├── persistence.js# SaveData, localStorage, desbloqueos
-│       ├── routes.js     # rutas de pantalla y bioma
-│       ├── runRuntime.js # runtime de run: spawns, eventos, cámara y colisiones
-│       ├── simulation.js # estado de carrera, colisiones, encuentros
-│       ├── ui.js         # montaje del DOM (menús, HUD, canvas)
-│       ├── uiController.js# eventos DOM y sincronización UI ↔ juego
-│       └── input.test.js # tests del módulo de entrada
-├── index.html
-├── public/models/        # modelos servidos por Vite
-└── vite.config.js        # base `./` y chunk manual de three
-```
-
-## Arquitectura
-
-- `src/main.js` conserva el bootstrap, estado global, UI, opciones e inyección de dependencias.
-- `src/game/loop.js` contiene el bucle de render.
-- `src/game/runRuntime.js` contiene spawns, chunks, eventos, cámara, colisiones y finalización de run.
-- `src/game/simulation.js` contiene lógica serializable y testeable de la run.
-- `src/game/ui.js` monta el DOM base; `src/game/uiController.js` conecta eventos y flujo.
-- `src/game/assets.js` centraliza modelos, loaders y normalización de materiales.
-- `src/game/content.js` mantiene datos de balance y catálogos.
-
-## Limitaciones actuales
-
-Todavía faltan, por ejemplo:
-
-- IA o combate más profundo
-- Terreno procedural más rico
-- Física de coche más avanzada
-- Modelos 3D finales y pipeline de assets
-- Exploración abierta y capa narrativa real
-
-## Autoría
-
-Proyecto original: David Perez  
-Reboot web actual: nueva implementación sobre la misma idea base.
