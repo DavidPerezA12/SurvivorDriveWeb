@@ -1,116 +1,115 @@
-# Direccion de Objetos 3D
+# 3D Object Direction
 
-## Regla Principal
+## Main Rule
 
-Todo objeto 3D visible debe tener una lectura inmediata y una funcion jugable. Si un objeto no cambia ninguna decision del jugador, debe ser secundario, lateral o eliminarse.
+Every visible 3D object must be readable and have a gameplay function. If an object does not change a player decision, it should be secondary, placed off the main path, or removed.
 
-## Categorias
+## Categories
 
-## Obstaculos Duros
+## Hard Obstacles
 
-Bloquean el paso y danan el coche.
+These block the path and damage the car.
 
-| Objeto | Funcion | Lectura visual |
+| Object | Function | Visual Read |
 | --- | --- | --- |
-| Coche abandonado | Bloqueo de carril | Silueta grande, oxidada, horizontal |
-| Barricada metalica | Bloqueo frontal | Aspas, pinchos o placas |
-| Roca grande | Obstaculo pesado | Volumen irregular oscuro |
-| Camion volcado | Bloqueo ancho | Masa larga, ocupa varios carriles |
+| Abandoned car | Lane blocker | Large, rusty, horizontal silhouette |
+| Metal barricade | Frontal blocker | Crossbars, spikes, or metal plates |
+| Large rock | Heavy obstacle | Dark irregular volume |
+| Overturned truck | Wide blocker | Long mass occupying several lanes |
 
-## Obstaculos Blandos
+## Soft Obstacles
 
-Molestan o danan poco, pero encadenados son peligrosos.
+These cause low damage or small disruptions, but become dangerous when chained.
 
-| Objeto | Funcion | Lectura visual |
+| Object | Function | Visual Read |
 | --- | --- | --- |
-| Conos rotos | Guia de ruta / peligro leve | Naranja apagado |
-| Escombros | Dano bajo / ralentizacion | Fragmentos bajos |
-| Caja rota | Obstaculo pequeno | Cubo astillado |
+| Broken cones | Route guide / light hazard | Muted orange |
+| Debris | Low damage / slowdown | Low fragments |
+| Broken crate | Small obstacle | Splintered cube |
 
-## Riesgos Especiales
+## Special Hazards
 
-Amenazas que exigen reaccion concreta.
+Threats that require a specific response.
 
-| Objeto | Funcion | Respuesta esperada |
+| Object | Function | Expected Response |
 | --- | --- | --- |
-| Mina | Explosion al pasar encima | Esquivar o disparar |
-| Barril explosivo | Explosion por choque/disparo | Disparar a distancia |
-| Grieta | Caida o dano fuerte | Saltar o cambiar de carril |
-| Fuego | Dano sostenido | Evitar |
+| Mine | Explodes when driven over | Dodge or shoot |
+| Explosive barrel | Explodes on crash/shot | Shoot from distance |
+| Crack / hole | Fall or heavy damage | Jump or change lane |
+| Fire | Sustained damage | Avoid |
 
 ## Pickups
 
-Los pickups deben verse distintos entre si incluso a velocidad alta.
+Pickups must look distinct from each other at speed.
 
-| Pickup | Funcion | Forma recomendada |
+| Pickup | Function | Recommended Shape |
 | --- | --- | --- |
-| Gasolina | Recupera fuel | Bidon rojo |
-| Municion | Recupera balas | Caja verde/militar |
-| Chatarra | Moneda | Piezas metalicas brillantes |
-| Repuestos | Repara vida | Caja de herramientas |
+| Fuel | Restores fuel | Red fuel can |
+| Ammo | Restores bullets | Green/military box |
+| Scrap | Currency | Shiny metal parts |
+| Spare parts | Repairs health | Toolbox |
 
-## Enemigos
+## Enemies
 
-| Enemigo | Funcion | MVP |
+| Enemy | Function | MVP |
 | --- | --- | --- |
-| Zombie | Amenaza blanda / puntos | Si |
-| Zombie grande | Bloqueo vivo | Opcional |
-| Raider ligero | Presion lateral/detras | Despues del MVP |
-| Torreta | Zona de peligro fija | Despues del MVP |
+| Zombie | Soft threat / points | Yes |
+| Heavy zombie | Living blocker | Optional |
+| Light raider | Side/rear pressure | After MVP |
+| Turret | Fixed danger zone | After MVP |
 
-## Props de Ambiente
+## Environmental Props
 
-Los props de ambiente deben vivir fuera del area de decision principal o comunicar contexto sin tapar amenazas.
+Environmental props should stay outside the main decision area or communicate context without hiding threats.
 
-Permitidos:
+Allowed:
 
-- Farolas caidas en laterales.
-- Senales rotas.
-- Vallas.
-- Restos de edificios.
-- Gasolineras al lateral.
-- Torres militares.
-- Humo lejano.
+- Fallen streetlights on the sides.
+- Broken signs.
+- Fences.
+- Building remains.
+- Roadside gas stations.
+- Military towers.
+- Distant smoke.
 
-Evitar:
+Avoid:
 
-- Props en medio de la carretera que no colisionan.
-- Objetos pequenos con silueta parecida a pickups.
-- Demasiados colores compitiendo con recursos.
-- Decoracion que tape el siguiente obstaculo.
+- Non-colliding props in the middle of the road.
+- Small objects with silhouettes similar to pickups.
+- Too many colors competing with resources.
+- Decoration that hides upcoming obstacles.
 
-## Colores Funcionales
+## Functional Colors
 
-- Rojo: gasolina, fuego, explosion, peligro inmediato.
-- Verde militar: municion.
-- Amarillo/naranja: advertencia, barriles, conos.
-- Azul/cian: reparacion o energia, si se usa.
-- Gris/negro: chatarra, coches quemados, metal.
+- Red: fuel, fire, explosion, immediate danger.
+- Military green: ammo.
+- Yellow/orange: warning, barrels, cones.
+- Blue/cyan: repair or energy, if used.
+- Gray/black: scrap, burned cars, metal.
 
-## Escala y Silueta
+## Scale and Silhouette
 
-Reglas:
+Rules:
 
-- Los obstaculos que matan deben parecer mas peligrosos que los que solo molestan.
-- Los pickups deben tener brillo o movimiento sutil.
-- Los enemigos deben moverse o animarse para separarse de props.
-- La carretera debe conservar contraste suficiente para leer carriles.
+- Obstacles that can kill the run must look more dangerous than objects that only inconvenience the player.
+- Pickups should have subtle shine or movement.
+- Enemies should move or animate to separate them from props.
+- The road must keep enough contrast for lanes to remain readable.
 
-## Primer Set de Assets
+## First Asset Set
 
-Para el MVP basta con:
+For the MVP, this is enough:
 
-- Coche jugador.
-- Coche abandonado.
-- Barricada.
-- Barril explosivo.
-- Mina.
-- Grieta/agujero.
-- Bidon de gasolina.
-- Caja de municion.
-- Chatarra.
-- Repuestos.
-- Zombie simple.
-- Segmentos de carretera.
-- Props laterales: senal, farola, valla, restos.
-
+- Player car.
+- Abandoned car.
+- Barricade.
+- Explosive barrel.
+- Mine.
+- Crack/hole.
+- Fuel can.
+- Ammo box.
+- Scrap.
+- Spare parts.
+- Simple zombie.
+- Road segments.
+- Roadside props: sign, streetlight, fence, debris.

@@ -1,131 +1,130 @@
-# Plan de MVP
+# MVP Plan
 
-## Objetivo del MVP
+## MVP Goal
 
-Crear una version jugable pequena, estable y divertida de **Survivor Drive Web**. Debe demostrar el loop principal: conducir, esquivar, recoger, disparar, recibir dano, terminar la run y mejorar.
+Create a small, stable playable version of **Survivor Drive Web**. It must prove the core loop: drive, dodge, collect, shoot, take damage, end the run, and upgrade.
 
-## No Objetivos
+## Non-Goals
 
-Para evitar volver a inflar el proyecto, el MVP no incluira:
+To avoid inflating the project again, the MVP will not include:
 
-- Seis zonas completas.
-- Historia larga.
-- IA compleja.
-- Fisica avanzada.
-- Multijugador.
-- Inventario profundo.
-- Modelos 3D finales.
-- Sistema grande de eventos.
-- Tienda compleja.
+- Six complete zones.
+- Long story.
+- Complex enemy behavior.
+- Advanced physics.
+- Multiplayer.
+- Deep inventory.
+- Final 3D models.
+- Large event system.
+- Complex shop.
 
-## Fase 1: Base Jugable
+## Phase 1: Playable Foundation
 
-Entregable: una carretera infinita funcional.
+Deliverable: a functional generated road.
 
-- Coche visible y controlable.
-- Camara fija arcade.
-- Movimiento lateral.
-- Avance automatico.
-- Loop de juego estable.
-- Reinicio de partida.
-- Distancia recorrida.
+- Visible, controllable car.
+- Fixed arcade camera.
+- Lateral movement.
+- Automatic forward movement.
+- Stable game loop.
+- Run restart.
+- Distance traveled.
 
-Criterio de exito: conducir 60 segundos se siente estable y legible.
+Success criterion: driving for 60 seconds feels stable and readable.
 
-## Fase 2: Obstaculos y Pickups
+## Phase 2: Obstacles and Pickups
 
-Entregable: la carretera ya exige decisiones.
+Deliverable: the road now asks the player to make decisions.
 
-- Coches abandonados.
-- Barricadas.
-- Barriles explosivos.
-- Gasolina.
-- Municion.
-- Chatarra.
-- Repuestos.
-- Colisiones simples.
+- Abandoned cars.
+- Barricades.
+- Explosive barrels.
+- Fuel.
+- Ammo.
+- Scrap.
+- Spare parts.
+- Simple collisions.
 
-Criterio de exito: el jugador entiende que debe esquivar unas cosas y recoger otras sin leer instrucciones.
+Success criterion: the player understands what to dodge and what to collect without reading instructions.
 
-## Fase 3: Recursos y Game Over
+## Phase 3: Resources and Game Over
 
-Entregable: la run tiene presion survival.
+Deliverable: the run has survival pressure.
 
-- Vida/blindaje.
-- Gasolina que baja con el tiempo.
-- Municion limitada.
-- Dano por choque.
-- Game over por vida o gasolina.
-- Pantalla de resumen.
+- Health/armor.
+- Fuel decreasing over time.
+- Limited ammo.
+- Crash damage.
+- Game over by health or fuel.
+- Summary screen.
 
-Criterio de exito: una mala ruta puede matar, una buena ruta alarga la run.
+Success criterion: a bad route can kill the run; a good route extends it.
 
-## Fase 4: Disparo
+## Phase 4: Shooting
 
-Entregable: disparar cambia la ruta.
+Deliverable: shooting changes the route.
 
-- Arma montada frontal.
-- Proyectiles.
-- Barriles destructibles.
-- Barricadas ligeras destructibles.
-- Zombies o enemigos simples.
-- Feedback visual/audio de impacto.
+- Front-mounted weapon.
+- Projectiles.
+- Destructible barrels.
+- Destructible light barricades.
+- Zombies or simple enemies.
+- Visual/audio impact feedback.
 
-Criterio de exito: disparar tiene valor tactico y no se siente como adorno.
+Success criterion: shooting has tactical value and does not feel decorative.
 
-## Fase 5: Garaje y Mejoras
+## Phase 5: Garage and Upgrades
 
-Entregable: morir no es el final.
+Deliverable: each failed run still produces progress.
 
-- Chatarra persistente.
-- Mejor distancia.
-- Mejoras basicas:
-  - Blindaje.
-  - Deposito.
-  - Neumaticos.
-  - Arma.
-- Pantalla de garaje.
+- Persistent scrap.
+- Best distance.
+- Basic upgrades:
+  - Armor.
+  - Fuel tank.
+  - Tires.
+  - Weapon.
+- Garage screen.
 
-Criterio de exito: despues de morir, el jugador tiene una razon clara para otra run.
+Success criterion: after dying, the player has a clear reason to start another run.
 
-## Fase 6: Primera Zona Pulida
+## Phase 6: First Polished Zone
 
-Entregable: vertical slice presentable.
+Deliverable: a presentable vertical slice.
 
-- Autopista rota como primera zona.
-- Objetos 3D con silueta clara.
-- Iluminacion y materiales coherentes.
-- HUD limpio.
-- Audio basico.
-- Controles desktop y tactiles.
-- Build estable.
+- Broken Highway as the first zone.
+- 3D objects with clear silhouettes.
+- Coherent lighting and materials.
+- Clean HUD.
+- Basic audio.
+- Desktop and touch controls.
+- Stable build.
 
-Criterio de exito: se puede ensenar el juego sin explicar que es un prototipo roto.
+Success criterion: the game can be shown without needing to explain away broken basics.
 
-## Orden de Implementacion Recomendado
+## Recommended Implementation Order
 
-1. Wipe controlado del codigo viejo.
-2. Proyecto Vite + TypeScript + Three.js limpio.
-3. Loop/camara/coche.
-4. Road chunks.
-5. Entidades y colisiones.
-6. Recursos.
-7. Disparo.
-8. UI/HUD.
-9. Guardado y garaje.
-10. Pulido visual/audio.
+1. Start from the clean documentation-only repo.
+2. Create a clean Vite + TypeScript + Three.js project.
+3. Build loop/camera/car.
+4. Add road chunks.
+5. Add entities and collisions.
+6. Add resources.
+7. Add shooting.
+8. Add UI/HUD.
+9. Add save data and garage.
+10. Polish visuals/audio.
 
-## Primera Demo Objetivo
+## First Demo Target
 
-Duracion esperada de run: 2-4 minutos.
+Expected run duration: 2-4 minutes.
 
-Contenido:
+Content:
 
-- Una zona.
-- Cinco tipos de obstaculo.
-- Cuatro pickups.
-- Un arma.
-- Tres mejoras.
+- One zone.
+- Five obstacle types.
+- Four pickups.
+- One weapon.
+- Three upgrades.
 - Game over.
-- Reinicio.
-
+- Restart.

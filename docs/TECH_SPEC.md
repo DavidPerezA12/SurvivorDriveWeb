@@ -1,32 +1,32 @@
-# Especificacion Tecnica
+# Technical Specification
 
-## Objetivo
+## Goal
 
-Construir una base tecnica limpia para un endless runner 3D de conduccion survival en navegador. La prioridad es que el MVP sea estable, legible y facil de ampliar, no recrear de golpe todos los sistemas del prototipo anterior.
+Build a clean technical foundation for a browser-based 3D survival driving game. The priority is for the MVP to be stable, readable, and easy to extend.
 
-## Stack Recomendado
+## Recommended Stack
 
-- **Vite**: servidor de desarrollo y build.
-- **TypeScript**: tipos para estado de juego, entidades, recursos y configuracion.
-- **Three.js**: escena 3D, camara, luces, materiales y meshes.
-- **Rapier** opcional: fisicas y colisiones si el control manual con AABB no es suficiente.
-- **Web Audio API**: audio procedural y efectos.
-- **localStorage**: guardado inicial de progreso.
-- **Vitest** o `node --test`: tests de logica pura.
+- **Vite**: development server and build tool.
+- **TypeScript**: typed game state, entities, resources, and configuration.
+- **Three.js**: 3D scene, camera, lights, materials, and meshes.
+- **Rapier** optional: physics and collisions if simple collision code is not enough.
+- **Web Audio API**: procedural audio and effects.
+- **localStorage**: initial progression saving.
+- **Vitest** or `node --test`: pure logic tests.
 
-## Principio Tecnico
+## Technical Principle
 
-La logica del juego no debe depender directamente de Three.js. El render muestra el estado; no lo define.
+Game logic should not depend directly on Three.js. The renderer displays state; it should not define the rules.
 
-Separacion deseada:
+Desired separation:
 
-- Simulacion: datos, reglas, recursos, colisiones abstractas.
-- Runtime: loop, input, spawn, actualizacion por frame.
-- Render: Three.js, meshes, materiales, camara.
-- UI: HUD, menus y pantallas.
-- Persistencia: progreso, opciones y desbloqueos.
+- Simulation: data, rules, resources, abstract collisions.
+- Runtime: loop, input, spawning, per-frame updates.
+- Render: Three.js, meshes, materials, camera.
+- UI: HUD, menus, and screens.
+- Persistence: progression, settings, and unlocks.
 
-## Estructura Propuesta
+## Proposed Structure
 
 ```text
 src/
@@ -72,9 +72,9 @@ src/
     └── storage.ts
 ```
 
-## Modelo de Run
+## Run Model
 
-La run debe poder representarse como datos serializables:
+The run should be representable as serializable data:
 
 ```ts
 type RunState = {
@@ -90,106 +90,105 @@ type RunState = {
 };
 ```
 
-## Coordenadas
+## Coordinates
 
-Recomendacion:
+Recommendation:
 
-- `Z`: direccion de avance.
-- `X`: lateral.
-- `Y`: altura.
-- El coche permanece cerca del origen.
-- La carretera y objetos se mueven hacia el jugador, usando treadmill pattern.
+- `Z`: forward direction.
+- `X`: lateral direction.
+- `Y`: height.
+- The car stays close to the origin.
+- The road and objects move toward the player using a treadmill pattern.
 
-Esto reduce problemas de precision y facilita una carrera infinita.
+This reduces precision issues and keeps long runs manageable.
 
-## Sistema de Carretera
+## Road System
 
-La carretera se genera por chunks. Cada chunk define:
+The road is generated from chunks. Each chunk defines:
 
-- Longitud.
-- Ancho.
-- Zona.
-- Carriles o posiciones laterales utiles.
-- Slots de obstaculos.
-- Slots de pickups.
-- Slots de enemigos/eventos.
-- Props visuales no bloqueantes, si no comprometen legibilidad.
+- Length.
+- Width.
+- Zone.
+- Lanes or useful lateral positions.
+- Obstacle slots.
+- Pickup slots.
+- Enemy/event slots.
+- Non-blocking visual props, as long as they do not hurt readability.
 
-Los chunks deben tener reglas, no ser ruido aleatorio puro.
+Chunks should follow rules. Pure random placement will make the road feel unfair.
 
-## Colisiones
+## Collisions
 
-Para el MVP:
+For the MVP:
 
-- Usar colisiones simples con cajas/circulos en 2.5D.
-- Cada entidad tiene `position`, `radius` o `bounds`.
-- Three.js solo renderiza.
+- Use simple box/circle collisions in 2.5D.
+- Each entity has `position`, `radius`, or `bounds`.
+- Three.js only renders.
 
-Rapier se evaluara si:
+Rapier should only be added if:
 
-- El salto necesita fisica mas convincente.
-- Los choques deben empujar objetos.
-- Los enemigos requieren comportamiento fisico real.
+- Jumping needs more convincing physics.
+- Crashes should push objects.
+- Enemies require real physical behavior.
 
-## Render 3D
+## 3D Rendering
 
-Prioridades:
+Priorities:
 
-- Meshes simples pero reconocibles.
-- Materiales consistentes por zona.
-- Buena silueta del coche.
-- Objetos importantes con color/forma diferenciada.
-- Nada de assets que parezcan placeholder si afectan al gameplay.
+- Simple but recognizable meshes.
+- Consistent materials per zone.
+- Strong silhouette for the player's car.
+- Important objects differentiated by color and shape.
+- No placeholder-looking assets for objects that affect gameplay.
 
-Para el primer MVP se pueden usar modelos generados con primitivas, siempre que tengan sentido visual: coche, barril, mina, barricada, bidon, caja de municion, chatarra.
+For the first MVP, primitive-based models are acceptable if they read clearly: car, barrel, mine, barricade, fuel can, ammo box, scrap.
 
 ## UI
 
-HUD minimo:
+Minimum HUD:
 
-- Distancia.
-- Vida/blindaje.
-- Gasolina.
-- Municion.
-- Chatarra recogida.
-- Estado de arma o cooldown, si aplica.
+- Distance.
+- Health/armor.
+- Fuel.
+- Ammo.
+- Scrap collected.
+- Weapon state or cooldown, if applicable.
 
-Pantallas:
+Screens:
 
-- Inicio.
-- Pausa.
+- Start.
+- Pause.
 - Game over.
-- Garaje/mejoras.
+- Garage/upgrades.
 
-## Guardado
+## Save Data
 
-Guardar en `localStorage`:
+Store in `localStorage`:
 
-- Chatarra total.
-- Mejoras compradas.
-- Mejor distancia.
-- Opciones basicas.
-- Vehiculos desbloqueados.
+- Total scrap.
+- Purchased upgrades.
+- Best distance.
+- Basic settings.
+- Unlocked vehicles.
 
 ## Tests
 
-Tests prioritarios:
+Priority tests:
 
-- Consumo de gasolina.
-- Calculo de dano.
-- Recoleccion de pickups.
-- Compra de mejoras.
-- Seleccion de zona por distancia.
-- Generacion de chunks valida.
-- Fin de run por vida o gasolina.
+- Fuel consumption.
+- Damage calculation.
+- Pickup collection.
+- Upgrade purchase.
+- Zone selection by distance.
+- Valid chunk generation.
+- Run ending by health or fuel.
 
-## Criterio para el Wipe
+## Rebuild Checklist
 
-Antes de borrar la implementacion anterior:
+Before rebuilding the implementation:
 
-1. README y documentacion aprobados.
-2. Stack decidido.
-3. MVP definido.
-4. Lista de sistemas descartados.
-5. Rama o copia de seguridad creada, si se quiere conservar historial de trabajo.
-
+1. README and documentation approved.
+2. Stack decided.
+3. MVP defined.
+4. Discarded systems listed.
+5. Backup branch or copy created if preserving historical work is desired.

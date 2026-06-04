@@ -1,166 +1,165 @@
-# Diseno de Juego
+# Game Design
 
 ## High Concept
 
-**Survivor Drive Web** es una carrera infinita survival en 3D. El jugador conduce el ultimo vehiculo funcional por carreteras destruidas, recoge recursos, evita amenazas, dispara a enemigos y usa la chatarra obtenida para mejorar el coche entre intentos.
+**Survivor Drive Web** is a 3D survival driving game built around repeatable runs. The player drives through broken roads, collects resources, avoids threats, shoots when needed, and uses earned scrap to upgrade the car between attempts.
 
-La experiencia debe sentirse inmediata: arrancar, conducir, sobrevivir, morir, mejorar y volver a salir.
+The experience should be quick to understand: start a run, drive as far as possible, lose the run, upgrade, and try again.
 
-## Pilares
+## Pillars
 
-1. **Carrera infinita legible**
-   La carretera se genera continuamente por tramos. El jugador siempre entiende que viene delante y tiene tiempo justo para reaccionar.
+1. **Readable Road**
+   The road is generated from chunks. The player should understand what is coming and have enough time to make a decision.
 
-2. **Objetos 3D con sentido**
-   Cada obstaculo, pickup, enemigo o decorado importante debe tener una funcion jugable. No se llenara la escena con props que confundan la lectura.
+2. **Useful 3D Objects**
+   Every important obstacle, pickup, enemy, or environmental prop needs a gameplay role. The scene should not be filled with props that make the road harder to read.
 
-3. **Survival arcade**
-   No es simulador. El control debe ser rapido, satisfactorio y permisivo, pero los choques y malas decisiones deben tener coste.
+3. **Arcade Survival**
+   This is not a driving simulator. Control should be fast and forgiving, but crashes and bad decisions must still have a cost.
 
-4. **Recursos bajo presion**
-   Gasolina, vida, municion y reparacion obligan a tomar decisiones. La ruta mas segura no siempre tiene los recursos que necesitas.
+4. **Resources Under Pressure**
+   Fuel, health, ammo, and repairs create tradeoffs. The safest route should not always contain the resources the player needs.
 
-5. **Mejora entre runs**
-   Cada partida debe dejar progreso: chatarra, desbloqueos, mejoras y conocimiento del mundo.
+5. **Progress Between Runs**
+   Runs should leave progress through scrap, unlocks, upgrades, and better knowledge of road patterns.
 
-## Camara y Control
+## Camera and Controls
 
-- Camara 3D fija detras y por encima del coche.
-- El coche avanza automaticamente.
-- El jugador controla:
-  - Movimiento lateral.
-  - Salto.
-  - Disparo.
-  - Uso de reparacion, si se decide incluir como accion manual.
-- En desktop:
-  - `A/D` o flechas para moverse.
-  - `Space` para saltar.
-  - `F` o click para disparar.
-- En movil:
-  - Zonas tactiles grandes para izquierda/derecha.
-  - Botones tactiles para saltar y disparar.
+- Fixed 3D camera behind and above the car.
+- The car moves forward automatically.
+- The player controls:
+  - Lateral movement.
+  - Jump.
+  - Shoot.
+  - Repair use, if manual repair is added later.
+- Desktop:
+  - `A/D` or arrow keys to move.
+  - `Space` to jump.
+  - `F` or click to shoot.
+- Mobile:
+  - Large touch zones for left/right movement.
+  - Touch buttons for jump and shoot.
 
-## Loop de Run
+## Run Loop
 
-1. El jugador elige coche/equipamiento.
-2. Empieza la carrera.
-3. La velocidad aumenta gradualmente.
-4. Aparecen obstaculos, pickups y enemigos.
-5. El jugador recoge gasolina, municion, chatarra y repuestos.
-6. La run termina por destruccion, falta de gasolina o error critico.
-7. Se muestran distancia, chatarra, bajas y recompensas.
-8. El jugador mejora el coche.
-9. Nueva run.
+1. The player chooses a car/loadout.
+2. The run starts.
+3. Speed increases gradually.
+4. Obstacles, pickups, and enemies appear.
+5. The player collects fuel, ammo, scrap, and spare parts.
+6. The run ends through destruction, lack of fuel, or a major mistake.
+7. Distance, scrap, kills, and rewards are shown.
+8. The player upgrades the car.
+9. A new run begins.
 
-## Recursos
+## Resources
 
-### Gasolina
+### Fuel
 
-La gasolina es el temporizador organico de la run. Baja con el tiempo y puede bajar mas al acelerar, recibir danos o atravesar terrenos dificiles.
+Fuel is the timer of the run. It decreases over time and may drain faster when boosting, taking damage, or crossing difficult terrain.
 
-### Vida / Blindaje
+### Health / Armor
 
-Representa la resistencia del coche. Los choques leves quitan poco; impactos frontales, minas y explosiones deben doler.
+Represents vehicle durability. Light bumps should be survivable; frontal impacts, mines, and explosions should hurt.
 
-### Municion
+### Ammo
 
-Recurso tactico. No se debe disparar sin pensar. Sirve para abrir caminos, destruir amenazas o matar enemigos peligrosos.
+A tactical resource. Ammo is used to open routes, destroy threats, or kill dangerous enemies.
 
-### Chatarra
+### Scrap
 
-Moneda persistente. Se obtiene recogiendo piezas, destruyendo enemigos y alcanzando hitos de distancia.
+Persistent currency. It is earned by collecting parts, destroying enemies, and reaching distance milestones.
 
-### Repuestos
+### Spare Parts
 
-Pickups raros de reparacion parcial. Deben estar colocados en rutas con riesgo.
+Rare partial repair pickups. They should be placed on risky routes.
 
-## Acciones Principales
+## Core Actions
 
-### Esquivar
+### Dodge
 
-La accion mas importante. La carretera debe generar patrones de lectura: carriles bloqueados, huecos, curvas suaves, obstaculos encadenados.
+The most important action. The road should create readable patterns: blocked lanes, gaps, soft curves, and chained obstacles.
 
-### Chocar lo menos posible
+### Minimize Crashes
 
-No todos los choques terminan la run. El juego debe permitir golpes pequenos, pero castigar impactos repetidos.
+Not every crash should end the run. The game should allow small hits while punishing repeated or severe impacts.
 
-### Recoger
+### Collect
 
-Los pickups no deben estar puestos al azar. Deben tentar al jugador a asumir riesgo.
+Pickups should not be placed randomly. They should tempt the player into taking risks.
 
-### Disparar
+### Shoot
 
-El disparo debe sentirse util, no decorativo. Debe poder:
+Shooting should have clear uses:
 
-- Destruir barriles.
-- Eliminar enemigos.
-- Romper barricadas ligeras.
-- Activar explosiones en cadena.
+- Destroy barrels.
+- Eliminate enemies.
+- Break light barricades.
+- Trigger chain explosions.
 
-### Reparar
+### Repair
 
-La reparacion puede ser automatica al recoger repuestos o manual si queremos anadir decision. Para el MVP, mejor reparacion automatica.
+Repair can happen automatically when collecting spare parts or manually if the game needs an extra decision layer. For the MVP, automatic repair is simpler.
 
-### Mejorar
+### Upgrade
 
-Las mejoras deben cambiar sensiblemente la forma de jugar.
+Upgrades should change how the car plays.
 
-## Mejoras
+## Upgrades
 
-- Blindaje: mas vida y menor dano por choque.
-- Neumaticos: mejor respuesta lateral.
-- Motor: mayor velocidad maxima y recuperacion.
-- Deposito: mas gasolina inicial.
-- Arma: mas dano, cadencia o capacidad.
-- Suspension: mas saltos, salto mas largo o menor dano al caer.
-- Iman de chatarra: facilita recoger recursos cercanos.
+- Armor: more health and reduced crash damage.
+- Tires: better lateral response.
+- Engine: higher top speed and recovery.
+- Fuel tank: more starting fuel.
+- Weapon: more damage, fire rate, or capacity.
+- Suspension: more jumps, longer jumps, or lower landing damage.
+- Scrap magnet: makes nearby resources easier to collect.
 
-## Zonas
+## Zones
 
-Las zonas son cambios visuales y mecanicos. No deben ser solo fondos.
+Zones should affect both visuals and gameplay.
 
-1. **Salida / Garaje**
-   Tutorial rapido, pocos peligros, pickups basicos.
+1. **Outpost / Garage**
+   Quick tutorial, few hazards, basic pickups.
 
-2. **Autopista rota**
-   Coches abandonados, conos, barricadas simples, carriles claros.
+2. **Broken Highway**
+   Abandoned cars, cones, simple barricades, clear lanes.
 
-3. **Pueblo fantasma**
-   Calles mas estrechas, escombros, gasolineras, emboscadas.
+3. **Ghost Town**
+   Narrower streets, debris, gas stations, ambushes.
 
-4. **Desierto**
-   Alta velocidad, tormentas, rocas, visibilidad variable.
+4. **Desert**
+   Higher speed, storms, rocks, variable visibility.
 
-5. **Zona militar**
-   Minas, torretas, barricadas duras, vehiculos raider.
+5. **Military Zone**
+   Mines, turrets, heavy barricades, raider vehicles.
 
-6. **Perimetro del refugio**
-   Tramo intenso con mezcla de amenazas. En modo infinito, esta zona puede convertirse en dificultad maxima repetible.
+6. **Refuge Perimeter**
+   Intense late-run stretch with mixed threats. In endless mode, this can become the repeatable high-difficulty zone.
 
-## Enemigos
+## Enemies
 
-Para el MVP no hacen falta muchos enemigos. Mejor pocos, claros y bien hechos.
+The MVP does not need many enemies. Fewer, clearer enemies are preferred.
 
-- Zombie caminante: amenaza blanda, puede ser atropellado.
-- Zombie grande: ocupa mas espacio, quita mas vida.
-- Raider ligero: coche enemigo que aparece por detras o laterales.
-- Torreta: amenaza fija en laterales o checkpoints.
+- Walker zombie: soft threat, can be run over.
+- Heavy zombie: takes more space, deals more damage.
+- Light raider: enemy car that appears from behind or the sides.
+- Turret: fixed danger area on roadsides or checkpoints.
 
-## Tono Visual
+## Visual Tone
 
-- Low-poly o estilizado, no realista.
-- Carretera clara y contrastada.
-- Siluetas reconocibles.
-- Colores por zona, sin perder legibilidad.
-- Efectos atmosfericos moderados.
-- HUD limpio: distancia, gasolina, vida, municion, chatarra.
+- Low-poly or stylized, not realistic.
+- Clear, high-contrast road.
+- Recognizable silhouettes.
+- Zone-based color palettes without losing readability.
+- Moderate atmospheric effects.
+- Clean HUD: distance, fuel, health, ammo, scrap.
 
-## Criterio de Calidad
+## Quality Target
 
-Una buena run debe provocar frases como:
+A good run should make the player think:
 
-- "Puedo llegar un poco mas lejos."
-- "Si hubiera guardado municion, pasaba esa barricada."
-- "Ese pickup valia el riesgo."
-- "Necesito mejorar neumaticos."
-
+- "I can get a little farther."
+- "If I had saved ammo, I would have cleared that barricade."
+- "That pickup was worth the risk."
+- "I need better tires."
