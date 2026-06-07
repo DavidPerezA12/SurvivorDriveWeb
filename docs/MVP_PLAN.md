@@ -39,7 +39,6 @@ Deliverable: the road now asks the player to make decisions.
 - Abandoned cars.
 - Barricades.
 - Explosive barrels.
-- Fuel.
 - Ammo.
 - Scrap.
 - Spare parts.
@@ -52,10 +51,9 @@ Success criterion: the player understands what to dodge and what to collect with
 Deliverable: the run has survival pressure.
 
 - Health/armor.
-- Fuel decreasing over time.
 - Limited ammo.
 - Crash damage.
-- Game over by health or fuel.
+- Game over by health.
 - Summary screen.
 
 Success criterion: a bad route can kill the run; a good route extends it.
@@ -81,7 +79,7 @@ Deliverable: each failed run still produces progress.
 - Best distance.
 - Basic upgrades:
   - Armor.
-  - Fuel tank.
+  - Chassis.
   - Tires.
   - Weapon.
 - Garage screen.

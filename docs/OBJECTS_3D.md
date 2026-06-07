@@ -44,10 +44,9 @@ Pickups must look distinct from each other at speed.
 
 | Pickup | Function | Recommended Shape |
 | --- | --- | --- |
-| Fuel | Restores fuel | Red fuel can |
 | Ammo | Restores bullets | Green/military box |
 | Scrap | Currency | Shiny metal parts |
-| Spare parts | Repairs health | Toolbox |
+| Spare parts | Repairs health and restores one jump | Toolbox |
 
 ## Enemies
 
@@ -81,7 +80,7 @@ Avoid:
 
 ## Functional Colors
 
-- Red: fuel, fire, explosion, immediate danger.
+- Red: fire, explosion, immediate danger.
 - Military green: ammo.
 - Yellow/orange: warning, barrels, cones.
 - Blue/cyan: repair or energy, if used.
@@ -106,7 +105,6 @@ For the MVP, this is enough:
 - Explosive barrel.
 - Mine.
 - Crack/hole.
-- Fuel can.
 - Ammo box.
 - Scrap.
 - Spare parts.

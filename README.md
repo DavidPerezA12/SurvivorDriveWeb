@@ -20,9 +20,9 @@ The project is currently in pre-production. This repository contains the plannin
 1. Start a run with the current vehicle.
 2. Drive through generated road chunks.
 3. Avoid obstacles and damaged road sections.
-4. Collect fuel, ammo, scrap, and spare parts.
+4. Collect ammo, scrap, and spare parts.
 5. Shoot only when it helps clear a route or remove a threat.
-6. Lose the run when the car is destroyed or runs out of fuel.
+6. Lose the run when the car is destroyed.
 7. Spend scrap on upgrades.
 8. Start again and try to get farther.
 
@@ -30,11 +30,10 @@ The project is currently in pre-production. This repository contains the plannin
 
 | Resource | Purpose |
 | --- | --- |
-| Fuel | Keeps the run going. Running out ends the run. |
 | Health / armor | Absorbs crashes, shots, and explosions. |
 | Ammo | Lets the player destroy selected hazards and enemies. |
 | Scrap | Persistent currency used for upgrades. |
-| Spare parts | Repairs part of the car during a run. |
+| Spare parts | Repairs part of the car and restores one jump charge during a run. |
 
 ## Objects
 
@@ -46,7 +45,7 @@ Objects should be easy to identify and should affect decisions:
 - Mines punish careless routing.
 - Cracks and holes require jumping or changing lanes.
 - Zombies and raiders create pressure.
-- Fuel cans, ammo boxes, scrap, and spare parts pull the player toward risky lines.
+- Ammo boxes, scrap, and spare parts pull the player toward risky lines.
 
 ## Documentation
 
@@ -67,3 +66,31 @@ The implementation stack is not locked yet. The current recommendation is:
 - Optional **Rapier** only if simple collision code is not enough
 
 The first build should prioritize a playable road, good controls, clear object readability, and a small upgrade loop.
+
+## Development
+
+```bash
+npm install
+npm run dev
+```
+
+Quality checks:
+
+```bash
+npm run typecheck
+npm test
+npm run build
+```
+
+## Current Prototype
+
+The first implementation contains a playable browser prototype:
+
+- Three.js arcade driving scene.
+- Auto-forward movement with desktop, click-to-shoot, and touch input.
+- Generated road chunks with obstacles and pickups.
+- Armor, ammo, scrap, shooting, limited jumps, run end, and restart.
+- Local `localStorage` progression with a small garage upgrade loop.
+- Vitest coverage for core resource, damage, and upgrade rules.
+
+The code keeps game rules separate from rendering so simulation behavior can be tested and extended without needing WebGL.

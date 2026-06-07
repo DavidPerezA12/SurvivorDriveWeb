@@ -18,7 +18,7 @@ The experience should be quick to understand: start a run, drive as far as possi
    This is not a driving simulator. Control should be fast and forgiving, but crashes and bad decisions must still have a cost.
 
 4. **Resources Under Pressure**
-   Fuel, health, ammo, and repairs create tradeoffs. The safest route should not always contain the resources the player needs.
+   Health, ammo, jump charges, and repairs create tradeoffs. The safest route should not always contain the resources the player needs.
 
 5. **Progress Between Runs**
    Runs should leave progress through scrap, unlocks, upgrades, and better knowledge of road patterns.
@@ -46,21 +46,21 @@ The experience should be quick to understand: start a run, drive as far as possi
 2. The run starts.
 3. Speed increases gradually.
 4. Obstacles, pickups, and enemies appear.
-5. The player collects fuel, ammo, scrap, and spare parts.
-6. The run ends through destruction, lack of fuel, or a major mistake.
+5. The player collects ammo, scrap, and spare parts.
+6. The run ends through destruction or a major mistake.
 7. Distance, scrap, kills, and rewards are shown.
 8. The player upgrades the car.
 9. A new run begins.
 
 ## Resources
 
-### Fuel
-
-Fuel is the timer of the run. It decreases over time and may drain faster when boosting, taking damage, or crossing difficult terrain.
-
 ### Health / Armor
 
-Represents vehicle durability. Light bumps should be survivable; frontal impacts, mines, and explosions should hurt.
+Represents vehicle durability. Light bumps should be survivable; frontal impacts, mines, and explosions should hurt. Reaching zero ends the run.
+
+### Jump Charges
+
+Jumps are limited tactical resources for cracks, mines, and danger zones. Spare parts can restore a jump charge.
 
 ### Ammo
 
@@ -110,7 +110,7 @@ Upgrades should change how the car plays.
 - Armor: more health and reduced crash damage.
 - Tires: better lateral response.
 - Engine: higher top speed and recovery.
-- Fuel tank: more starting fuel.
+- Chassis: more total health.
 - Weapon: more damage, fire rate, or capacity.
 - Suspension: more jumps, longer jumps, or lower landing damage.
 - Scrap magnet: makes nearby resources easier to collect.
@@ -153,7 +153,7 @@ The MVP does not need many enemies. Fewer, clearer enemies are preferred.
 - Recognizable silhouettes.
 - Zone-based color palettes without losing readability.
 - Moderate atmospheric effects.
-- Clean HUD: distance, fuel, health, ammo, scrap.
+- Clean HUD: distance, health, ammo, jumps, scrap.
 
 ## Quality Target
 

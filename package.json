@@ -1,0 +1,26 @@
+{
+  "name": "survivor-drive-web",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "description": "Browser-based 3D survival driving game prototype built with Vite, TypeScript, and Three.js.",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@vitejs/plugin-basic-ssl": "^2.1.0",
+    "three": "^0.181.2"
+  },
+  "devDependencies": {
+    "@types/three": "^0.184.1",
+    "playwright": "^1.60.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.6",
+    "vitest": "^4.0.15"
+  }
+}

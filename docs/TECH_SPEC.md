@@ -82,9 +82,10 @@ type RunState = {
   distanceM: number;
   speedMps: number;
   health: number;
-  fuel: number;
   ammo: number;
   scrap: number;
+  jumpCharges: number;
+  maxJumpCharges: number;
   score: number;
   zoneId: string;
 };
@@ -141,7 +142,7 @@ Priorities:
 - Important objects differentiated by color and shape.
 - No placeholder-looking assets for objects that affect gameplay.
 
-For the first MVP, primitive-based models are acceptable if they read clearly: car, barrel, mine, barricade, fuel can, ammo box, scrap.
+For the first MVP, primitive-based models are acceptable if they read clearly: car, barrel, mine, barricade, ammo box, scrap, spare parts.
 
 ## UI
 
@@ -149,7 +150,6 @@ Minimum HUD:
 
 - Distance.
 - Health/armor.
-- Fuel.
 - Ammo.
 - Scrap collected.
 - Weapon state or cooldown, if applicable.
@@ -175,13 +175,12 @@ Store in `localStorage`:
 
 Priority tests:
 
-- Fuel consumption.
 - Damage calculation.
 - Pickup collection.
 - Upgrade purchase.
 - Zone selection by distance.
 - Valid chunk generation.
-- Run ending by health or fuel.
+- Run ending by health.
 
 ## Rebuild Checklist
 
