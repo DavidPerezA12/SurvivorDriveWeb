@@ -1,268 +1,314 @@
 :root {
-  color: #f3eee2;
-  background: #12171d;
-  font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  --panel: rgba(16, 20, 24, 0.84);
-  --panel-strong: rgba(21, 26, 31, 0.94);
-  --line: rgba(255, 255, 255, 0.15);
-  --accent: #d95a3e;
-  --accent-bright: #f4b34f;
-  --muted: #b8b1a3;
-}
-
-* {
-  box-sizing: border-box;
+  color-scheme: dark;
 }
 
 html,
-body,
-#app {
+body {
+  margin: 0;
   width: 100%;
   height: 100%;
-  margin: 0;
   overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  background: #0a0a0f;
+}
+
+canvas {
+  display: block;
+  touch-action: none;
 }
 
 button {
-  border: 0;
-  border-radius: 6px;
-  color: #fff8ea;
-  cursor: pointer;
   font: inherit;
-  font-size: 0.88rem;
-  font-weight: 800;
 }
 
-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.46;
-}
-
-.game-shell,
-#scene,
-#ui {
+.sdw-touch-controls {
   position: fixed;
   inset: 0;
+  display: none;
+  pointer-events: none;
+  z-index: 18;
 }
 
-#scene canvas {
-  display: block;
-  height: 100%;
+.sdw-touch-button {
+  appearance: none;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border: 1px solid rgba(232, 154, 58, 0.7);
+  border-radius: 50%;
+  color: #ead9be;
+  background: rgba(13, 11, 9, 0.58);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 6px 20px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  font: 900 24px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  pointer-events: auto;
   touch-action: none;
-  width: 100%;
+  backdrop-filter: blur(3px);
 }
 
-#ui {
-  pointer-events: none;
+.sdw-touch-button.is-held {
+  color: #120c08;
+  background: rgba(232, 154, 58, 0.9);
+  transform: translateY(1px) scale(0.96);
 }
 
-#ui button {
-  pointer-events: auto;
-}
-
-.hud-top {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(5, minmax(92px, 1fr));
-  left: 50%;
-  max-width: 840px;
-  padding: 16px;
+.sdw-touch-pause {
   position: absolute;
-  top: 0;
-  transform: translateX(-50%);
-  width: min(100%, 920px);
-}
-
-.hud-top > div {
-  background: rgba(10, 13, 16, 0.64);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 9px 11px;
-}
-
-.hud-top span,
-.garage-stats dt {
-  color: var(--muted);
-  display: block;
-  font-size: 0.7rem;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.hud-top strong,
-.garage-stats dd {
-  display: block;
-  font-size: 1.05rem;
-  margin-top: 2px;
-}
-
-.meter {
-  background: rgba(255, 255, 255, 0.12);
-  border-radius: 999px;
-  height: 4px;
-  margin-top: 7px;
-  overflow: hidden;
-}
-
-.meter i {
-  background: linear-gradient(90deg, #d95a3e, #f4b34f);
-  display: block;
-  height: 100%;
-  transition: width 140ms linear;
-}
-
-.armor-meter i {
-  background: linear-gradient(90deg, #3f98a8, #b7d8d6);
-}
-
-.panel {
-  background: linear-gradient(180deg, var(--panel-strong), var(--panel));
-  border: 1px solid var(--line);
+  top: calc(env(safe-area-inset-top) + 12px);
+  left: calc(env(safe-area-inset-left) + 12px);
+  width: 44px;
+  height: 44px;
   border-radius: 8px;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
-  pointer-events: auto;
+  font-size: 15px;
+  letter-spacing: 1px;
 }
 
-.garage,
-.overlay {
-  display: grid;
-  gap: 18px;
-  left: 50%;
-  max-width: 760px;
-  padding: 28px;
+.sdw-touch-dpad {
   position: absolute;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: min(calc(100% - 32px), 760px);
-}
-
-.garage h1,
-.overlay h1 {
-  font-size: clamp(2rem, 5vw, 4.8rem);
-  line-height: 0.95;
-  margin: 0;
-}
-
-.garage p,
-.overlay p {
-  color: var(--muted);
-  line-height: 1.55;
-  margin: 8px 0 0;
-  max-width: 54ch;
-}
-
-.garage-stats {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin: 0;
-}
-
-.garage-stats > div,
-.upgrade {
-  background: rgba(255, 255, 255, 0.055);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-}
-
-.garage-stats > div {
-  padding: 12px;
-}
-
-.garage-stats dd {
-  margin: 4px 0 0;
-}
-
-.upgrade-grid {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.upgrade {
-  align-items: end;
-  display: grid;
-  gap: 12px;
-  grid-template-columns: 1fr auto;
-  min-height: 112px;
-  padding: 14px;
-}
-
-.upgrade h2 {
-  font-size: 1rem;
-  margin: 0;
-}
-
-.upgrade p {
-  font-size: 0.86rem;
-  margin-top: 6px;
-}
-
-.upgrade button {
-  background: rgba(244, 179, 79, 0.22);
-  border: 1px solid rgba(244, 179, 79, 0.44);
-  min-width: 86px;
-  padding: 10px 12px;
-}
-
-.primary {
-  background: linear-gradient(180deg, #ee7449, #b7392c);
-  box-shadow: 0 14px 34px rgba(216, 78, 50, 0.28);
-  min-height: 48px;
-  padding: 13px 18px;
-}
-
-.touch-help {
-  bottom: 16px;
-  color: rgba(255, 248, 234, 0.72);
+  left: calc(env(safe-area-inset-left) + 16px);
+  bottom: calc(env(safe-area-inset-bottom) + 18px);
   display: flex;
-  font-size: 0.78rem;
-  font-weight: 800;
-  gap: 14px;
-  justify-content: center;
-  left: 0;
-  pointer-events: none;
-  position: absolute;
-  right: 0;
-  text-transform: uppercase;
+  gap: 12px;
 }
 
-@media (max-width: 720px) {
-  .hud-top {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    padding: 10px;
+.sdw-touch-actions {
+  position: absolute;
+  right: calc(env(safe-area-inset-right) + 16px);
+  bottom: calc(env(safe-area-inset-bottom) + 18px);
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.sdw-touch-jump {
+  color: #78c8ff;
+  border-color: rgba(79, 182, 255, 0.78);
+}
+
+.sdw-touch-fire {
+  width: 76px;
+  height: 76px;
+  color: #f0bc55;
+  border-color: rgba(224, 169, 58, 0.82);
+  font-size: 23px;
+}
+
+.sdw-menu,
+.sdw-menu__pane,
+.sdw-garage,
+.sdw-garage * {
+  box-sizing: border-box;
+}
+
+.sdw-garage__tabs,
+.sdw-garage__rack {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(232, 154, 58, 0.65) rgba(12, 10, 8, 0.5);
+}
+
+@media (hover: none), (pointer: coarse), (max-width: 760px) {
+  .sdw-touch-controls[data-active='true'] {
+    display: block;
   }
 
-  .hud-top > div {
-    padding: 7px;
+  .sdw-debug-overlay {
+    display: none !important;
   }
 
-  .hud-top span {
-    font-size: 0.62rem;
+  .sdw-menu__hint {
+    display: none;
   }
 
-  .hud-top strong {
-    font-size: 0.86rem;
+  .sdw-hud--stats {
+    top: calc(env(safe-area-inset-top) + 62px) !important;
+    bottom: auto !important;
+    left: calc(env(safe-area-inset-left) + 10px) !important;
+    transform: scale(0.92);
+    transform-origin: top left;
   }
 
-  .garage,
-  .overlay {
-    max-height: calc(100% - 116px);
+  .sdw-hud--econ {
+    top: calc(env(safe-area-inset-top) + 10px) !important;
+    right: calc(env(safe-area-inset-right) + 10px) !important;
+    transform: scale(0.92);
+    transform-origin: top right;
+  }
+
+  .sdw-menu {
+    padding: calc(env(safe-area-inset-top) + 14px) calc(env(safe-area-inset-right) + 14px)
+      calc(env(safe-area-inset-bottom) + 14px) calc(env(safe-area-inset-left) + 14px) !important;
     overflow: auto;
-    padding: 20px;
-    top: 56%;
   }
 
-  .garage-stats,
-  .upgrade-grid {
-    grid-template-columns: 1fr;
+  .sdw-menu__pane {
+    width: min(360px, 100%) !important;
+    min-width: 0 !important;
+    max-height: calc(100vh - 28px);
+    overflow: auto;
   }
 
-  .upgrade {
-    min-height: auto;
+  .sdw-menu__row {
+    align-items: stretch !important;
+    flex-direction: column !important;
+    gap: 7px !important;
+  }
+
+  .sdw-garage {
+    padding: calc(env(safe-area-inset-top) + 8px) calc(env(safe-area-inset-right) + 10px)
+      calc(env(safe-area-inset-bottom) + 10px) calc(env(safe-area-inset-left) + 10px) !important;
+    gap: 8px !important;
+    overflow-y: auto !important;
+  }
+
+  .sdw-garage__top {
+    flex: 0 0 auto !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  .sdw-garage__wallet {
+    flex: 1 1 128px !important;
+    min-width: 0 !important;
+  }
+
+  .sdw-garage__title {
+    order: 3;
+    flex: 1 0 100% !important;
+    font-size: 18px !important;
+    letter-spacing: 4px !important;
+  }
+
+  .sdw-garage__drive {
+    min-height: 44px !important;
+    padding: 10px 14px !important;
+    font-size: 14px !important;
+  }
+
+  .sdw-garage__middle {
+    flex: 0 0 auto !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      'preview preview'
+      'info status';
+    gap: 8px !important;
+    min-height: 0 !important;
+  }
+
+  .sdw-garage__preview {
+    grid-area: preview;
+    height: 30vh;
+    min-height: 150px;
+    max-height: 260px;
+  }
+
+  .sdw-garage__info {
+    grid-area: info;
+  }
+
+  .sdw-garage__status {
+    grid-area: status;
+  }
+
+  .sdw-garage__info,
+  .sdw-garage__status {
+    width: auto !important;
+    min-width: 0 !important;
+  }
+
+  .sdw-garage__bottom {
+    flex: 0 0 auto !important;
+    align-items: stretch !important;
+  }
+
+  .sdw-garage__tabs {
+    align-self: stretch !important;
+    justify-content: flex-start !important;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+  }
+
+  .sdw-garage__tabs > button {
+    flex: 0 0 auto;
+    min-height: 38px;
+    padding: 8px 12px !important;
+    letter-spacing: 1px !important;
+  }
+
+  .sdw-garage__rack {
+    width: 100%;
+    min-height: 96px !important;
+    justify-content: flex-start !important;
+    overflow-x: auto;
+    padding: 10px !important;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+  }
+
+  .sdw-garage-card,
+  .sdw-garage-chassis-card {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+}
+
+@media (hover: none) and (orientation: landscape), (pointer: coarse) and (orientation: landscape), (max-width: 760px) and (orientation: landscape) {
+  .sdw-hud--stats {
+    top: calc(env(safe-area-inset-top) + 10px) !important;
+    left: calc(env(safe-area-inset-left) + 66px) !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .sdw-garage__middle {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'preview'
+      'info'
+      'status';
+  }
+
+  .sdw-garage__preview {
+    height: 24vh;
+    max-height: 210px;
+  }
+
+  .sdw-garage__title {
+    font-size: 16px !important;
+    letter-spacing: 3px !important;
+  }
+}
+
+@media (hover: none) and (orientation: landscape) and (max-height: 520px), (pointer: coarse) and (orientation: landscape) and (max-height: 520px), (max-width: 900px) and (orientation: landscape) and (max-height: 520px) {
+  .sdw-garage {
+    overflow-y: hidden !important;
+  }
+
+  .sdw-garage__title {
+    order: 0;
+    flex: 1 1 auto !important;
+  }
+
+  .sdw-garage__middle {
+    flex: 1 1 auto !important;
+    grid-template-columns: minmax(150px, 0.75fr) minmax(220px, 1.6fr) minmax(150px, 0.75fr);
+    grid-template-areas: 'info preview status';
+  }
+
+  .sdw-garage__preview {
+    height: auto;
+    min-height: 0;
+    max-height: none;
   }
 }
