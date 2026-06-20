@@ -1,27 +1,89 @@
 import * as THREE from 'three';
 
-export const materials = {
-  asphalt: new THREE.MeshStandardMaterial({ color: '#20242a', roughness: 0.95 }),
-  lane: new THREE.MeshBasicMaterial({ color: '#c9c8b4' }),
-  dirt: new THREE.MeshStandardMaterial({ color: '#5c4f42', roughness: 1 }),
-  carBody: new THREE.MeshStandardMaterial({ color: '#d64a3a', roughness: 0.58, metalness: 0.16 }),
-  carGlass: new THREE.MeshStandardMaterial({ color: '#73a8a5', roughness: 0.3, metalness: 0.2 }),
-  tire: new THREE.MeshStandardMaterial({ color: '#101215', roughness: 0.9 }),
-  rust: new THREE.MeshStandardMaterial({ color: '#765443', roughness: 0.88, metalness: 0.12 }),
-  metal: new THREE.MeshStandardMaterial({ color: '#888b86', roughness: 0.7, metalness: 0.45 }),
-  warning: new THREE.MeshStandardMaterial({ color: '#e49a2f', roughness: 0.55 }),
-  danger: new THREE.MeshStandardMaterial({ color: '#d23b2e', roughness: 0.55 }),
-  ammo: new THREE.MeshStandardMaterial({ color: '#4f7f55', roughness: 0.6 }),
-  repair: new THREE.MeshStandardMaterial({ color: '#3f98a8', roughness: 0.5 }),
-  scrap: new THREE.MeshStandardMaterial({ color: '#bcc2bd', roughness: 0.35, metalness: 0.8 }),
-  zombie: new THREE.MeshStandardMaterial({ color: '#6c8b55', roughness: 0.8 }),
-  projectile: new THREE.MeshBasicMaterial({ color: '#ffd66d' }),
-  glowRed: new THREE.MeshBasicMaterial({ color: '#ff2222' }),
-  lightBulb: new THREE.MeshBasicMaterial({ color: '#fffae0' }),
-  explosion: new THREE.MeshBasicMaterial({
-    color: '#ff8a2a',
-    transparent: true,
-    opacity: 0.48,
-    depthWrite: false
-  })
-} as const;
+/**
+ * One shared, flat-shaded, vertex-colored material backs almost every prop, so
+ * the renderer makes minimal program/state switches (docs/ARCHITECTURE.md →
+ * Materials). Detail is bought with baked vertex color — not triangles or
+ * textures — which is exactly what keeps the look crafted *and* the frame rate
+ * stable (docs/DESIGN.md → Object craft).
+ */
+export const propMaterial = new THREE.MeshLambertMaterial({
+  vertexColors: true,
+  flatShading: true,
+});
+
+/**
+ * Unlit, vertex-colored material for self-lit details — headlights, taillights.
+ * Because it ignores scene lighting, a light reads at full brightness even on a
+ * face turned away from the sun (the car's rear), so lamps actually *glow*
+ * instead of going muddy in shadow (docs/DESIGN.md → Juice as information).
+ *
+ * `polygonOffset` biases lamp fragments a hair toward the camera so a lamp set
+ * flush on (or coplanar with) the bodywork it sits on always wins the depth test
+ * instead of z-fighting it — the cause of the intermittent flicker on rear lamps
+ * like the coupe's full-width tail bar, where the lamp's back face landed exactly
+ * on the body's rear face.
+ */
+export const lightMaterial = new THREE.MeshBasicMaterial({
+  vertexColors: true,
+  polygonOffset: true,
+  polygonOffsetFactor: -1,
+  polygonOffsetUnits: -1,
+});
+
+/**
+ * Unlit but fogged, vertex-colored — the distant backdrop silhouettes. Scene
+ * lighting would only muddy a form that is meant to read as a flat, haze-veiled
+ * cutout; fog is what sells the distance, so it stays on. The base→top gradient
+ * (baked into the geometry) does the shading a light otherwise would.
+ */
+export const silhouetteMaterial = new THREE.MeshBasicMaterial({
+  vertexColors: true,
+  fog: true,
+});
+
+/**
+ * Bake per-vertex color into a geometry with a cheap directional ambient-
+ * occlusion gradient: surfaces facing up stay bright, undersides darken. This
+ * is the low-poly craft trick — a flat box reads as a deliberately shaded form
+ * for the cost of one extra attribute and zero extra triangles.
+ */
+export function paint(geometry: THREE.BufferGeometry, color: THREE.ColorRepresentation, ao = 0.4): THREE.BufferGeometry {
+  const position = geometry.getAttribute('position');
+  const normal = geometry.getAttribute('normal');
+  const base = new THREE.Color(color);
+  const colors = new Float32Array(position.count * 3);
+
+  for (let i = 0; i < position.count; i += 1) {
+    // normal.y in [-1, 1] → shade in [1 - ao, 1]: bottoms darker, tops full.
+    const ny = normal.getY(i);
+    const shade = 1 - ao + ao * ((ny + 1) / 2);
+    colors[i * 3] = base.r * shade;
+    colors[i * 3 + 1] = base.g * shade;
+    colors[i * 3 + 2] = base.b * shade;
+  }
+
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  return geometry;
+}
+
+/** A vertex-colored box. The workhorse of the low-poly kit. */
+export function box(
+  w: number,
+  h: number,
+  d: number,
+  color: THREE.ColorRepresentation,
+  ao?: number,
+): THREE.BufferGeometry {
+  return paint(new THREE.BoxGeometry(w, h, d), color, ao);
+}
+
+/** A vertex-colored cylinder, laid on its side to roll along X (a wheel). 24
+ *  radial segments so the tyre reads round, not as a faceted polygon, even under
+ *  flat shading (the wheels are large on screen — the faceting was the loudest
+ *  blocky tell). */
+export function wheel(radius: number, width: number, color: THREE.ColorRepresentation): THREE.BufferGeometry {
+  const geo = new THREE.CylinderGeometry(radius, radius, width, 24);
+  geo.rotateZ(Math.PI / 2);
+  return paint(geo, color, 0.5);
+}
