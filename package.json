@@ -1,26 +1,33 @@
 {
   "name": "survivor-drive-web",
-  "version": "0.1.0",
-  "private": false,
+  "version": "0.0.0",
+  "private": true,
   "type": "module",
-  "description": "Browser-based 3D survival driving game prototype built with Vite, TypeScript, and Three.js.",
+  "description": "The last car on Earth, driving through every apocalypse at once.",
   "license": "MIT",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "format": "prettier --write ."
   },
   "dependencies": {
-    "@vitejs/plugin-basic-ssl": "^2.1.0",
-    "three": "^0.181.2"
+    "three": "^0.171.0"
   },
   "devDependencies": {
-    "@types/three": "^0.184.1",
-    "playwright": "^1.60.0",
-    "typescript": "^5.9.3",
-    "vite": "^7.2.6",
-    "vitest": "^4.0.15"
+    "@eslint/js": "^9.17.0",
+    "@types/three": "^0.171.0",
+    "eslint": "^9.17.0",
+    "eslint-config-prettier": "^9.1.0",
+    "globals": "^15.14.0",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.18.0",
+    "vite": "^6.0.5",
+    "vitest": "^2.1.8"
   }
 }
