@@ -103,35 +103,34 @@ export const palette = {
   wheel: 0x131316,
   wheelHub: 0x46474d,
 
-  // ----- Alternate drivable chassis (garage CAR tab). Each carries a signature
-  // body tone + its own trim so the five read apart on the turntable and on the
-  // road, and is built to the hero car's craft bar in src/render/chassis.ts.
-  // Lamps reuse the shared carHeadlight/carTaillight self-lit colours so every
-  // car glows the same warm/red language (docs/DESIGN.md → readability rules). -----
+  // Alternate drivable chassis (garage CAR tab). Each carries a signature body
+  // tone and its own trim so the five read apart on the turntable and on the road
+  // (models in src/render/chassis.ts). Lamps reuse the shared
+  // carHeadlight/carTaillight self-lit colours (docs/DESIGN.md → readability rules).
 
-  // Wrecker Rig — a brute off-road pickup. Warm, sun-baked tan with rust accents
-  // and a near-black bed liner; the off-road bruiser of the roster.
+  // Wrecker Rig, an off-road pickup. Warm, sun-baked tan with rust accents and a
+  // near-black bed liner.
   rigChassisBody: 0x96703e,
   rigChassisDark: 0x5a3f22, // cab roof, lower cladding
   rigChassisBed: 0x281d12, // ribbed steel bed liner / tailgate
   rigChassisRust: 0x7a4a28, // jerry cans, spare-tyre mount, scabbed panels
 
-  // Box Hauler — an up-armoured box van. Cold gunmetal steel with bolted plate
-  // and a faded hazard stripe; the rolling bunker of the roster.
+  // Box Hauler, an up-armoured box van. Cold gunmetal steel with bolted plate and
+  // a faded hazard stripe.
   haulerBody: 0x59636f,
   haulerDark: 0x2f363f, // rear doors, roof rim, window surrounds
   haulerPlate: 0x717c88, // proud bolted armour plate catching the key light
   haulerStripe: 0xb39a3c, // a faded warning stripe banding the box
 
-  // Dune Buggy — a skeletal desert hopper. Hot safety-yellow tube frame over a
-  // bare dark tub and a raw exposed engine; the featherweight flyer.
+  // Dune Buggy, a skeletal desert hopper. Hot safety-yellow tube frame over a
+  // bare dark tub and a raw exposed engine.
   buggyFrame: 0xd6a824,
   buggyFrameDark: 0x8a6a14, // shadowed underside of the cage tubes
   buggyTub: 0x2a2620, // bare floor pan, seats
   buggyEngine: 0x55402a, // exposed rear engine block
 
-  // Razor Coupe — a low street-sweeper coupe. Near-black with a bone racing
-  // stripe and a thin warm accent; the knife-edge of the roster.
+  // Razor Coupe, a low street coupe. Near-black with a bone racing stripe and a
+  // thin warm accent.
   coupeBody: 0x2b2e3a, // near-black, but enough value for the form to read head-on
   coupeDark: 0x181a22, // roof, pillars, wing, diffuser
   coupeStripe: 0xcfc8b8, // twin bone racing stripes
@@ -241,9 +240,18 @@ export const palette = {
 
   // Ammo box — refills the gun. A stout crate with a warm amber band (the gun's
   // signature colour from the HUD) on a muted brass body, so it reads as the gun's
-  // economy without competing with a warm *threat* silhouette.
+  // economy without competing with a warm threat silhouette.
   ammoBox: 0x5a4a30,
   ammoBase: 0x3a3020,
   ammoBand: 0xe0a93a,
   ammoTip: 0xcaa24a,
+
+  // Neon colors for city signs and street lighting
+  neonPink: 0xff3399,
+  neonCyan: 0x00f0ff,
+  neonAmber: 0xff8c00,
+  streetLightGlow: 0xffd880,
+  trafficRed: 0xff0800,
+  trafficGreen: 0x00ff66,
+  trafficYellow: 0xffcc00,
 } as const;

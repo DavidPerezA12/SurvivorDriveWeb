@@ -152,7 +152,7 @@ export class CarPreview {
       this.upgradeMesh.geometry.dispose();
       this.upgradeMesh = null;
     }
-    const mesh = buildUpgradeLayer(this.owned);
+    const mesh = buildUpgradeLayer(this.owned, this.chassisId);
     if (mesh) {
       this.upgradeMesh = mesh;
       this.car.add(mesh);

@@ -3,14 +3,14 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { lightMaterial, paint, propMaterial, wheel } from './materials';
 import { palette } from './palette';
 import { GUN_UPGRADES, type UpgradeId } from '../content/upgrades';
+import type { ChassisId } from '../content/chassis';
+import { buildChassisUpgradeParts, buildChassisDamageParts } from './chassis';
 
 /**
- * A box panel positioned, then color-baked — crucially in that order, so the AO
- * gradient is computed from the panel's *final* orientation. Painting before the
- * transform (the old path) shaded every sloped surface as if it were still an
- * axis-aligned box, which flattened the wedges and tapers; doing it after means
- * a raked windscreen or a sloped hood actually catches the light like the form
- * it is. `ao` is how dark the undersides go (tops stay full).
+ * A box panel positioned, then color-baked, in that order so the AO gradient is
+ * computed from the panel's final orientation (painting before the transform
+ * would shade a sloped surface as if it were still an axis-aligned box, flattening
+ * the wedges and tapers). `ao` is how dark the undersides go; tops stay full.
  */
 function part(
   w: number,
@@ -201,28 +201,29 @@ function wheelAssembly(x: number, z: number, axleY: number, radius: number, widt
   const faceX = x + out * (width / 2);
   const parts: THREE.BufferGeometry[] = [
     wheel(radius, width, P.wheel).translate(x, axleY, z), // tyre
-    wheel(radius * 0.62, width * 0.5, P.carGrille).translate(x, axleY, z), // dark rim barrel
-    cyl(radius * 0.6, 0.05, P.wheelHub, 'x', faceX - out * 0.02, axleY, z, 0.5, 22), // alloy face
+    wheel(radius * 0.64, width * 0.6, P.carGrille).translate(x, axleY, z), // dark rim barrel
+    cyl(radius * 0.58, 0.05, P.wheelHub, 'x', faceX - out * 0.03, axleY, z, 0.5, 22), // alloy face
   ];
-  // Chrome outer lip ring around the alloy face.
-  const lip = new THREE.TorusGeometry(radius * 0.58, 0.035, 6, 22).rotateY(Math.PI / 2).translate(faceX, axleY, z);
+  // Chrome outer lip ring around the alloy face, sitting proud outboard.
+  const lip = new THREE.TorusGeometry(radius * 0.59, 0.035, 6, 22)
+    .rotateY(Math.PI / 2)
+    .translate(faceX + out * 0.01, axleY, z);
   parts.push(paint(lip, P.carChrome, 0.5));
-  // Five spokes radiating from the hub, each pushed out to mid-radius then spun
-  // about the axle.
+  // Five spokes radiating from the hub, bright silver for high contrast.
   for (let i = 0; i < 5; i += 1) {
     const a = (i / 5) * Math.PI * 2;
-    const sp = new THREE.BoxGeometry(0.055, radius * 0.62, 0.1);
-    sp.translate(0, radius * 0.3, 0);
-    sp.rotateX(a);
-    sp.translate(faceX, axleY, z);
-    parts.push(paint(sp, P.wheelHub, 0.4));
+    const sp = new THREE.BoxGeometry(0.045, radius * 0.58, 0.08);
+    sp.translate(0, radius * 0.28, 0)
+      .rotateX(a)
+      .translate(faceX + out * 0.01, axleY, z);
+    parts.push(paint(sp, P.carChrome, 0.4));
   }
   // Chrome centre cap + five lug nuts ringed around it.
   parts.push(cyl(radius * 0.17, 0.07, P.carChrome, 'x', faceX + out * 0.02, axleY, z, 0.45, 14));
   for (let i = 0; i < 5; i += 1) {
     const a = (i / 5) * Math.PI * 2 + 0.3;
     parts.push(
-      cyl(0.026, 0.05, P.carChrome, 'x', faceX + out * 0.01, axleY + Math.cos(a) * radius * 0.12, z + Math.sin(a) * radius * 0.12, 0.45, 6),
+      cyl(0.022, 0.05, P.carChrome, 'x', faceX + out * 0.015, axleY + Math.cos(a) * radius * 0.13, z + Math.sin(a) * radius * 0.13, 0.45, 6),
     );
   }
   return parts;
@@ -295,12 +296,11 @@ export function createCar(): THREE.Group {
   const body: THREE.BufferGeometry[] = [];
   const lights: THREE.BufferGeometry[] = [];
 
-  // ----- The body shell: ONE smooth, bevel-edged extruded side-profile — a
-  // long-hood / short-deck muscle silhouette with real wheel arches cut into the
-  // outline — instead of a stack of boxes. The greenhouse is a second extrude in
-  // glass, tucked narrower, with a painted roof cap and slim pillars over it so it
-  // reads as glass + pillars, not a bare bubble. (Profile y is in world units, so
-  // it lines up with the floorY-based detail parts below.) -----
+  // The body shell: one smooth, bevel-edged extruded side-profile (a long-hood /
+  // short-deck muscle silhouette with real wheel arches cut into the outline)
+  // instead of a stack of boxes. The greenhouse is a second extrude in glass,
+  // tucked narrower, with a painted roof cap and slim pillars over it. (Profile y
+  // is in world units, so it lines up with the floorY-based detail parts below.)
   const lower = new THREE.Shape();
   lower.moveTo(2.0, 0.34);
   lower.lineTo(2.0, 0.62);
@@ -344,8 +344,7 @@ export function createCar(): THREE.Group {
   body.push(part(1.7, 0.4, 0.14, B.carGrille, 0, floorY + 0.4, -1.84));
   body.push(part(1.78, 0.18, 0.24, B.carBodyDark, 0, floorY + 0.15, -1.88));
   // Rounded rear bumper bar in body-dark (not black, so the tail reads as the
-  // car) with a vertical-fin diffuser recessed below it — aggressive, and it
-  // turns the dark underside into deliberate detail instead of a void.
+  // car) with a vertical-fin diffuser recessed below it.
   body.push(cyl(0.13, 1.86, B.carBodyDark, 'x', 0, floorY + 0.04, -1.99, 0.42, 12));
   body.push(part(1.42, 0.24, 0.14, B.carGrille, 0, floorY - 0.07, -2.0));
   for (const fx of [-0.42, -0.14, 0.14, 0.42]) {
@@ -357,8 +356,8 @@ export function createCar(): THREE.Group {
     body.push(cyl(0.07, 0.1, B.carGrille, 'z', s * 0.52, floorY - 0.04, -2.04, 0.42, 12)); // dark bore
   }
 
-  // Cowcatcher front bumper — a round tube bumper with vertical guard bars and
-  // chrome over-riders, the brand signature, now drawn as pipe instead of a slab.
+  // Cowcatcher front bumper: a round tube bumper with vertical guard bars and
+  // chrome over-riders, the car's signature.
   body.push(cyl(0.15, 1.95, B.carTrim, 'x', 0, floorY + 0.06, 2.0, 0.42, 12));
   for (const s of [-1, 1] as const) {
     body.push(cyl(0.09, 0.52, B.carTrim, 'y', s * 0.66, floorY + 0.26, 2.02, 0.42, 10));
@@ -394,17 +393,15 @@ export function createCar(): THREE.Group {
     [wx, -1.42],
   ] as const) {
     body.push(...wheelAssembly(sx, sz, axleY, wheelRadius));
-    // Round wheel-arch eyebrow hugging each tyre — a curve over the slab-sided
-    // haunches so the fenders read as drawn metal, not a box (the same rounded
-    // language the alternate chassis use).
+    // Round wheel-arch eyebrow over each tyre, so the fenders read as drawn metal
+    // (the same rounded language the alternate chassis use).
     const eyebrow = new THREE.TorusGeometry(0.5, 0.07, 6, 14, Math.PI)
       .rotateY(Math.PI / 2)
       .translate(sx, axleY + 0.02, sz);
     body.push(paint(eyebrow, B.carBodyDark, 0.5));
   }
 
-  // ----- Real-car flank detail: panel gaps, handles, beltline trim, fuel cap and
-  // plates — the small stuff that makes it read as bodywork, not a shell. -----
+  // Flank detail: panel gaps, handles, beltline trim, fuel cap and plates.
   for (const s of [-1, 1] as const) {
     const fx = s * 0.93;
     // Two door shut-lines splitting fender / door / quarter, plus a sill seam.
@@ -421,13 +418,11 @@ export function createCar(): THREE.Group {
   body.push(part(0.46, 0.2, 0.04, B.carReverse, 0, floorY + 0.18, 2.13));
   body.push(part(0.46, 0.2, 0.04, B.carReverse, 0, floorY + 0.2, -2.04));
 
-  // ----- Self-lit lamps (unlit material, so they glow even in shadow) -----
-  // The rear is the car's signature read — the elevated chase camera looks
-  // straight onto it all run — so the tail is modelled as a pair of *real*
-  // recessed lamp clusters, not flat red decals. Each side is a three-segment
-  // cluster (amber turn outboard · a wide red brake · an inboard white reverse)
-  // sunk behind a proud chrome surround with slim dark dividers between the
-  // lenses; a dim centre reflector strip bridges the two low on the tail.
+  // Self-lit lamps (unlit material, so they glow even in shadow). The chase camera
+  // looks straight onto the tail all run, so each side is a three-segment cluster
+  // (amber turn outboard, a wide red brake, an inboard white reverse) sunk behind
+  // a proud chrome surround with slim dark dividers; a dim centre reflector strip
+  // bridges the two low on the tail.
   const tailY = floorY + 0.47;
   lights.push(glow(0.5, 0.07, 0.14, B.carTaillightDim, 0, tailY - 0.12, -1.86));
   for (const s of [-1, 1] as const) {
@@ -524,8 +519,8 @@ function upgradeParts(id: UpgradeId): THREE.BufferGeometry[] {
       return parts;
     }
     case 'liftTank': {
-      // A strapped electric-blue gas *cylinder* with domed caps on the rear deck —
-      // round pressure-vessel, the jump fuel, colour-matched to the lift pickups.
+      // A strapped electric-blue gas cylinder with domed caps on the rear deck:
+      // a round pressure vessel, the jump fuel, colour-matched to the lift pickups.
       return [
         cyl(0.27, 1.0, P.liftToken, 'z', 0, FLOOR_Y + 0.84, -1.12, 0.42, 16),
         ball(0.27, P.liftTokenDark, 0, FLOOR_Y + 0.84, -0.62, 0.4, 14), // front dome cap
@@ -612,9 +607,9 @@ function damageParts(tier: number): THREE.BufferGeometry[] {
  * so a worsening hull is one extra draw call that costs nothing in the steady
  * state. Returns `null` for a pristine hull (tier 0).
  */
-export function buildDamageLayer(tier: number): THREE.Mesh | null {
+export function buildDamageLayer(tier: number, chassisId: ChassisId = 'survivor'): THREE.Mesh | null {
   if (tier <= 0) return null;
-  const parts = damageParts(tier);
+  const parts = chassisId === 'survivor' ? damageParts(tier) : buildChassisDamageParts(tier, chassisId);
   if (parts.length === 0) return null;
   const geo = mergeGeometries(parts, false);
   for (const p of parts) p.dispose();
@@ -634,12 +629,16 @@ function gunParts(level: number): THREE.BufferGeometry[] {
   const P = palette;
   const y = FLOOR_Y + 1.16;
   const parts: THREE.BufferGeometry[] = [
+    part(0.64, 0.04, 0.4, P.carTrim, 0, FLOOR_Y + 0.94, 0.0, 0.4), // roof mount plate
     cyl(0.22, 0.1, P.carChrome, 'y', 0, FLOOR_Y + 0.98, 0.0, 0.4, 16), // turret ring it swivels on
     cyl(0.16, 0.16, P.carTrim, 'y', 0, FLOOR_Y + 1.06, 0.0, 0.4, 12), // pintle post
     taper(0.46, 0.3, 0.62, 0.34, 0.5, P.carTrim, 0, FLOOR_Y + 1.16, -0.12, 0.4), // receiver housing
     cyl(0.19, 0.5, P.ammoBox, 'x', 0, FLOOR_Y + 1.34, -0.22, 0.4, 16), // round drum magazine
     cyl(0.2, 0.08, P.ammoBand, 'x', 0, FLOOR_Y + 1.34, -0.22, 0.4, 16), // drum band
     ball(0.08, P.carChrome, 0, FLOOR_Y + 1.34, 0.06, 0.4, 8), // drum hub cap
+    part(0.1, 0.12, 0.14, P.ammoBand, 0, FLOOR_Y + 1.22, -0.18, 0.4), // ammo feed chute
+    cyl(0.02, 0.12, P.carChrome, 'x', 0.22, FLOOR_Y + 1.2, -0.06, 0.4, 6), // charging handle shaft
+    ball(0.03, P.carTrim, 0.28, FLOOR_Y + 1.2, -0.06, 0.4, 6), // charging handle tip
   ];
   const len = 0.7 + level * 0.13;
   const girth = 0.07 + level * 0.014;
@@ -659,14 +658,16 @@ function gunParts(level: number): THREE.BufferGeometry[] {
  * draw-call budget). The view disposes and replaces it whenever the loadout
  * changes between runs.
  */
-export function buildUpgradeLayer(owned: ReadonlySet<UpgradeId>): THREE.Mesh | null {
+export function buildUpgradeLayer(owned: ReadonlySet<UpgradeId>, chassisId: ChassisId = 'survivor'): THREE.Mesh | null {
   const parts: THREE.BufferGeometry[] = [];
-  for (const id of owned) parts.push(...upgradeParts(id));
-  // The gun bolt-on is composed once, sized by the highest gun tier owned, so a
-  // multi-tier loadout shows one gun that has visibly grown.
-  let gunLevel = 1;
-  for (const id of GUN_UPGRADES) if (owned.has(id)) gunLevel += 1;
-  if (gunLevel > 1) parts.push(...gunParts(gunLevel));
+  if (chassisId === 'survivor') {
+    for (const id of owned) parts.push(...upgradeParts(id));
+    let gunLevel = 1;
+    for (const id of GUN_UPGRADES) if (owned.has(id)) gunLevel += 1;
+    if (gunLevel > 1) parts.push(...gunParts(gunLevel));
+  } else {
+    parts.push(...buildChassisUpgradeParts(owned, chassisId));
+  }
   if (parts.length === 0) return null;
 
   const geo = mergeGeometries(parts, false);

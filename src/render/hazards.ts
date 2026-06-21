@@ -74,6 +74,46 @@ function wreckGeometry(): THREE.BufferGeometry {
 }
 
 /**
+ * A second wrecked vehicle — a panel van — so a stretch of blockers isn't the same
+ * sedan over and over (the static `wreck` is split between this and the sedan).
+ * A clearly different silhouette: a low cab up front under a raked screen, then a
+ * tall boxy cargo body with split rear doors; battered with rust and a flat tyre.
+ */
+function wreckVanGeometry(): THREE.BufferGeometry {
+  const p = palette;
+  const tb = (w: number, h: number, d: number, c: number, rx: number, x: number, y: number, z: number, ao = 0.45) =>
+    paint(new THREE.BoxGeometry(w, h, d).rotateX(rx).translate(x, y, z), c, ao);
+  const parts = [
+    box(1.72, 0.3, 3.5, p.wreckDark, 0.45).translate(0, 0.3, 0), // sill
+    // Tall cargo box (set back) — the van's signature mass.
+    box(1.84, 1.0, 2.5, p.wreckBody, 0.5).translate(0, 0.98, -0.45),
+    box(1.7, 0.14, 2.5, p.wreckCabin, 0.5).translate(0, 1.5, -0.45), // lighter roof
+    // Lower cab + sloped hood + raked windscreen up front (faces the player).
+    box(1.78, 0.56, 1.0, p.wreckBody, 0.5).translate(0, 0.64, 1.35),
+    tb(1.6, 0.6, 0.12, p.wreckGlass, -0.5, 0, 1.04, 0.95, 0.3),
+    box(1.9, 0.16, 0.4, p.wreckStripe, 0.2).translate(0, 0.62, 1.74), // stripe
+    box(1.92, 0.22, 0.3, p.wreckDark, 0.4).translate(0, 0.42, 1.9), // bumper
+    box(0.32, 0.16, 0.1, p.wreckGlass, 0.2).translate(-0.6, 0.66, 1.88), // headlights (dead)
+    box(0.32, 0.16, 0.1, p.wreckScorch, 0.2).translate(0.6, 0.66, 1.88),
+    // Split rear doors + a dented panel.
+    box(1.74, 0.92, 0.14, p.wreckDark, 0.4).translate(0, 0.96, -1.72),
+    box(0.1, 0.78, 0.16, p.wreckRust, 0.4).translate(0, 0.96, -1.79),
+    // Rust eating the flanks.
+    box(0.16, 0.7, 1.1, p.wreckRust, 0.5).translate(0.94, 0.95, -0.4),
+    box(0.5, 0.5, 0.16, p.wreckRust, 0.5).translate(-0.6, 1.0, 0.86),
+    // Wheels — rear-left blown flat.
+    wheel(0.36, 0.28, p.wreckDark).translate(-0.85, 0.32, 1.25),
+    wheel(0.36, 0.28, p.wreckDark).translate(0.85, 0.32, 1.25),
+    paint(new THREE.BoxGeometry(0.6, 0.26, 0.7).translate(-0.85, 0.19, -1.25), p.wreckDark, 0.4),
+    wheel(0.36, 0.28, p.wreckDark).translate(0.85, 0.32, -1.25),
+  ];
+  const geo = mergeGeometries(parts, false);
+  for (const part of parts) part.dispose();
+  if (!geo) throw new Error('Failed to merge van geometry');
+  return geo;
+}
+
+/**
  * A toppled big rig blocking a lane — the lethal, un-jumpable blocker. Tall and
  * heavy: a long box trailer crashed lengthwise, a cab jackknifed off the front,
  * spilled cargo, rust — and bold amber hazard chevrons on the rear doors facing
@@ -223,21 +263,40 @@ function gapGeometry(): THREE.BufferGeometry {
  */
 export class HazardField {
   private readonly wreckMesh: THREE.InstancedMesh;
+  private readonly wreckVanMesh: THREE.InstancedMesh;
   private readonly rigMesh: THREE.InstancedMesh;
   private readonly boulderMesh: THREE.InstancedMesh;
   private readonly barrelMesh: THREE.InstancedMesh;
   private readonly gapMesh: THREE.InstancedMesh;
   private readonly dummy = new THREE.Object3D();
+  /** Reused per-instance tint, so a row of the same blocker never reads identical. */
+  private readonly tint = new THREE.Color();
+
+  /** Stable pseudo-random in [0,1) keyed on a world-forward + a salt — so a given
+   *  blocker's angle/size/shade are fixed (no per-frame flicker). */
+  private hv(key: number, salt: number): number {
+    let h = (Math.imul((Math.floor(key * 16) | 0) + 1, 374761393) ^ Math.imul(salt, 668265263)) >>> 0;
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+  }
 
   constructor(scene: THREE.Scene) {
     this.wreckMesh = new THREE.InstancedMesh(wreckGeometry(), propMaterial, MAX_INSTANCES);
+    this.wreckVanMesh = new THREE.InstancedMesh(wreckVanGeometry(), propMaterial, MAX_INSTANCES);
     this.rigMesh = new THREE.InstancedMesh(rigGeometry(), propMaterial, MAX_INSTANCES);
     this.boulderMesh = new THREE.InstancedMesh(boulderGeometry(), propMaterial, MAX_INSTANCES);
     this.barrelMesh = new THREE.InstancedMesh(barrelGeometry(), propMaterial, MAX_INSTANCES);
     // Unlit material so the void stays black under any act light (a lit dark
     // surface gets washed pale and reads as a slab, not a hole).
     this.gapMesh = new THREE.InstancedMesh(gapGeometry(), silhouetteMaterial, MAX_INSTANCES);
-    for (const mesh of [this.wreckMesh, this.rigMesh, this.boulderMesh, this.barrelMesh, this.gapMesh]) {
+    for (const mesh of [
+      this.wreckMesh,
+      this.wreckVanMesh,
+      this.rigMesh,
+      this.boulderMesh,
+      this.barrelMesh,
+      this.gapMesh,
+    ]) {
       mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       mesh.frustumCulled = false;
       mesh.count = 0;
@@ -247,6 +306,7 @@ export class HazardField {
 
   update(state: ReadonlyState, elevation: Elevation): void {
     let wrecks = 0;
+    let vans = 0;
     let rigs = 0;
     let boulders = 0;
     let barrels = 0;
@@ -271,33 +331,65 @@ export class HazardField {
       } else if (h.kind === 'gap') {
         mesh = this.gapMesh;
         count = gaps;
+      } else if (h.kind === 'wreck' && this.hv(h.forward, 6) < 0.5) {
+        // Half the static wrecks are the van variant, so a row isn't all one model.
+        mesh = this.wreckVanMesh;
+        count = vans;
       } else {
-        // wreck and drifter share the wrecked-car geometry.
+        // The sedan: the other half of wrecks, and every drifter.
         mesh = this.wreckMesh;
         count = wrecks;
       }
       if (count >= MAX_INSTANCES) continue;
+      // Per-instance variety so a stretch of the same blocker never reads as
+      // clones: ground-class blockers sit at a crashed angle and a varied size; a
+      // drifter keeps its slide yaw; the rig stays square (it is a wall). A rust/
+      // shade tint is applied to all but the gap (whose black void must stay black).
+      const drifter = h.kind === 'drifter';
+      const shaped = h.kind === 'wreck' || drifter || h.kind === 'boulder' || h.kind === 'barrel';
+      const yaw = drifter ? this.driftYaw(h) : shaped ? (this.hv(h.forward, 1) - 0.5) * 0.7 : 0;
       this.dummy.position.set(h.x, elevation.yAt(h.forward, state.distance), state.distance - h.forward);
-      this.dummy.rotation.set(0, this.driftYaw(h), 0);
-      this.dummy.scale.setScalar(1);
+      this.dummy.rotation.set(0, yaw, 0);
+      if (shaped) {
+        this.dummy.scale.set(
+          0.9 + this.hv(h.forward, 2) * 0.2,
+          0.9 + this.hv(h.forward, 5) * 0.18,
+          0.9 + this.hv(h.forward, 3) * 0.2,
+        );
+      } else {
+        this.dummy.scale.setScalar(1);
+      }
       this.dummy.updateMatrix();
       mesh.setMatrixAt(count, this.dummy.matrix);
+      if (h.kind !== 'gap') {
+        const shade = 0.8 + this.hv(h.forward, 4) * 0.38;
+        this.tint.setRGB(shade, shade, shade);
+        mesh.setColorAt(count, this.tint);
+      }
       if (h.kind === 'rig') rigs += 1;
       else if (h.kind === 'boulder') boulders += 1;
       else if (h.kind === 'barrel') barrels += 1;
       else if (h.kind === 'gap') gaps += 1;
+      else if (h.kind === 'wreck' && this.hv(h.forward, 6) < 0.5) vans += 1;
       else wrecks += 1;
     }
     this.wreckMesh.count = wrecks;
+    this.wreckVanMesh.count = vans;
     this.rigMesh.count = rigs;
     this.boulderMesh.count = boulders;
     this.barrelMesh.count = barrels;
     this.gapMesh.count = gaps;
-    this.wreckMesh.instanceMatrix.needsUpdate = true;
-    this.rigMesh.instanceMatrix.needsUpdate = true;
-    this.boulderMesh.instanceMatrix.needsUpdate = true;
-    this.barrelMesh.instanceMatrix.needsUpdate = true;
-    this.gapMesh.instanceMatrix.needsUpdate = true;
+    for (const mesh of [
+      this.wreckMesh,
+      this.wreckVanMesh,
+      this.rigMesh,
+      this.boulderMesh,
+      this.barrelMesh,
+      this.gapMesh,
+    ]) {
+      mesh.instanceMatrix.needsUpdate = true;
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    }
   }
 
   /**

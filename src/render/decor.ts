@@ -4,6 +4,7 @@ import { chunkAt, type Chunk, type PropKind } from '../sim';
 import { box, propMaterial, wheel } from './materials';
 import { palette } from './palette';
 import { CHUNK_LENGTH, LOOKAHEAD } from '../content/tuning';
+import { ACT_SPAN } from './mood';
 
 const MAX_INSTANCES = 64;
 
@@ -136,7 +137,13 @@ export class DecorField {
       for (const prop of chunk.props) {
         const count = counts[prop.kind];
         if (count >= MAX_INSTANCES) continue;
-        this.dummy.position.set(prop.x, 0, distance - (base + prop.z));
+        const forward = base + prop.z;
+        // Desert boulders read wrong lining a city street, so hide them inside the
+        // opening Outbreak act — the act-coherent near clutter (horizon.ts) and
+        // urban ground scatter carry the roadside there instead. Render-only: the
+        // sim still generates the prop, we just don't draw this one here.
+        if (prop.kind === 'rock' && forward < ACT_SPAN) continue;
+        this.dummy.position.set(prop.x, 0, distance - forward);
         this.dummy.rotation.set(0, prop.rot, 0);
         this.dummy.scale.setScalar(prop.scale);
         this.dummy.updateMatrix();

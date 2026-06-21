@@ -4,31 +4,24 @@ import { paint, wheel, propMaterial, lightMaterial } from './materials';
 import { palette } from './palette';
 import { createCar } from './car';
 import type { ChassisId } from '../content/chassis';
+import { GUN_UPGRADES, type UpgradeId } from '../content/upgrades';
 
 /**
- * The drivable chassis models (docs/DESIGN.md → chassis classes). Five distinct
- * low-poly silhouettes so the roster reads apart at a glance — the all-round
- * Survivor (the authored hero car in `car.ts`), the brute Wrecker Rig pickup,
- * the armoured Box Hauler van, the skeletal Dune Buggy, and the low Razor Coupe.
- * They are the survivor-apocalypse cousins of the classic driver-game roster:
- * the muscle car, the off-road pickup, the box truck, the desert buggy and the
- * street coupe.
+ * The drivable chassis models (docs/DESIGN.md → chassis classes): the all-round
+ * Survivor (the hero car in `car.ts`), the Wrecker Rig pickup, the Box Hauler
+ * van, the Dune Buggy, and the Razor Coupe.
  *
- * Craft bar (docs/DESIGN.md → Object craft): the read is bought with **rounded
- * and tapered form, not a stack of cubes**. Beyond the flat box, the kit below
- * adds tapered frustums (`taper` — narrower-topped cabins, hoods, fenders),
- * round tube and pipe (`cyl`/`cone` — roll cages, bumpers, exhausts, light
- * pods), and round wheel-arch eyebrows (`arch`), so no surface reads as a raw
- * Minecraft block. Detail still comes from silhouette + baked vertex-colour AO,
- * never raw triangle count, and each car is one body draw call plus one self-lit
- * lamp draw call so the lights actually *glow* in shadow (docs/DESIGN.md → Juice
- * as information) instead of going muddy as opaque boxes.
+ * Detail comes from silhouette and baked vertex-colour AO, not triangle count.
+ * The kit below trades the flat box for tapered frustums (`taper`), round tube
+ * and cone (`cyl`/`cone`), and wheel-arch eyebrows (`arch`). Each car is one body
+ * draw call plus one self-lit lamp draw call, so the lamps glow in shadow under
+ * the unlit `lightMaterial` instead of going muddy as opaque boxes.
  *
  * Bolt-on upgrades (`buildUpgradeLayer`) share the Survivor's axle/floor heights
  * and wheel track, so the gun, plating, tank and magnet sit right on any body.
  *
- * Like the hero, the bodies are modelled nose-forward (+z) and flipped 180° so
- * the chase camera and the bolt-ons (also flipped) all agree on travel (−z).
+ * Like the hero, bodies are modelled nose-forward (+z) and flipped 180° so the
+ * chase camera and the bolt-ons (also flipped) agree on travel (−z).
  */
 
 const AXLE_Y = 0.36;
@@ -46,9 +39,8 @@ function panel(w: number, h: number, d: number, color: number, x: number, y: num
 }
 
 /**
- * A box panel rotated about its own X axis, positioned, then AO-baked — in that
- * order, so a sloped hood or raked screen is shaded from its *final* orientation
- * and catches the light like the form it is.
+ * A box panel rotated about its own X axis, positioned, then AO-baked in that
+ * order, so a sloped hood or raked screen is shaded from its final orientation.
  */
 function wedge(w: number, h: number, d: number, color: number, rx: number, x: number, y: number, z: number, ao = 0.45): THREE.BufferGeometry {
   return paint(new THREE.BoxGeometry(w, h, d).rotateX(rx).translate(x, y, z), color, ao);
@@ -56,9 +48,9 @@ function wedge(w: number, h: number, d: number, color: number, rx: number, x: nu
 
 /**
  * A frustum: a box whose top face is scaled in (and optionally slid in z), so a
- * cabin, hood or fender tapers instead of reading as a cube — the single biggest
- * lever against the blocky look. `computeVertexNormals` after the vertex move
- * keeps each face flat-shaded and lit from its true (now sloped) orientation.
+ * cabin, hood or fender tapers instead of reading as a cube. `computeVertexNormals`
+ * after the vertex move keeps each face flat-shaded and lit from its true (now
+ * sloped) orientation.
  */
 function taper(
   w: number,
@@ -88,7 +80,7 @@ function taper(
   return paint(g.translate(x, y, z), color, ao);
 }
 
-/** A round bar/pipe/drum laid along an axis — the kit's antidote to square edges. */
+/** A round bar, pipe or drum laid along an axis. */
 function cyl(radius: number, length: number, color: number, axis: 'x' | 'y' | 'z', x: number, y: number, z: number, ao = 0.42, seg = 12): THREE.BufferGeometry {
   const g = new THREE.CylinderGeometry(radius, radius, length, seg);
   if (axis === 'x') g.rotateZ(Math.PI / 2);
@@ -105,9 +97,8 @@ function cone(rTop: number, rBot: number, length: number, color: number, axis: '
 }
 
 /**
- * A round wheel-arch eyebrow — a half-torus spanning front-to-back over a wheel
- * (axle along X). Hugging each tyre with a curve is what most decisively kills
- * the boxed-fender read on a low-poly car.
+ * A round wheel-arch eyebrow: a half-torus spanning front-to-back over a wheel
+ * (axle along X), to break the boxed-fender read.
  */
 function arch(radius: number, tube: number, color: number, x: number, y: number, z: number, ao = 0.5): THREE.BufferGeometry {
   const g = new THREE.TorusGeometry(radius, tube, 6, 14, Math.PI);
@@ -118,9 +109,9 @@ function arch(radius: number, tube: number, color: number, x: number, y: number,
 /**
  * Extrude a 2D side-profile `shape` (x = length, nose at +x; y = height) into a
  * smooth, bevel-edged body shell of `width`, oriented nose-forward (+z). Optional
- * greenhouse tuck scales width inward above `taperFromY` toward `taperTo`. This is
- * the real-bodywork move — one continuous curved surface instead of stacked
- * boxes — shared with the hero car (src/render/car.ts → extrudeBody).
+ * greenhouse tuck scales width inward above `taperFromY` toward `taperTo`. One
+ * continuous curved surface instead of stacked boxes, shared with the hero car
+ * (src/render/car.ts → extrudeBody).
  */
 function extrudeBody(
   shape: THREE.Shape,
@@ -175,10 +166,17 @@ function glowCyl(radius: number, length: number, color: number, axis: 'x' | 'y' 
  * Merge body parts (lit) + lamp parts (self-lit) into a named car group of two
  * meshes, each flipped to face travel (−z) like the hero car. Two draw calls per
  * chassis, no matter how detailed the silhouette.
+ * Optional `shiftY` translates all geometries vertically before merging.
  */
-function assemble(body: THREE.BufferGeometry[], lights: THREE.BufferGeometry[]): THREE.Group {
+function assemble(body: THREE.BufferGeometry[], lights: THREE.BufferGeometry[], shiftY = 0): THREE.Group {
   const group = new THREE.Group();
   group.name = 'car';
+
+  if (shiftY !== 0) {
+    for (const g of body) g.translate(0, shiftY, 0);
+    for (const g of lights) g.translate(0, shiftY, 0);
+  }
+
   // Normalise to non-indexed so extruded shells (non-indexed) merge with the
   // box/cyl parts (indexed); mergeGeometries refuses to mix the two.
   const bodyGeo = mergeGeometries(body.map((g) => g.toNonIndexed()), false);
@@ -199,28 +197,88 @@ function assemble(body: THREE.BufferGeometry[], lights: THREE.BufferGeometry[]):
 }
 
 /**
- * Four wheels: a chunky tyre, a contrasting dished rim, a chrome hub and four
- * spokes — round and detailed, readable from both faces. A round arch eyebrow is
- * added by each builder over the tyre.
+ * Four wheels: a chunky tyre, a dished rim, a chrome hub, outer ring, spokes, and
+ * lug nuts, readable from both faces. Off-road vehicles (rig and buggy) also get
+ * alternating knobby tread blocks.
  */
-function addWheels(parts: THREE.BufferGeometry[], radius: number, width: number, rim: number = palette.wheelHub): void {
+function addWheels(
+  parts: THREE.BufferGeometry[],
+  radius: number,
+  width: number,
+  axleY: number,
+  chassisId: ChassisId,
+  rimColor: number = palette.wheelHub,
+): void {
+  const B = palette;
+  const isOffRoad = chassisId === 'rig' || chassisId === 'buggy';
+
   for (const [x, z] of WHEELS) {
     const out = x > 0 ? 1 : -1;
-    parts.push(wheel(radius, width, palette.wheel).translate(x, AXLE_Y, z));
-    parts.push(wheel(radius * 0.58, width + 0.04, rim).translate(x, AXLE_Y, z));
-    parts.push(cyl(radius * 0.16, 0.06, palette.carChrome, 'x', x + out * (width / 2 + 0.02), AXLE_Y, z)); // hub cap
-    for (const a of [0, Math.PI / 2]) {
-      const g = new THREE.BoxGeometry(0.05, radius * 0.9, 0.05).rotateX(a);
-      parts.push(paint(g.translate(x + out * (width / 2 + 0.01), AXLE_Y, z), rim, 0.4)); // spokes
+    const faceX = x + out * (width / 2);
+
+    // 1. Chunky tyre cylinder
+    parts.push(wheel(radius, width, B.wheel).translate(x, axleY, z));
+
+    // 2. Alternating 3D knobby tread blocks (for off-road)
+    if (isOffRoad) {
+      const treadCount = 10;
+      for (let i = 0; i < treadCount; i += 1) {
+        const a = (i / treadCount) * Math.PI * 2;
+        const w1 = new THREE.BoxGeometry(width * 0.45, 0.035, 0.08)
+          .translate(out * (width * 0.22), radius, 0)
+          .rotateX(a)
+          .translate(x, axleY, z);
+        const w2 = new THREE.BoxGeometry(width * 0.45, 0.035, 0.08)
+          .translate(-out * (width * 0.22), radius, 0)
+          .rotateX(a + Math.PI / treadCount)
+          .translate(x, axleY, z);
+        parts.push(paint(w1, B.wheel, 0.5));
+        parts.push(paint(w2, B.wheel, 0.5));
+      }
+    }
+
+    // 3. Dark rim barrel
+    parts.push(wheel(radius * 0.64, width * 0.6, B.carGrille).translate(x, axleY, z));
+
+    // 4. Alloy rim face (recessed slightly inward)
+    parts.push(cyl(radius * 0.58, 0.05, rimColor, 'x', faceX - out * 0.03, axleY, z, 0.5, 16));
+
+    // 5. Chrome outer lip ring (proud of the tyre edge, facing outboard)
+    const lip = new THREE.TorusGeometry(radius * 0.59, 0.035, 6, 16)
+      .rotateY(Math.PI / 2)
+      .translate(faceX + out * 0.01, axleY, z);
+    parts.push(paint(lip, B.carChrome, 0.5));
+
+    // 6. 5 Spokes (contrasting bright silver, sitting proud of the face)
+    const spokeCount = 5;
+    for (let i = 0; i < spokeCount; i += 1) {
+      const a = (i / spokeCount) * Math.PI * 2;
+      const sp = new THREE.BoxGeometry(0.045, radius * 0.58, 0.08);
+      sp.translate(0, radius * 0.28, 0)
+        .rotateX(a)
+        .translate(faceX + out * 0.01, axleY, z);
+      parts.push(paint(sp, B.carChrome, 0.4));
+    }
+
+    // 7. Chrome center hub cap
+    parts.push(cyl(radius * 0.17, 0.06, B.carChrome, 'x', faceX + out * 0.02, axleY, z, 0.45, 10));
+
+    // 8. 5 chrome lug nuts
+    for (let i = 0; i < 5; i += 1) {
+      const a = (i / 5) * Math.PI * 2 + 0.3;
+      const lx = faceX + out * 0.015;
+      const ly = axleY + Math.cos(a) * radius * 0.13;
+      const lz = z + Math.sin(a) * radius * 0.13;
+      parts.push(cyl(0.022, 0.04, B.carChrome, 'x', lx, ly, lz, 0.45, 6));
     }
   }
 }
 
 /**
- * Wrecker Rig — a brute off-road pickup: a tapered cab, a sloped hood, round
- * wheel-arch flares over big knobby tyres, a tube roll bar with a round light
- * pod cluster, twin exhaust stacks, a winch bull-bar, a junk-laden bed, mirrors,
- * a snorkel and a whip antenna. The bruiser of the roster.
+ * Wrecker Rig, an off-road pickup: a tapered cab, a sloped hood, round wheel-arch
+ * flares over big knobby tyres, a tube roll bar with a round light-pod cluster,
+ * twin exhaust stacks, a winch bull-bar, a junk-laden bed, mirrors, a snorkel and
+ * a whip antenna.
  */
 function buildRig(): THREE.Group {
   const B = palette;
@@ -323,9 +381,8 @@ function buildRig(): THREE.Group {
   parts.push(panel(0.5, 0.22, 0.05, B.carTrim, 0, FLOOR_Y + 0.16, -2.12)); // plate housing
   parts.push(panel(0.44, 0.16, 0.04, B.carReverse, 0, FLOOR_Y + 0.16, -2.14)); // plate
 
-  // ----- Lamps. Round headlight pods on the nose; framed bedside corner tail
-  // clusters — a red brake / amber turn / white reverse stack sunk into a dark
-  // housing, the real truck tail-lamp, not a flat slab. -----
+  // Lamps: round headlight pods on the nose; framed bedside corner tail clusters
+  // (a red brake / amber turn / white reverse stack sunk into a dark housing).
   for (const s of [-1, 1] as const) {
     parts.push(cyl(0.19, 0.1, B.carTrim, 'z', s * 0.62, FLOOR_Y + 0.46, 1.9, 0.4, 12));
     lights.push(glowCyl(0.15, 0.06, B.carHeadlight, 'z', s * 0.62, FLOOR_Y + 0.46, 1.97, 12));
@@ -336,15 +393,36 @@ function buildRig(): THREE.Group {
     for (const dy of [0.43, 0.25]) parts.push(panel(0.46, 0.03, 0.14, B.carTrim, s * 0.7, FLOOR_Y + dy, -2.14)); // dividers
   }
 
-  addWheels(parts, 0.46, 0.4);
-  return assemble(parts, lights);
+  // 1. Hood stripes
+  parts.push(panel(0.08, 0.015, 0.5, rust, 0.22, FLOOR_Y + 0.95, 1.35));
+  parts.push(panel(0.08, 0.015, 0.5, rust, -0.22, FLOOR_Y + 0.95, 1.35));
+
+  // 2. Windshield wipers
+  parts.push(cyl(0.012, 0.38, B.carTrim, 'x', 0.25, FLOOR_Y + 0.98, 0.88, 0.4, 5));
+  parts.push(cyl(0.012, 0.38, B.carTrim, 'x', -0.25, FLOOR_Y + 0.98, 0.88, 0.4, 5));
+
+  // 3. Headlight grille guards & Hook
+  for (const s of [-1, 1] as const) {
+    parts.push(cyl(0.015, 0.38, B.carChrome, 'x', s * 0.62, FLOOR_Y + 0.49, 1.94, 0.4, 6));
+    parts.push(cyl(0.015, 0.38, B.carChrome, 'x', s * 0.62, FLOOR_Y + 0.41, 1.94, 0.4, 6));
+  }
+  parts.push(cyl(0.035, 0.16, B.carChrome, 'y', 0, FLOOR_Y + 0.28, 2.06, 0.4, 8)); // hook
+
+  // 4. Strapped wooden crate in cargo bed
+  parts.push(panel(0.66, 0.48, 0.66, 0x6e5033, -0.42, FLOOR_Y + 0.74, -1.42));
+  parts.push(panel(0.7, 0.05, 0.05, 0x4f3620, -0.42, FLOOR_Y + 0.96, -1.42));
+  parts.push(panel(0.7, 0.05, 0.05, 0x4f3620, -0.42, FLOOR_Y + 0.52, -1.42));
+  parts.push(cyl(0.02, 0.78, B.carTrim, 'y', -0.42, FLOOR_Y + 0.74, -1.2, 0.4, 6));
+
+  addWheels(parts, 0.46, 0.4, AXLE_Y, 'rig');
+  return assemble(parts, lights, 0.46 - 0.36);
 }
 
 /**
- * Box Hauler — an up-armoured box van: a riveted cargo box with a chamfered roof,
+ * Box Hauler, an up-armoured box van: a riveted cargo box with a chamfered roof,
  * round corner posts, bolted plate, a faded hazard stripe, an armoured windshield
  * slit, round roof vents, a side ladder, a tube push-bar ram, mirrors and a side
- * exhaust. The rolling bunker of the roster.
+ * exhaust.
  */
 function buildHauler(): THREE.Group {
   const B = palette;
@@ -426,9 +504,9 @@ function buildHauler(): THREE.Group {
     if (sz < 0) parts.push(panel(0.32, 0.32, 0.04, B.carTrim, sx * 1.0, AXLE_Y - 0.14, sz - 0.46));
   }
 
-  // ----- Lamps. Round recessed headlights; surface-mounted tail-lamp boxes bolted
-  // to the cargo doors — a stacked red brake / amber turn / white reverse cluster
-  // in a dark housing (the trucking look) under a roof-level high-mount stop lamp. -----
+  // Lamps: round recessed headlights; surface-mounted tail-lamp boxes bolted to
+  // the cargo doors (stacked red brake / amber turn / white reverse in a dark
+  // housing), under a roof-level high-mount stop lamp.
   lights.push(glow(0.7, 0.06, 0.1, B.carTaillight, 0, FLOOR_Y + 1.16, -2.06)); // high-mount stop lamp
   for (const s of [-1, 1] as const) {
     parts.push(cyl(0.2, 0.1, B.carTrim, 'z', s * 0.66, FLOOR_Y + 0.26, 2.03, 0.4, 12));
@@ -440,15 +518,30 @@ function buildHauler(): THREE.Group {
     for (const dy of [0.47, 0.31]) parts.push(panel(0.3, 0.03, 0.14, B.carTrim, s * 0.74, FLOOR_Y + dy, -2.13)); // dividers
   }
 
-  addWheels(parts, 0.42, 0.38);
-  return assemble(parts, lights);
+  // 1. Two sloped steel plow blades on the push bar
+  parts.push(wedge(0.72, 0.38, 0.08, plate, 0.45, 0.42, FLOOR_Y + 0.18, 2.12, 0.4));
+  parts.push(wedge(0.72, 0.38, 0.08, plate, 0.45, -0.42, FLOOR_Y + 0.18, 2.12, 0.4));
+
+  // 2. Rivets on the side panels
+  for (const s of [-1, 1] as const) {
+    parts.push(cyl(0.02, 0.04, dark, 'x', s * 1.02, FLOOR_Y + 1.4, 0.5, 0.4, 4));
+    parts.push(cyl(0.02, 0.04, dark, 'x', s * 1.02, FLOOR_Y + 1.4, -0.5, 0.4, 4));
+  }
+
+  // 3. Rear utility steps, tow ball hitch and backup camera pod
+  parts.push(cyl(0.04, 1.2, B.carChrome, 'x', 0, FLOOR_Y - 0.08, -2.14, 0.4, 8));
+  parts.push(ball(0.06, B.carChrome, 0, FLOOR_Y + 0.14, -2.26, 0.4));
+  parts.push(panel(0.12, 0.1, 0.1, dark, 0, FLOOR_Y + 1.28, -2.05));
+
+  addWheels(parts, 0.42, 0.38, AXLE_Y, 'hauler');
+  return assemble(parts, lights, 0.42 - 0.36);
 }
 
 /**
- * Dune Buggy — a skeletal desert hopper, built almost entirely from round tube:
- * a bare floor pan, a full tube roll cage, tapered bucket seats, a raw rear
- * engine with round velocity stacks and curved header pipes, visible coilover
- * springs, a round light bar and big knobby tyres. The featherweight flyer.
+ * Dune Buggy, a skeletal desert hopper built almost entirely from round tube: a
+ * bare floor pan, a full tube roll cage, tapered bucket seats, a raw rear engine
+ * with round velocity stacks and curved header pipes, visible coilover springs, a
+ * round light bar and big knobby tyres.
  */
 function buildBuggy(): THREE.Group {
   const B = palette;
@@ -512,8 +605,8 @@ function buildBuggy(): THREE.Group {
     parts.push(arch(0.58, 0.06, dframe, sx * 1.0, AXLE_Y + 0.02, sz, 0.5));
   }
 
-  // ----- Lamps. Small round nose lights; round tail lamps recessed in exposed
-  // tube stone-guard rings, with a small central reverse — the off-road read. -----
+  // Lamps: small round nose lights; round tail lamps recessed in exposed tube
+  // stone-guard rings, with a small central reverse.
   for (const s of [-1, 1] as const) {
     parts.push(cyl(0.14, 0.1, B.carTrim, 'z', s * 0.38, FLOOR_Y + 0.32, 1.66, 0.4, 10));
     lights.push(glowCyl(0.1, 0.06, B.carHeadlight, 'z', s * 0.38, FLOOR_Y + 0.32, 1.72, 10));
@@ -523,16 +616,36 @@ function buildBuggy(): THREE.Group {
     lights.push(glowCyl(0.045, 0.06, B.carReverse, 'z', s * 0.2, FLOOR_Y + 0.34, -1.78, 8));
   }
 
-  addWheels(parts, 0.52, 0.44, B.buggyFrameDark);
-  return assemble(parts, lights);
+  // 1. Steering wheel and dashboard console
+  parts.push(panel(1.0, 0.14, 0.22, B.buggyTub, 0, FLOOR_Y + 0.74, 0.25));
+  parts.push(cyl(0.025, 0.32, B.carChrome, 'z', -0.3, FLOOR_Y + 0.62, 0.1, 0.4, 6));
+  parts.push(paint(new THREE.TorusGeometry(0.14, 0.025, 6, 12).translate(-0.3, FLOOR_Y + 0.74, -0.05), B.carTrim, 0.4));
+
+  // 2. Radiator and cooling fans
+  parts.push(panel(0.74, 0.46, 0.08, B.carGrille, 0, FLOOR_Y + 0.66, -1.02));
+  parts.push(cyl(0.2, 0.03, B.carTrim, 'z', -0.18, FLOOR_Y + 0.66, -0.98, 0.4, 8));
+  parts.push(cyl(0.2, 0.03, B.carTrim, 'z', 0.18, FLOOR_Y + 0.66, -0.98, 0.4, 8));
+
+  // 3. Fire extinguisher
+  parts.push(cyl(0.08, 0.28, 0xbf2c24, 'y', 0.42, FLOOR_Y + 0.24, -0.1, 0.4, 8));
+  parts.push(cyl(0.03, 0.06, B.carChrome, 'y', 0.42, FLOOR_Y + 0.4, -0.1, 0.4, 6));
+
+  // 4. Cockpit window safety nets
+  for (const s of [-1, 1] as const) {
+    parts.push(cyl(0.02, 0.66, B.carTrim, 'y', s * 0.6, FLOOR_Y + 0.8, 0.0, 0.4, 4));
+    parts.push(cyl(0.015, 0.5, B.carTrim, 'z', s * 0.6, FLOOR_Y + 0.7, 0.0, 0.4, 4));
+    parts.push(cyl(0.015, 0.5, B.carTrim, 'z', s * 0.6, FLOOR_Y + 0.9, 0.0, 0.4, 4));
+  }
+
+  addWheels(parts, 0.52, 0.44, AXLE_Y, 'buggy', B.buggyFrameDark);
+  return assemble(parts, lights, 0.52 - 0.36);
 }
 
 /**
- * Razor Coupe — a low street-sweeper: a tapered low body, a long sloped nose, a
- * raked screen into a tapered fastback roof, round wheel-arch eyebrows over
- * low-profile wheels, twin racing stripes, a hood vent, round side mirrors, a
- * tall ducktail wing, side exhausts and round dual tailpipes under a full-width
- * tail bar. The knife-edge of the roster.
+ * Razor Coupe, a low street car: a tapered low body, a long sloped nose, a raked
+ * screen into a tapered fastback roof, round wheel-arch eyebrows over low-profile
+ * wheels, twin racing stripes, a hood vent, round side mirrors, a tall ducktail
+ * wing, side exhausts and round dual tailpipes under a full-width tail bar.
  */
 function buildCoupe(): THREE.Group {
   const B = palette;
@@ -543,8 +656,8 @@ function buildCoupe(): THREE.Group {
   const parts: THREE.BufferGeometry[] = [];
   const lights: THREE.BufferGeometry[] = [];
 
-  // ----- Body: one smooth extruded side-profile — a low, long-nosed fastback —
-  // with a glass greenhouse extrude, a roof cap, pillars and stripes over it. -----
+  // Body: one smooth extruded side-profile (a low, long-nosed fastback) with a
+  // glass greenhouse extrude, a roof cap, pillars and stripes over it.
   const lower = new THREE.Shape();
   lower.moveTo(2.05, 0.3);
   lower.lineTo(2.05, 0.5);
@@ -602,10 +715,9 @@ function buildCoupe(): THREE.Group {
   // Round arch eyebrows over the low-profile wheels.
   for (const [sx, sz] of WHEELS) parts.push(arch(0.46, 0.07, dark, sx * 1.0, AXLE_Y + 0.02, sz, 0.5));
 
-  // ----- Lamps. Slim swept headlights low in the nose; a full-width LED-look tail
-  // bar proud of a gloss-black backing panel, under a thin chrome lip, notched
-  // into segments with amber turn caps at the ends and twin central reverses —
-  // the modern light-bar read instead of one flat neon slab. -----
+  // Lamps: slim swept headlights low in the nose; a full-width LED-look tail bar
+  // proud of a gloss-black backing panel, under a thin chrome lip, notched into
+  // segments with amber turn caps at the ends and twin central reverses.
   parts.push(panel(1.78, 0.2, 0.06, B.coupeDark, 0, FLOOR_Y + 0.34, -2.07)); // gloss-black backing
   parts.push(panel(1.82, 0.04, 0.08, B.carChrome, 0, FLOOR_Y + 0.45, -2.08)); // chrome lip over the bar
   lights.push(glow(1.5, 0.11, 0.07, B.carTaillight, 0, FLOOR_Y + 0.34, -2.11));
@@ -616,8 +728,22 @@ function buildCoupe(): THREE.Group {
     lights.push(glowCyl(0.05, 0.06, B.carReverse, 'z', s * 0.16, FLOOR_Y + 0.18, -2.06, 8));
   }
 
-  addWheels(parts, 0.4, 0.34, B.carChrome);
-  return assemble(parts, lights);
+  // 1. Front Intercooler visible in nose bumper
+  parts.push(panel(0.68, 0.16, 0.1, B.carChrome, 0, FLOOR_Y + 0.1, 1.94, 0.4));
+  parts.push(panel(0.02, 0.14, 0.04, B.carGrille, -0.2, FLOOR_Y + 0.1, 1.96));
+  parts.push(panel(0.02, 0.14, 0.04, B.carGrille, 0.0, FLOOR_Y + 0.1, 1.96));
+  parts.push(panel(0.02, 0.14, 0.04, B.carGrille, 0.2, FLOOR_Y + 0.1, 1.96));
+
+  // 2. Windshield wipers at base of raked window
+  parts.push(cyl(0.012, 0.42, B.carTrim, 'x', 0.22, FLOOR_Y + 0.9, 0.55, 0.4, 4));
+  parts.push(cyl(0.012, 0.42, B.carTrim, 'x', -0.22, FLOOR_Y + 0.9, 0.55, 0.4, 4));
+
+  // 3. Wing endplates on the GT ducktail wing
+  parts.push(panel(0.04, 0.16, 0.34, B.coupeDark, 0.88, FLOOR_Y + 0.54, -1.86));
+  parts.push(panel(0.04, 0.16, 0.34, B.coupeDark, -0.88, FLOOR_Y + 0.54, -1.86));
+
+  addWheels(parts, 0.4, 0.34, AXLE_Y, 'coupe', B.carChrome);
+  return assemble(parts, lights, 0.4 - 0.36);
 }
 
 /** Build the model for a chassis. Survivor reuses the authored hero car. */
@@ -635,4 +761,245 @@ export function createChassis(id: ChassisId): THREE.Group {
     default:
       return createCar();
   }
+}
+
+function ball(radius: number, color: number, x: number, y: number, z: number, ao = 0.4, seg = 12): THREE.BufferGeometry {
+  return paint(new THREE.SphereGeometry(radius, seg, Math.max(6, seg - 4)).translate(x, y, z), color, ao);
+}
+
+/** Build the custom bolt-on upgrade parts for any non-survivor chassis. */
+export function buildChassisUpgradeParts(owned: ReadonlySet<UpgradeId>, id: ChassisId): THREE.BufferGeometry[] {
+  const parts: THREE.BufferGeometry[] = [];
+  const B = palette;
+
+  let wheelRadius = 0.36;
+  let wheelWidth = 0.32;
+  const wheels: readonly [number, number][] = WHEELS;
+  const axleY = AXLE_Y;
+
+  const tankCenter = new THREE.Vector3(0, FLOOR_Y + 0.84, -1.12);
+  let tankAxis: 'x' | 'y' | 'z' = 'z';
+  const magnetCenter = new THREE.Vector3(0, FLOOR_Y + 0.34, 2.12);
+  const gunCenter = new THREE.Vector3(0, FLOOR_Y + 0.98, 0.0);
+
+  if (id === 'rig') {
+    wheelRadius = 0.46;
+    wheelWidth = 0.4;
+    tankCenter.set(0, FLOOR_Y + 0.68, -1.12);
+    tankAxis = 'x';
+    magnetCenter.set(0, FLOOR_Y + 0.34, 2.12);
+    gunCenter.set(0, FLOOR_Y + 1.66, -0.5);
+  } else if (id === 'hauler') {
+    wheelRadius = 0.42;
+    wheelWidth = 0.38;
+    tankCenter.set(0, 1.98, -1.6);
+    tankAxis = 'z';
+    magnetCenter.set(0, FLOOR_Y + 0.34, 2.16);
+    gunCenter.set(0, 1.98, -0.6);
+  } else if (id === 'buggy') {
+    wheelRadius = 0.52;
+    wheelWidth = 0.44;
+    tankCenter.set(0, FLOOR_Y + 0.74, -0.74);
+    tankAxis = 'y';
+    magnetCenter.set(0, FLOOR_Y + 0.36, 1.95);
+    gunCenter.set(0, FLOOR_Y + 1.34, -0.3);
+  } else if (id === 'coupe') {
+    wheelRadius = 0.4;
+    wheelWidth = 0.34;
+    tankCenter.set(0, FLOOR_Y + 0.62, -1.34);
+    tankAxis = 'z';
+    magnetCenter.set(0, FLOOR_Y + 0.16, 2.12);
+    gunCenter.set(0, 1.3, -0.32);
+  }
+
+  for (const upId of owned) {
+    switch (upId) {
+      case 'reinforcedPlating': {
+        if (id === 'rig') {
+          parts.push(wedge(0.4, 0.08, 0.9, B.rigChassisRust, 0.1, 0.62, FLOOR_Y + 0.92, 1.45));
+          parts.push(wedge(0.4, 0.08, 0.9, B.rigChassisRust, 0.1, -0.62, FLOOR_Y + 0.92, 1.45));
+          parts.push(cyl(0.04, 0.62, B.carChrome, 'y', 0.46, FLOOR_Y + 1.22, 0.95));
+          parts.push(cyl(0.04, 0.62, B.carChrome, 'y', -0.46, FLOOR_Y + 1.22, 0.95));
+          parts.push(cyl(0.04, 1.0, B.carChrome, 'x', 0, FLOOR_Y + 1.22, 0.95));
+          parts.push(panel(0.08, 0.52, 1.6, B.rigChassisRust, 0.96, FLOOR_Y + 0.64, -1.42));
+          parts.push(panel(0.08, 0.52, 1.6, B.rigChassisRust, -0.96, FLOOR_Y + 0.64, -1.42));
+        } else if (id === 'hauler') {
+          parts.push(wedge(1.4, 0.06, 0.62, B.haulerPlate, 0.22, 0, FLOOR_Y + 1.22, 0.88));
+          parts.push(panel(0.08, 0.94, 0.84, B.haulerPlate, 1.02, FLOOR_Y + 0.86, 0.9));
+          parts.push(panel(0.08, 0.94, 0.84, B.haulerPlate, -1.02, FLOOR_Y + 0.86, 0.9));
+        } else if (id === 'buggy') {
+          parts.push(panel(0.06, 0.46, 1.2, B.buggyTub, 0.62, FLOOR_Y + 0.34, 0.4));
+          parts.push(panel(0.06, 0.46, 1.2, B.buggyTub, -0.62, FLOOR_Y + 0.34, 0.4));
+          parts.push(taper(0.8, 0.1, 0.6, 0.5, 0.5, B.buggyFrame, 0, FLOOR_Y + 0.36, 1.34));
+        } else if (id === 'coupe') {
+          parts.push(panel(0.16, 0.06, 2.5, B.coupeDark, 0.88, FLOOR_Y - 0.08, -0.1));
+          parts.push(panel(0.16, 0.06, 2.5, B.coupeDark, -0.88, FLOOR_Y - 0.08, -0.1));
+          parts.push(taper(0.8, 0.04, 0.8, 0.6, 0.7, B.coupeDark, 0, FLOOR_Y + 0.46, 0.95));
+        }
+        break;
+      }
+      case 'stickyTires': {
+        for (const [sx, sz] of wheels) {
+          parts.push(wheel(wheelRadius + 0.06, wheelWidth + 0.08, B.wheel).translate(sx, axleY, sz));
+        }
+        break;
+      }
+      case 'hydraulicJump': {
+        for (const [sx, sz] of wheels) {
+          const x = sx * (id === 'buggy' ? 0.66 : 0.76);
+          const r = id === 'buggy' ? 0.12 : 0.11;
+          const len = id === 'buggy' ? 0.38 : 0.32;
+          parts.push(cyl(0.05, len + 0.08, B.carChrome, 'y', x, FLOOR_Y + 0.08, sz));
+          parts.push(cyl(r, len, B.wreckStripe, 'y', x, FLOOR_Y + 0.02, sz));
+          parts.push(ball(0.07, B.carChrome, x, FLOOR_Y + 0.28, sz));
+        }
+        break;
+      }
+      case 'liftTank': {
+        if (tankAxis === 'x') {
+          parts.push(cyl(0.28, 1.2, B.liftToken, 'x', tankCenter.x, tankCenter.y, tankCenter.z, 0.42, 16));
+          parts.push(ball(0.28, B.liftTokenDark, tankCenter.x + 0.6, tankCenter.y, tankCenter.z, 0.4, 14));
+          parts.push(ball(0.28, B.liftTokenDark, tankCenter.x - 0.6, tankCenter.y, tankCenter.z, 0.4, 14));
+          parts.push(cyl(0.31, 0.08, B.carTrim, 'x', tankCenter.x + 0.3, tankCenter.y, tankCenter.z, 0.4, 16));
+          parts.push(cyl(0.31, 0.08, B.carTrim, 'x', tankCenter.x - 0.3, tankCenter.y, tankCenter.z, 0.4, 16));
+        } else if (tankAxis === 'y') {
+          parts.push(cyl(0.24, 0.88, B.liftToken, 'y', tankCenter.x, tankCenter.y, tankCenter.z, 0.42, 16));
+          parts.push(ball(0.24, B.liftTokenDark, tankCenter.x, tankCenter.y + 0.44, tankCenter.z, 0.4, 14));
+          parts.push(ball(0.24, B.liftTokenDark, tankCenter.x, tankCenter.y - 0.44, tankCenter.z, 0.4, 14));
+          parts.push(cyl(0.27, 0.08, B.carTrim, 'y', tankCenter.x, tankCenter.y + 0.12, tankCenter.z, 0.4, 16));
+        } else {
+          parts.push(cyl(0.24, 0.95, B.liftToken, 'z', tankCenter.x, tankCenter.y, tankCenter.z, 0.42, 16));
+          parts.push(ball(0.24, B.liftTokenDark, tankCenter.x, tankCenter.y, tankCenter.z + 0.48, 0.4, 14));
+          parts.push(ball(0.24, B.liftTokenDark, tankCenter.x, tankCenter.y, tankCenter.z - 0.48, 0.4, 14));
+          parts.push(cyl(0.27, 0.08, B.carTrim, 'z', tankCenter.x, tankCenter.y, tankCenter.z + 0.24, 0.4, 16));
+        }
+        break;
+      }
+      case 'scrapMagnet': {
+        const R = 0.27;
+        const mx = magnetCenter.x;
+        const my = magnetCenter.y;
+        const mz = magnetCenter.z;
+        parts.push(cyl(0.07, 0.42, B.carChrome, 'z', mx, my, mz - 0.2, 0.4, 10));
+        const horseshoe = new THREE.TorusGeometry(R, 0.09, 8, 18, Math.PI).translate(mx, my + 0.08, mz);
+        parts.push(paint(horseshoe, B.scrapPing, 0.4));
+        parts.push(cyl(0.09, 0.26, B.scrapPing, 'y', mx - R, my - 0.06, mz, 0.4, 10));
+        parts.push(cyl(0.09, 0.26, B.scrapPing, 'y', mx + R, my - 0.06, mz, 0.4, 10));
+        parts.push(ball(0.09, B.carReverse, mx - R, my - 0.19, mz, 0.4, 10));
+        parts.push(ball(0.09, B.carReverse, mx + R, my - 0.19, mz, 0.4, 10));
+        break;
+      }
+    }
+  }
+
+  let gunLevel = 1;
+  for (const upId of GUN_UPGRADES) if (owned.has(upId)) gunLevel += 1;
+  if (gunLevel > 1) {
+    const gx = gunCenter.x;
+    const gy = gunCenter.y;
+    const gz = gunCenter.z;
+
+    // 1. Chassis-specific structural gun mount brackets / turret hatches
+    if (id === 'rig') {
+      parts.push(panel(0.64, 0.04, 0.4, B.carTrim, gx, gy - 0.04, gz));
+    } else if (id === 'hauler') {
+      parts.push(cyl(0.46, 0.04, B.haulerDark, 'y', gx, gy - 0.04, gz, 0.4, 16));
+    } else if (id === 'buggy') {
+      parts.push(panel(0.5, 0.04, 0.4, B.buggyFrameDark, gx, gy - 0.04, gz));
+    } else if (id === 'coupe') {
+      parts.push(panel(0.04, 0.04, 0.8, B.coupeDark, gx - 0.3, gy - 0.04, gz));
+      parts.push(panel(0.04, 0.04, 0.8, B.coupeDark, gx + 0.3, gy - 0.04, gz));
+      parts.push(panel(0.64, 0.04, 0.34, B.carGrille, gx, gy - 0.02, gz));
+    }
+
+    // 2. Base turret mechanism
+    parts.push(cyl(0.22, 0.08, B.carChrome, 'y', gx, gy, gz, 0.4, 16));
+    parts.push(cyl(0.16, 0.14, B.carTrim, 'y', gx, gy + 0.08, gz, 0.4, 12));
+    parts.push(taper(0.46, 0.3, 0.62, 0.34, 0.5, B.carTrim, gx, gy + 0.18, gz - 0.12, 0.4));
+
+    // 3. Round drum magazine + ammo feed chute
+    parts.push(cyl(0.19, 0.5, B.ammoBox, 'x', gx, gy + 0.36, gz - 0.22, 0.4, 16));
+    parts.push(cyl(0.2, 0.08, B.ammoBand, 'x', gx, gy + 0.36, gz - 0.22, 0.4, 16));
+    parts.push(ball(0.08, B.carChrome, gx, gy + 0.36, gz + 0.06, 0.4, 8));
+    parts.push(panel(0.1, 0.12, 0.14, B.ammoBand, gx, gy + 0.24, gz - 0.18)); // ammo feed chute
+
+    // 4. Charging handle on the side of the receiver
+    parts.push(cyl(0.02, 0.12, B.carChrome, 'x', gx + 0.22, gy + 0.22, gz - 0.06, 0.4, 6));
+    parts.push(ball(0.03, B.carTrim, gx + 0.28, gy + 0.22, gz - 0.06, 0.4, 6));
+
+    // 5. Weapon barrels based on level
+    const len = 0.7 + gunLevel * 0.13;
+    const girth = 0.07 + gunLevel * 0.014;
+    const offsets = gunLevel >= 4 ? ([-0.11, 0.11] as const) : ([0] as const);
+    for (const ox of offsets) {
+      parts.push(cyl(girth + 0.04, 0.22, B.carTrim, 'z', gx + ox, gy + 0.18, gz + 0.18, 0.4, 12));
+      parts.push(cyl(girth, len, B.carChrome, 'z', gx + ox, gy + 0.18, gz + 0.2 + len * 0.5, 0.4, 12));
+      parts.push(cone(girth + 0.06, girth + 0.02, 0.18, B.ammoBand, 'z', gx + ox, gy + 0.18, gz + 0.22 + len, 0.4, 12));
+    }
+  }
+
+  return parts;
+}
+
+/** Build the custom battle-damage parts for any non-survivor chassis. */
+export function buildChassisDamageParts(tier: number, id: ChassisId): THREE.BufferGeometry[] {
+  const B = palette;
+  const parts: THREE.BufferGeometry[] = [];
+
+  if (id === 'rig') {
+    if (tier >= 1) {
+      parts.push(wedge(0.4, 0.05, 0.6, B.wreckScorch, 0.1, 0.5, FLOOR_Y + 0.88, 1.45, 0.2));
+      parts.push(panel(0.2, 0.1, 0.2, B.wreckScorch, -0.74, FLOOR_Y + 0.36, 1.96));
+    }
+    if (tier >= 2) {
+      parts.push(panel(0.8, 0.3, 0.08, B.wreckRust, 0, FLOOR_Y + 0.3, -2.08));
+      parts.push(panel(0.08, 0.3, 1.2, B.wreckScorch, -0.86, FLOOR_Y + 0.64, -1.42));
+    }
+    if (tier >= 3) {
+      parts.push(panel(0.08, 0.3, 0.7, B.wreckGlass, 0.83, 1.32, 0.12));
+      parts.push(wedge(1.8, 0.08, 1.2, B.wreckRust, -0.2, 0, FLOOR_Y + 1.0, 1.2, 0.3));
+    }
+  } else if (id === 'hauler') {
+    if (tier >= 1) {
+      parts.push(cyl(0.12, 0.5, B.wreckScorch, 'y', 0.62, FLOOR_Y + 0.2, 2.1, 0.3));
+      parts.push(panel(0.4, 0.2, 0.1, B.wreckScorch, 0, FLOOR_Y + 0.26, 2.05));
+    }
+    if (tier >= 2) {
+      parts.push(panel(0.06, 0.4, 0.08, B.wreckRust, 0.95, FLOOR_Y + 0.5, 0.0));
+      parts.push(cyl(0.045, 0.48, B.wreckScorch, 'x', 1.02, FLOOR_Y + 0.74, -1.82));
+    }
+    if (tier >= 3) {
+      parts.push(panel(1.2, 0.5, 0.08, B.wreckGlass, 0, FLOOR_Y + 0.92, 1.02));
+      parts.push(paint(new THREE.BoxGeometry(0.08, 0.84, 0.72).rotateY(0.3).translate(-1.02, FLOOR_Y + 0.86, 0.4), B.wreckRust, 0.4));
+    }
+  } else if (id === 'buggy') {
+    if (tier >= 1) {
+      parts.push(wedge(0.8, 0.06, 0.6, B.wreckScorch, 0.35, 0, FLOOR_Y - 0.08, 1.25, 0.2));
+      parts.push(panel(0.4, 0.3, 0.4, B.wreckScorch, 0, FLOOR_Y + 0.42, -1.38));
+    }
+    if (tier >= 2) {
+      parts.push(taper(0.8, 0.26, 0.7, 0.4, 0.4, B.wreckRust, 0, FLOOR_Y + 0.24, 1.3, 0.4));
+      parts.push(cyl(0.08, 1.18, B.wreckScorch, 'z', 0.62, FLOOR_Y + 1.22, -0.2));
+    }
+    if (tier >= 3) {
+      parts.push(paint(new THREE.CylinderGeometry(0.06, 0.06, 0.7, 8).rotateX(0.9).translate(-0.6, FLOOR_Y + 0.6, -1.05), B.wreckRust, 0.4));
+      parts.push(paint(new THREE.BoxGeometry(0.44, 0.16, 0.5).rotateY(0.25).translate(0.32, FLOOR_Y + 0.24, 0.05), B.wreckRust, 0.4));
+    }
+  } else if (id === 'coupe') {
+    if (tier >= 1) {
+      parts.push(panel(1.5, 0.05, 0.3, B.wreckScorch, 0, FLOOR_Y - 0.08, 2.06));
+      parts.push(panel(0.4, 0.04, 0.4, B.wreckScorch, 0, FLOOR_Y + 0.4, 0.95));
+    }
+    if (tier >= 2) {
+      parts.push(cyl(0.02, 1.8, B.wreckRust, 'z', -0.92, FLOOR_Y + 0.18, 0.0));
+      parts.push(panel(0.08, 0.28, 0.1, B.wreckScorch, 0.62, FLOOR_Y + 0.32, -1.84));
+    }
+    if (tier >= 3) {
+      parts.push(paint(new THREE.BoxGeometry(1.5, 0.38, 0.1).rotateX(0.5).translate(0, 1.05, -0.96), B.wreckGlass, 0.3));
+      parts.push(wedge(1.6, 0.06, 1.0, B.wreckRust, -0.22, 0, FLOOR_Y + 0.65, 0.9, 0.4));
+      parts.push(cone(0.1, 0.04, 0.2, B.wreckScorch, 'z', -0.5, FLOOR_Y - 0.06, -2.1));
+    }
+  }
+
+  return parts;
 }

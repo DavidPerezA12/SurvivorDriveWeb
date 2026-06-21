@@ -151,7 +151,7 @@ export class GameView {
       this.upgradeMesh.geometry.dispose();
       this.upgradeMesh = null;
     }
-    const mesh = buildUpgradeLayer(owned);
+    const mesh = buildUpgradeLayer(owned, this.chassisId);
     if (mesh) {
       this.upgradeMesh = mesh;
       this.car.add(mesh);
@@ -175,7 +175,7 @@ export class GameView {
       this.damageMesh.geometry.dispose();
       this.damageMesh = null;
     }
-    const mesh = buildDamageLayer(tier);
+    const mesh = buildDamageLayer(tier, this.chassisId);
     if (mesh) {
       this.damageMesh = mesh;
       this.car.add(mesh);
@@ -218,7 +218,7 @@ export class GameView {
       case 'hullDamaged':
         // A quick punch scaled by how much hull the hit took — the bigger the
         // bite, the harder the shake (clamped). The 'crashed' event already
-        // shook for the impact; this reads the *damage* (docs/DESIGN.md → Juice).
+        // shook for the impact; this reads the damage (docs/DESIGN.md → Juice).
         this.stage.camera.addTrauma(0.1 + Math.min(event.amount * 1.5, 0.3));
         break;
       case 'shotFired':
