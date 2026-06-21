@@ -83,6 +83,12 @@ export type Spawn =
       readonly lane: number;
       /** Offset along the chunk, in meters from its near edge, 0..CHUNK_LENGTH. */
       readonly z: number;
+      /**
+       * Set only on a quake-event `gap`: it starts as a harmless telegraph crack and
+       * only tears open (lethal) once the car is within range (`updateQuakes`). A
+       * plain static gap leaves this unset and is lethal from the start.
+       */
+      readonly opening?: boolean;
     }
   | {
       readonly kind: 'drifter';
@@ -184,6 +190,13 @@ export interface Hazard {
    * the descending rock to the smoking crater.
    */
   landed?: boolean;
+  /**
+   * Set only on a quake-event `gap`: `false` while it is just a telegraph crack
+   * (harmless, collisions skip it), flipped `true` by `updateQuakes` the moment it
+   * tears open into a lethal hole. Undefined on a plain static gap, which is lethal
+   * from the start. The renderer reads it to draw a glowing fissure before the pit.
+   */
+  open?: boolean;
 }
 
 /**

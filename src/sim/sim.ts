@@ -10,6 +10,7 @@ import {
   resolveShots,
   updateDrifters,
   updateMeteors,
+  updateQuakes,
 } from './collision';
 import { BASE_LOADOUT, type Loadout } from '../content/upgrades';
 
@@ -91,6 +92,8 @@ export function step(state: SimState, intent: Intent): SimState {
   updateDrifters(state);
   // Land any meteor that has reached its impact point (turns it lethal this tick).
   updateMeteors(state);
+  // Tear open any quake crack the car has reached (turns it lethal this tick).
+  updateQuakes(state);
 
   // Kills first — ramming (a surge) and the gun — then harmless refills, then the
   // damaging hits (which cut speed and break the streak the kills just built).

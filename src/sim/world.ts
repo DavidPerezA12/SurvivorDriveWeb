@@ -7,7 +7,21 @@ import {
   SPAWN_TUNING,
   roadHalfWidth,
 } from '../content/tuning';
-import { spawnWeightsAt } from '../content/acts';
+import {
+  actAt,
+  DIFFICULTY_TUNING,
+  intensityAt,
+  lethalityAt,
+  openChanceAt,
+  pickupScaleAt,
+  spawnWeightsAt,
+} from '../content/acts';
+import {
+  FORMATIONS,
+  formationWeight,
+  type Formation,
+  type FormationCell,
+} from '../content/formations';
 
 /**
  * Pull-based world generation.
@@ -45,66 +59,125 @@ export function safeLane(seed: number, index: number): number {
 }
 
 /**
- * Each non-safe lane independently rolls one spawn from the act's mix, so the
- * road's challenge changes by tramo: Rust teaches, the Swarm floods you, the
- * Visitors rain meteors, the Colossus walls you in, Static maxes everything
- * (`ACT_SPAWNS` in `src/content/acts.ts`). The safe lane is skipped entirely, so
- * it carries neither a threat nor any scrap. The greed pillar made literal
- * (docs/DESIGN.md → Pillar 3). Order of RNG draws is fixed, so the same seed
- * always produces the same road.
+ * The road's challenge is authored, not scattered. Each chunk lays down one
+ * hand-built formation (`src/content/formations.ts`): a small set-piece of
+ * obstacles that forces a decision, with its pickups placed in relation to the
+ * threat they answer. The formation is chosen by act and intensity (gentle ones
+ * open the run, brutal ones end it), then resolved into spawns relative to this
+ * chunk's safe lane. The safe lane itself is never filled, so a survivable line
+ * always exists (docs/DESIGN.md → Pillar 1 the road is the boss, Pillar 3 greed).
+ * RNG draws are in fixed cell order, so the same seed always builds the same road.
  */
 function generateSpawns(seed: number, index: number, rng: Rng): Spawn[] {
   if (index < SPAWN_TUNING.graceChunks) return [];
   const safe = safeLane(seed, index);
-  // The act this chunk sits in sets the whole spawn mix for its lanes.
-  const w = spawnWeightsAt(index * CHUNK_LENGTH);
+  const distance = index * CHUNK_LENGTH;
+  const act = actAt(distance);
+  const intensity = intensityAt(distance);
+
+  // Pacing: some chunks are left open road so the formations land as spaced-out
+  // beats with room to recover between them, rather than one continuous wall. The
+  // breathers are generous in the eased-in opening and rare deep in. The roll is
+  // first so the RNG sequence past it is unaffected by it being a breather or not.
+  if (nextFloat(rng) < openChanceAt(intensity)) return [];
+
+  const formation = pickFormation(act, intensity, rng);
+  if (!formation) return [];
+
+  const w = spawnWeightsAt(distance);
+  const pickupScale = pickupScaleAt(distance);
+  const lethality = lethalityAt(distance);
   const spawns: Spawn[] = [];
-  for (let lane = 0; lane < LANE_COUNT; lane += 1) {
-    if (lane === safe) continue;
-    const roll = nextFloat(rng);
-    const rigEdge = w.wreck + w.rig;
-    const boulderEdge = rigEdge + w.boulder;
-    const barrelEdge = boulderEdge + w.barrel;
-    const drifterEdge = barrelEdge + w.drifter;
-    const meteorEdge = drifterEdge + w.meteor;
-    const gapEdge = meteorEdge + w.gap;
-    const zombieEdge = gapEdge + w.zombieCluster;
-    const jumpEdge = zombieEdge + w.jumpPickup;
-    const healthEdge = jumpEdge + w.healthPickup;
-    const ammoEdge = healthEdge + w.ammoPickup;
-    if (roll < w.wreck) {
-      spawns.push({ kind: 'wreck', lane, z: nextFloat(rng) * CHUNK_LENGTH });
-    } else if (roll < rigEdge) {
-      spawns.push({ kind: 'rig', lane, z: nextFloat(rng) * CHUNK_LENGTH });
-    } else if (roll < boulderEdge) {
-      spawns.push({ kind: 'boulder', lane, z: nextFloat(rng) * CHUNK_LENGTH });
-    } else if (roll < barrelEdge) {
-      spawns.push({ kind: 'barrel', lane, z: nextFloat(rng) * CHUNK_LENGTH });
-    } else if (roll < drifterEdge) {
-      // A wreck that slides one lane over. Pick the adjacent target lane first
-      // (keeping the RNG order fixed), then its z. If no adjacent lane is valid
-      // (the other side is the safe lane or off the road), fall back to a plain
-      // wreck so the chance is never silently lost.
-      const toLane = driftTarget(rng, lane, safe);
-      const z = nextFloat(rng) * CHUNK_LENGTH;
-      if (toLane >= 0) spawns.push({ kind: 'drifter', lane, z, toLane });
-      else spawns.push({ kind: 'wreck', lane, z });
-    } else if (roll < meteorEdge) {
-      spawns.push({ kind: 'meteor', lane, z: nextFloat(rng) * CHUNK_LENGTH });
-    } else if (roll < gapEdge) {
-      spawns.push({ kind: 'gap', lane, z: nextFloat(rng) * CHUNK_LENGTH });
-    } else if (roll < zombieEdge) {
-      addZombieCluster(spawns, lane, rng, w.clusterMin, w.clusterMax);
-    } else if (roll < jumpEdge) {
-      spawns.push({ kind: 'jump', lane, z: nextFloat(rng) * CHUNK_LENGTH, phase: nextFloat(rng) });
-    } else if (roll < healthEdge) {
-      spawns.push({ kind: 'health', lane, z: nextFloat(rng) * CHUNK_LENGTH, phase: nextFloat(rng) });
-    } else if (roll < ammoEdge) {
-      spawns.push({ kind: 'ammo', lane, z: nextFloat(rng) * CHUNK_LENGTH, phase: nextFloat(rng) });
-    }
-    // else: this lane stays open this chunk.
+  for (const cell of formation.cells) {
+    const lane = safe + cell.off;
+    // Cells that fall on the safe lane or off the road are dropped, so the safe
+    // line stays clear and the formation simply thins at the road's edges.
+    if (lane < 0 || lane >= LANE_COUNT || lane === safe) continue;
+    const z = cell.z * CHUNK_LENGTH;
+    resolveCell(spawns, cell, lane, z, safe, w.clusterMin, w.clusterMax, pickupScale, lethality, rng);
   }
   return spawns;
+}
+
+/**
+ * Weighted pick of one formation for this chunk's act and intensity. Intensity
+ * tilts the field toward the harder formations deep in and the gentle ones in the
+ * eased-in opening (`formationWeight`). Returns null only if the act has no
+ * formations at all (it never does).
+ */
+function pickFormation(act: number, intensity: number, rng: Rng): Formation | null {
+  const bias = DIFFICULTY_TUNING.hardnessBias;
+  let total = 0;
+  for (const f of FORMATIONS) total += formationWeight(f, act, intensity, bias);
+  if (total <= 0) return null;
+  let r = nextFloat(rng) * total;
+  for (const f of FORMATIONS) {
+    const weight = formationWeight(f, act, intensity, bias);
+    if (weight <= 0) continue;
+    r -= weight;
+    if (r < 0) return f;
+  }
+  return FORMATIONS[FORMATIONS.length - 1];
+}
+
+/** Resolve one formation cell into its concrete spawn(s) on `lane` at `z`. */
+function resolveCell(
+  spawns: Spawn[],
+  cell: FormationCell,
+  lane: number,
+  z: number,
+  safe: number,
+  clusterMin: number,
+  clusterMax: number,
+  pickupScale: number,
+  lethality: number,
+  rng: Rng,
+): void {
+  switch (cell.role) {
+    case 'wreck': {
+      // Deep-run lethality can promote a steerable wreck to an un-jumpable rig, so
+      // a familiar formation's blockers turn nastier the further in you get.
+      const toRig = nextFloat(rng) < (lethality - 1) * DIFFICULTY_TUNING.lethalWreckUpgrade;
+      spawns.push({ kind: toRig ? 'rig' : 'wreck', lane, z });
+      break;
+    }
+    case 'rig':
+    case 'boulder':
+    case 'barrel':
+    case 'meteor':
+    case 'gap':
+      spawns.push({ kind: cell.role, lane, z });
+      break;
+    case 'crackgap':
+      // A quake gap: a `gap` that starts as a harmless crack and tears open later.
+      spawns.push({ kind: 'gap', lane, z, opening: true });
+      break;
+    case 'drifter': {
+      // Slides one lane over as it nears; never crosses onto the safe line. If
+      // neither side is a valid non-safe lane, fall back to a static wreck.
+      const toLane = driftTarget(rng, lane, safe);
+      if (toLane >= 0) spawns.push({ kind: 'drifter', lane, z, toLane });
+      else spawns.push({ kind: 'wreck', lane, z });
+      break;
+    }
+    case 'horde':
+      addZombieCluster(spawns, lane, rng, z, nextInt(rng, clusterMin, clusterMax + 1));
+      break;
+    case 'loot':
+      // The greedy lane's payout: a full crowd (still inside the act's bounds).
+      addZombieCluster(spawns, lane, rng, z, clusterMax);
+      break;
+    case 'ammo':
+    case 'health':
+    case 'lift': {
+      // Bonus pickups (the generous extras, not the one that makes the formation
+      // fair) thin out as the economy tightens deep in.
+      if (cell.bonus && nextFloat(rng) > pickupScale) break;
+      const kind = cell.role === 'lift' ? 'jump' : cell.role;
+      spawns.push({ kind, lane, z, phase: nextFloat(rng) });
+      break;
+    }
+  }
 }
 
 /**
@@ -124,25 +197,18 @@ function driftTarget(rng: Rng, origin: number, safe: number): number {
 }
 
 /**
- * A short line of zombies in one lane, spaced so plowing the lane racks a combo.
- * The cluster is placed so it fits within the chunk, then each zombie gets a
+ * A line of `size` zombies in one lane starting near `baseZ`, spaced so plowing
+ * the lane racks a combo. Clamped to fit inside the chunk, then each zombie gets a
  * deterministic phase for render variety.
  */
-function addZombieCluster(
-  spawns: Spawn[],
-  lane: number,
-  rng: Rng,
-  clusterMin: number,
-  clusterMax: number,
-): void {
-  const size = nextInt(rng, clusterMin, clusterMax + 1);
+function addZombieCluster(spawns: Spawn[], lane: number, rng: Rng, baseZ: number, size: number): void {
   const span = (size - 1) * SPAWN_TUNING.clusterSpacing;
-  const baseZ = nextFloat(rng) * (CHUNK_LENGTH - span);
+  const z0 = Math.max(0, Math.min(baseZ, CHUNK_LENGTH - span));
   for (let i = 0; i < size; i += 1) {
     spawns.push({
       kind: 'zombie',
       lane,
-      z: baseZ + i * SPAWN_TUNING.clusterSpacing,
+      z: z0 + i * SPAWN_TUNING.clusterSpacing,
       phase: nextFloat(rng),
     });
   }

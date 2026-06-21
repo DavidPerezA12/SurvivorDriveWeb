@@ -227,6 +227,27 @@ function gapGeometry(): THREE.BufferGeometry {
   return geo;
 }
 
+// The quake-crack telegraph: a glowing jagged fissure lying on the road, shown
+// while a quake gap is still closed (`open === false`). Baked bright and drawn on
+// the unlit silhouette material so it reads as a hot seam of light against the dark
+// asphalt, warning the lane is about to tear open. Replaced by the gap pit once it
+// opens (`updateQuakes`).
+const CRACK_GLOW = 0xff5a1e;
+function quakeCrackGeometry(): THREE.BufferGeometry {
+  const parts = [
+    box(0.32, 0.06, 3.0, CRACK_GLOW, 0).translate(0, 0.05, 1.7),
+    box(0.27, 0.06, 2.4, CRACK_GLOW, 0).rotateY(0.2).translate(0.14, 0.05, -0.7),
+    box(0.22, 0.06, 1.9, CRACK_GLOW, 0).rotateY(-0.24).translate(-0.16, 0.05, -2.7),
+    // A couple of branch fractures so the seam reads as torn, not a painted stripe.
+    box(0.16, 0.06, 1.0, CRACK_GLOW, 0).rotateY(1.0).translate(0.5, 0.05, 0.8),
+    box(0.14, 0.06, 0.9, CRACK_GLOW, 0).rotateY(-1.1).translate(-0.5, 0.05, -1.8),
+  ];
+  const geo = mergeGeometries(parts, false);
+  for (const part of parts) part.dispose();
+  if (!geo) throw new Error('Failed to merge quake-crack geometry');
+  return geo;
+}
+
 /**
  * Renders the sim's live hazards, instanced. The sim owns where they are; this
  * is a read-only view that maps each hazard's absolute world-forward to screen
@@ -240,6 +261,7 @@ export class HazardField {
   private readonly boulderMesh: THREE.InstancedMesh;
   private readonly barrelMesh: THREE.InstancedMesh;
   private readonly gapMesh: THREE.InstancedMesh;
+  private readonly crackMesh: THREE.InstancedMesh;
   private readonly dummy = new THREE.Object3D();
   /** Reused per-instance tint, so a row of the same blocker never reads identical. */
   private readonly tint = new THREE.Color();
@@ -260,6 +282,8 @@ export class HazardField {
     // Unlit material so the void stays black under any act light (a lit dark
     // surface gets washed pale and reads as a slab, not a hole).
     this.gapMesh = new THREE.InstancedMesh(gapGeometry(), silhouetteMaterial, MAX_INSTANCES);
+    // The pre-open crack telegraph; unlit so its baked glow reads as hot light.
+    this.crackMesh = new THREE.InstancedMesh(quakeCrackGeometry(), silhouetteMaterial, MAX_INSTANCES);
     for (const mesh of [
       this.wreckMesh,
       this.wreckVanMesh,
@@ -267,6 +291,7 @@ export class HazardField {
       this.boulderMesh,
       this.barrelMesh,
       this.gapMesh,
+      this.crackMesh,
     ]) {
       mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       mesh.frustumCulled = false;
@@ -282,6 +307,7 @@ export class HazardField {
     let boulders = 0;
     let barrels = 0;
     let gaps = 0;
+    let cracks = 0;
     for (const h of state.hazards) {
       // A detonated barrel is gone from the world.
       if (h.kind === 'barrel' && h.hit) continue;
@@ -299,6 +325,10 @@ export class HazardField {
       } else if (h.kind === 'barrel') {
         mesh = this.barrelMesh;
         count = barrels;
+      } else if (h.kind === 'gap' && h.open === false) {
+        // Still a telegraph crack: draw the glowing fissure, not the pit.
+        mesh = this.crackMesh;
+        count = cracks;
       } else if (h.kind === 'gap') {
         mesh = this.gapMesh;
         count = gaps;
@@ -339,6 +369,7 @@ export class HazardField {
       if (h.kind === 'rig') rigs += 1;
       else if (h.kind === 'boulder') boulders += 1;
       else if (h.kind === 'barrel') barrels += 1;
+      else if (h.kind === 'gap' && h.open === false) cracks += 1;
       else if (h.kind === 'gap') gaps += 1;
       else if (h.kind === 'wreck' && this.hv(h.forward, 6) < 0.5) vans += 1;
       else wrecks += 1;
@@ -349,6 +380,7 @@ export class HazardField {
     this.boulderMesh.count = boulders;
     this.barrelMesh.count = barrels;
     this.gapMesh.count = gaps;
+    this.crackMesh.count = cracks;
     for (const mesh of [
       this.wreckMesh,
       this.wreckVanMesh,
@@ -356,6 +388,7 @@ export class HazardField {
       this.boulderMesh,
       this.barrelMesh,
       this.gapMesh,
+      this.crackMesh,
     ]) {
       mesh.instanceMatrix.needsUpdate = true;
       if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;

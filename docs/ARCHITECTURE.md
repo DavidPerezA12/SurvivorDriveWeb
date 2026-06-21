@@ -87,9 +87,13 @@ constraints validated in tests:
 - A **safe line always exists** across any 3-chunk window. Asserted by a CI greedy
   pathing check over thousands of windows per act table.
 - Loot is **risk-priced**: pickups roll a danger score and value scales with it.
-- The current rule: each non-safe lane independently rolls one of {wreck, rig,
-  zombie cluster, pickup, empty}; the safe lane is skipped entirely, so it carries
-  no threat and no scrap. (The full risk-priced scorer comes later.)
+- The current rule: each chunk lays down one authored formation, a small set-piece
+  of obstacles that forces a decision, with its pickups placed in relation to the
+  threat they answer (ammo before the crowd, a lift charge before the gap, loot on
+  the lane you must leave safety to reach). The formation is chosen by act and a
+  distance-driven intensity, so gentle formations open a run and punishing ones end
+  it. The safe lane is never filled, so it carries no threat and no scrap. (The
+  full risk-priced scorer comes later.)
 
 ## Events (set pieces)
 

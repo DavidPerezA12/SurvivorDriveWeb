@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { createSim, step, NO_INTENT, type Intent, type SimState } from '../src/sim';
+import { createSim, step, safeLane, NO_INTENT, type Intent, type SimState } from '../src/sim';
+import { CHUNK_LENGTH, LANE_COUNT } from '../src/content/tuning';
 
 /**
  * The prime determinism gate (docs/ARCHITECTURE.md → Testing strategy).
@@ -44,9 +45,23 @@ describe('determinism', () => {
 
   it('diverges between seeds once it reaches the seeded world', () => {
     // Far enough in to hit different roads: the worlds — and therefore what the
-    // car mows and crashes into — must differ between seeds.
-    const a = run(1, script, 1500);
-    const b = run(2, script, 1500);
+    // car mows and crashes into — must differ between seeds. The world is built
+    // from designed formations rather than scattered lane rolls, so scoring is
+    // opt-in greed: the safe lane carries nothing. Drive one lane off the safe
+    // line (where the formations stack their crowds and loot) with the trigger
+    // held, so the run reliably meets and clears a crowd.
+    const greedRun = (seed: number): SimState => {
+      const s = createSim(seed);
+      for (let i = 0; i < 4000; i += 1) {
+        const ahead = Math.floor((s.distance + s.car.speed * 0.35) / CHUNK_LENGTH);
+        const want = Math.min(LANE_COUNT - 1, safeLane(seed, ahead) + 1);
+        const steer: -1 | 0 | 1 = want > s.car.targetLane ? 1 : want < s.car.targetLane ? -1 : 0;
+        step(s, { steer, jump: false, fire: true });
+      }
+      return s;
+    };
+    const a = greedRun(1);
+    const b = greedRun(2);
     expect(a).not.toEqual(b);
     // Something seeded actually happened in at least one of the runs.
     expect(a.zombiesMowed + a.scrap + b.zombiesMowed + b.scrap).toBeGreaterThan(0);

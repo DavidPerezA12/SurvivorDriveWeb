@@ -33,10 +33,23 @@ export const LOOKAHEAD = 250;
 export const CAR_TUNING = {
   /** Base cruising speed the car ramps up to at the start of a run. */
   baseTopSpeed: 50,
-  /** Extra cruising speed gained by `speedRampDistance` meters in. */
-  topSpeedGain: 16,
-  /** Distance (m) over which the speed ramp reaches full `topSpeedGain`. */
-  speedRampDistance: 2200,
+  /**
+   * The speed ramp is two stages. The first is the M1 feel ramp: a quick climb to
+   * a comfortable cruise over the opening stretch, unchanged from how it was tuned
+   * by hand. The second is a slow, distance-long climb that never stops, so the
+   * car keeps getting faster the deeper a run goes. Speed is the one difficulty
+   * lever that bites even a player glued to the safe lane (less road per second to
+   * read the wandering safe line and the threats beside it), and the only one that
+   * keeps escalating once the act mix has maxed out. It is capped, so the car is
+   * fast but never uncontrollable.
+   */
+  earlyGain: 16,
+  /** Distance (m) over which the early feel ramp reaches full `earlyGain`. */
+  earlyRampDistance: 2200,
+  /** Extra cruising speed the slow late ramp adds on top, fully gained by `lateRampDistance`. */
+  lateGain: 18,
+  /** Distance (m), measured from the start, by which the late ramp is fully gained. */
+  lateRampDistance: 50000,
   /** Forward acceleration toward the current cruising speed. */
   accel: 20,
 
@@ -89,7 +102,7 @@ export const DECOR_TUNING = {
  */
 export const SPAWN_TUNING = {
   /** Chunks at the start of a run with nothing spawned, so the drive eases in. */
-  graceChunks: 4,
+  graceChunks: 2,
   /** Spacing along the lane (m) between zombies in a cluster (act sets the count). */
   clusterSpacing: 2.6,
 } as const;
@@ -220,6 +233,19 @@ export const METEOR_TUNING = {
   impactGap: 6,
   /** Height (m) the rock falls from when the telegraph begins. */
   fallHeight: 60,
+} as const;
+
+/**
+ * The quake-split event (docs/DESIGN.md → Pillar 1: the road is the boss). A run of
+ * gaps that tear open in a wave across the non-safe lanes. Each starts as a harmless
+ * telegraph crack, visible from the spawn horizon, and only opens into a lethal hole
+ * once the car is within `openGap` meters. That is ~1.5 s of road at cruising speed,
+ * enough to jump it or be on a lane that holds, while the crack itself reads from
+ * far off. The safe lane never cracks, so fleeing to it is always an out.
+ */
+export const QUAKE_TUNING = {
+  /** Gap (m) at which a telegraph crack tears open into a lethal hole. */
+  openGap: 90,
 } as const;
 
 /**

@@ -172,3 +172,108 @@ export function actAt(distance: number): number {
 export function spawnWeightsAt(distance: number): SpawnWeights {
   return ACT_SPAWNS[actAt(distance)];
 }
+
+/**
+ * The act tables give each band its *character* (the shape of its mix). Difficulty
+ * escalation rides on top of them so the absolute pressure climbs continuously
+ * across a run instead of sitting flat inside each act and plateauing forever once
+ * the last act repeats. Pure functions of distance so the road stays deterministic
+ * per seed; `world.ts` reads them when it picks and resolves each chunk's formation
+ * (`src/content/formations.ts`).
+ */
+export const DIFFICULTY_TUNING = {
+  /** Formation-hardness bias at distance 0: the opening eases in below neutral. */
+  intensityStart: 0.8,
+  /** Distance (m) by which intensity has climbed back to neutral (1.0). */
+  intensityWarmup: 9000,
+  /** The most intensity ever reaches, deep into the endless tail. */
+  intensityMax: 1.55,
+  /** Distance (m) by which intensity reaches `intensityMax`. */
+  intensityRampDistance: 60000,
+  /**
+   * Pacing: a chunk leaves itself open road (a breather beat) with this chance at
+   * the eased-in opening, falling to `openChanceDeep` in the tail. Breathers space
+   * the formations out so each reads as a deliberate beat with room to recover
+   * between, instead of a wall of obstacles every 50 m. The opening breathes and
+   * teaches; the deep tail is near wall-to-wall. Interpolated over the same
+   * intensity range as everything else.
+   */
+  openChanceStart: 0.14,
+  openChanceDeep: 0.03,
+  /**
+   * How hard intensity tilts formation selection toward the punishing formations
+   * (and away from the gentle ones) as it moves off neutral. Higher = the opening
+   * stays calmer and the deep tail nastier (`formationWeight`).
+   */
+  hardnessBias: 1.4,
+  /**
+   * Chance a plain wreck in a formation is upgraded to an un-jumpable rig, scaled
+   * by how far lethality sits above 1. Lets the deadly-line escalation reach the
+   * formations that only carry wrecks, so the deep tail's blockers turn nastier
+   * even when the same formation repeats.
+   */
+  lethalWreckUpgrade: 0.32,
+  /** Pickup frequency multiplier early in a run (teaching is generous). */
+  pickupScaleStart: 1,
+  /** Pickup frequency multiplier deep in a run (the hull/ammo economy tightens). */
+  pickupScaleMin: 0.6,
+  /** Distance (m) over which pickup frequency falls from start to min. */
+  pickupScaleDistance: 36000,
+  /**
+   * Formation choice plateaus once the deep acts are drawing their hardest set.
+   * The mix keeps escalating past that through this factor: it scales the chance a
+   * formation's plain wrecks upgrade to un-jumpable rigs (`lethalWreckUpgrade`),
+   * so the same late formation's blockers turn deadlier the deeper a run goes.
+   */
+  lethalityStart: 1,
+  /** The most the deadly-line hazards are over-weighted, deep in. */
+  lethalityMax: 2.3,
+  /** Distance (m) by which lethality reaches its max. */
+  lethalityRampDistance: 72000,
+} as const;
+
+/** Linear ramp from `a` to `b` as `d` goes 0..`span`, clamped at both ends. */
+function ramp(d: number, span: number, a: number, b: number): number {
+  const t = Math.max(0, Math.min(d / span, 1));
+  return a + (b - a) * t;
+}
+
+/**
+ * Threat-density multiplier at a distance: eases in below 1 for the opening, climbs
+ * back to the table value, then keeps rising slowly toward `intensityMax` so a long
+ * run is a genuine gauntlet rather than a fixed plateau.
+ */
+export function intensityAt(distance: number): number {
+  const d = Math.max(0, distance);
+  const t = DIFFICULTY_TUNING;
+  if (d < t.intensityWarmup) return ramp(d, t.intensityWarmup, t.intensityStart, 1);
+  return ramp(d - t.intensityWarmup, t.intensityRampDistance - t.intensityWarmup, 1, t.intensityMax);
+}
+
+/** Pickup-frequency multiplier at a distance: generous early, scarce deep in. */
+export function pickupScaleAt(distance: number): number {
+  const t = DIFFICULTY_TUNING;
+  return ramp(Math.max(0, distance), t.pickupScaleDistance, t.pickupScaleStart, t.pickupScaleMin);
+}
+
+/**
+ * Over-weight factor for the deadly-line hazards (rig, meteor, gap) at a distance:
+ * climbs with the run so the endless tail keeps getting deadlier in composition
+ * even once raw density has hit the clamp.
+ */
+export function lethalityAt(distance: number): number {
+  const t = DIFFICULTY_TUNING;
+  return ramp(Math.max(0, distance), t.lethalityRampDistance, t.lethalityStart, t.lethalityMax);
+}
+
+/**
+ * Chance a chunk is left as open road (a breather beat) at the given intensity:
+ * generous in the eased-in opening, near zero deep in. Drives the pacing between
+ * formations so each reads as a deliberate beat (`world.ts`).
+ */
+export function openChanceAt(intensity: number): number {
+  const t = DIFFICULTY_TUNING;
+  const span = t.intensityMax - t.intensityStart;
+  const f = span <= 0 ? 1 : Math.max(0, Math.min((intensity - t.intensityStart) / span, 1));
+  return t.openChanceStart + (t.openChanceDeep - t.openChanceStart) * f;
+}

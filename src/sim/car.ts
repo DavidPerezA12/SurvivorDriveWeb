@@ -101,8 +101,15 @@ export function stepCar(
   }
 }
 
-/** Current cruising speed for a given distance (the M1 speed ramp). */
+/**
+ * Current cruising speed for a given distance. Two stages (see CAR_TUNING): a
+ * quick early ramp to a comfortable cruise (the M1 feel ramp), then a slow climb
+ * that runs the whole length of a run so deep distance keeps tightening reaction
+ * time. Both terms are clamped, so the car tops out fast but bounded.
+ */
 export function cruisingSpeed(distance: number): number {
-  const t = Math.min(distance / CAR_TUNING.speedRampDistance, 1);
-  return CAR_TUNING.baseTopSpeed + CAR_TUNING.topSpeedGain * t;
+  const d = Math.max(0, distance);
+  const early = Math.min(d / CAR_TUNING.earlyRampDistance, 1);
+  const late = Math.min(d / CAR_TUNING.lateRampDistance, 1);
+  return CAR_TUNING.baseTopSpeed + CAR_TUNING.earlyGain * early + CAR_TUNING.lateGain * late;
 }

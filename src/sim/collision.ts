@@ -13,6 +13,7 @@ import {
   LOOKAHEAD,
   MOW_TUNING,
   PICKUP_TUNING,
+  QUAKE_TUNING,
   WEAPON_TUNING,
   laneCenterX,
 } from '../content/tuning';
@@ -107,13 +108,15 @@ export function materializeSpawns(state: SimState): void {
           landed: false,
         });
       } else {
-        // wreck | rig | boulder | barrel | gap — the static road hazards.
+        // wreck | rig | boulder | barrel | gap — the static road hazards. A gap
+        // flagged `opening` is a quake crack: harmless until `updateQuakes` opens it.
         state.hazards.push({
           kind: spawn.kind,
           lane: spawn.lane,
           x: laneCenterX(spawn.lane),
           forward: base + spawn.z,
           hit: false,
+          open: spawn.kind === 'gap' && spawn.opening ? false : undefined,
         });
       }
     }
@@ -160,6 +163,25 @@ export function updateMeteors(state: SimState): void {
 }
 
 /**
+ * Tear open any quake crack the car has reached (`QUAKE_TUNING.openGap`). While a
+ * quake gap is a crack it is `open: false` and collisions skip it (a harmless
+ * telegraph); the tick it opens it latches `open: true`, becoming a lethal hole,
+ * and emits one `exploded` event so the renderer kicks up the dust burst. The gaps
+ * sit at staggered forward positions, so they open in a wave as the car advances.
+ * Deterministic (a function of the gap) and allocation-free. Runs before collisions
+ * so a gap that opens this tick can already swallow the car.
+ */
+export function updateQuakes(state: SimState): void {
+  for (const h of state.hazards) {
+    if (h.kind !== 'gap' || h.open !== false || h.hit) continue;
+    if (h.forward - state.distance <= QUAKE_TUNING.openGap) {
+      h.open = true;
+      state.events.push({ type: 'exploded', x: h.x, forward: h.forward });
+    }
+  }
+}
+
+/**
  * Swept overlap of the car against live hazards. The car's front is at
  * `distance`; a hazard within the forward span and lane band is a hit unless the
  * car is jumping over it. A square hit costs more hull and momentum than a
@@ -171,6 +193,8 @@ export function resolveCollisions(state: SimState): void {
     if (h.hit) continue;
     // A meteor is harmless until it lands; a falling rock never collides.
     if (h.kind === 'meteor' && !h.landed) continue;
+    // A quake gap is harmless while it is still just a telegraph crack.
+    if (h.kind === 'gap' && h.open === false) continue;
 
     const rig = h.kind === 'rig';
     const boulder = h.kind === 'boulder';
