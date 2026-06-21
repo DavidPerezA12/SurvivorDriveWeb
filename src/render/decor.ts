@@ -5,6 +5,7 @@ import { box, propMaterial, wheel } from './materials';
 import { palette } from './palette';
 import { CHUNK_LENGTH, LOOKAHEAD } from '../content/tuning';
 import { ACT_SPAN } from './mood';
+import type { Elevation } from './elevation';
 
 const MAX_INSTANCES = 64;
 
@@ -125,7 +126,7 @@ export class DecorField {
     }
   }
 
-  update(distance: number): void {
+  update(distance: number, elevation: Elevation): void {
     const first = Math.floor((distance - CHUNK_LENGTH) / CHUNK_LENGTH);
     const last = Math.ceil((distance + LOOKAHEAD) / CHUNK_LENGTH);
 
@@ -143,7 +144,9 @@ export class DecorField {
         // urban ground scatter carry the roadside there instead. Render-only: the
         // sim still generates the prop, we just don't draw this one here.
         if (prop.kind === 'rock' && forward < ACT_SPAN) continue;
-        this.dummy.position.set(prop.x, 0, distance - forward);
+        // Sit on the road's vertical profile at this forward, not at a flat y=0
+        // the terrain rises through as the hills scroll past.
+        this.dummy.position.set(prop.x, elevation.yAt(forward, distance), distance - forward);
         this.dummy.rotation.set(0, prop.rot, 0);
         this.dummy.scale.setScalar(prop.scale);
         this.dummy.updateMatrix();

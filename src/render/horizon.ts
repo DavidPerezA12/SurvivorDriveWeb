@@ -4,6 +4,7 @@ import { box, paint, silhouetteMaterial } from './materials';
 import { palette } from './palette';
 import { LOOKAHEAD } from '../content/tuning';
 import { actBlendAt, ACTS } from './mood';
+import type { Elevation } from './elevation';
 
 /**
  * The distant backdrop the road drives through, a different world (and a different
@@ -1048,7 +1049,7 @@ export class Horizon {
     return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
   }
 
-  update(distance: number, dt: number): void {
+  update(distance: number, dt: number, elevation: Elevation): void {
     this.time += dt;
     for (const kind of KINDS) this.counts[kind] = 0;
 
@@ -1058,10 +1059,10 @@ export class Horizon {
     const bi = Math.min(ai + 1, last);
     const t = blend.t;
 
-    this.fill(NEAR, 'near', distance, ai, bi, t);
-    this.fill(MID, 'mid', distance, ai, bi, t);
-    this.fill(FAR, 'far', distance, ai, bi, t);
-    this.fill(ACCENT, 'accent', distance, ai, bi, t);
+    this.fill(NEAR, 'near', distance, ai, bi, t, elevation);
+    this.fill(MID, 'mid', distance, ai, bi, t, elevation);
+    this.fill(FAR, 'far', distance, ai, bi, t, elevation);
+    this.fill(ACCENT, 'accent', distance, ai, bi, t, elevation);
 
     for (const kind of KINDS) {
       const mesh = this.meshes[kind];
@@ -1073,7 +1074,15 @@ export class Horizon {
     }
   }
 
-  private fill(band: Band, role: Role, distance: number, ai: number, bi: number, t: number): void {
+  private fill(
+    band: Band,
+    role: Role,
+    distance: number,
+    ai: number,
+    bi: number,
+    t: number,
+    elevation: Elevation,
+  ): void {
     const first = Math.floor((distance - band.spacing) / band.spacing);
     const last = Math.ceil((distance + band.reach) / band.spacing);
 
@@ -1090,12 +1099,16 @@ export class Horizon {
         const n = this.counts[kind];
         if (n >= CAP) continue;
 
+        const worldZ = slot * band.spacing + (this.rand(key, 2) - 0.5) * band.jitterZ;
+
         const meta = KIND_META[kind];
-        let y = meta.elevation;
+        // Ride the road's vertical profile so a silhouette is planted on the
+        // undulating ground at its forward, not floating at a fixed height that
+        // the terrain rises out of and sinks under as the hills scroll past.
+        let y = meta.elevation + elevation.yAt(worldZ, distance);
         if (meta.elevJitter > 0) y += this.rand(key, 9) * meta.elevJitter;
         if (meta.bob > 0) y += Math.sin(this.time * BOB_SPEED + this.rand(key, 10) * TWO_PI) * meta.bob;
 
-        const worldZ = slot * band.spacing + (this.rand(key, 2) - 0.5) * band.jitterZ;
         const x = side * (band.xMin + this.rand(key, 3) * (band.xMax - band.xMin));
         const base = band.scaleMin + this.rand(key, 4) * (band.scaleMax - band.scaleMin);
         const yaw = this.rand(key, 5) * TWO_PI;

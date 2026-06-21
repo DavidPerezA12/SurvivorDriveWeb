@@ -4,6 +4,7 @@ import { box, paint, propMaterial } from './materials';
 import { palette } from './palette';
 import { LOOKAHEAD, roadHalfWidth } from '../content/tuning';
 import { ACT_SPAN } from './mood';
+import type { Elevation } from './elevation';
 
 /**
  * Flat detail scattered on the dirt either side of the road. In the wasteland
@@ -144,7 +145,7 @@ export class GroundScatter {
     return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
   }
 
-  update(distance: number): void {
+  update(distance: number, elevation: Elevation): void {
     for (const kind of KINDS) this.counts[kind] = 0;
 
     const first = Math.floor((distance - SPACING) / SPACING);
@@ -176,7 +177,9 @@ export class GroundScatter {
         const scale = 0.7 + this.rand(key, 5) * 1.1;
         const yaw = this.rand(key, 6) * Math.PI;
 
-        this.dummy.position.set(x, 0, distance - worldZ);
+        // Lie on the road's vertical profile at this forward, so the decal hugs
+        // the undulating ground instead of floating where the terrain rises.
+        this.dummy.position.set(x, elevation.yAt(worldZ, distance), distance - worldZ);
         this.dummy.rotation.set(0, yaw, 0);
         this.dummy.scale.setScalar(scale);
         this.dummy.updateMatrix();

@@ -272,13 +272,13 @@ export class GameView {
     this.car.scale.set(1 + this.squash * 0.6, 1 - this.squash, 1 + this.squash * 0.6);
 
     this.environment.update(distance, this.elevation);
-    this.horizon.update(distance, dt);
+    this.horizon.update(distance, dt, this.elevation);
     this.dust.update(distance, dt);
     this.road.update(distance, this.elevation);
     this.roadWear.update(distance, this.elevation);
     this.crossStreets.update(distance, this.elevation);
-    this.groundScatter.update(distance);
-    this.decor.update(distance);
+    this.groundScatter.update(distance, this.elevation);
+    this.decor.update(distance, this.elevation);
     this.guardrail.update(distance, this.elevation);
     this.overpass.update(distance, this.elevation);
     this.hazards.update(curr, this.elevation);
