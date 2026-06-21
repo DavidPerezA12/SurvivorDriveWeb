@@ -13,7 +13,7 @@ import type { DeathCause } from '../content/runTitles';
 /** Geometry recipe for a chunk. M0 only ships flat road; the rest are M3+. */
 export type ChunkVariant = 'flat' | 'crack' | 'collapsed' | 'ramp' | 'trench';
 
-/** Purely decorative roadside dressing — never interactive (that is M2+). */
+/** Purely decorative roadside dressing. Never interactive; that is M2+. */
 export type PropKind = 'post' | 'rock' | 'husk' | 'barrier';
 
 export interface Prop {
@@ -37,7 +37,7 @@ export interface Prop {
  * one lane over as it nears, carrying its target lane) — the zombie (mowable/shootable
  * fodder), and three cool collectibles: a lift pickup (refills a jump charge), a
  * health pickup (repairs the hull), and an ammo box (refills the gun). Zombie and
- * every pickup carry a deterministic `phase` — render-only variety (shamble/bob
+ * every pickup carry a deterministic `phase`: render-only variety (shamble/bob
  * offset, yaw) the sim never reads.
  */
 export type SpawnKind =
@@ -56,7 +56,7 @@ export type SpawnKind =
 /**
  * The blockers spawned with a plain `{lane, z}` shape (everything but the
  * `drifter`, which also carries a target lane). The `meteor` shares the shape but
- * is not literally static — it falls from the sky onto its lane (`updateMeteors`).
+ * is not literally static; it falls from the sky onto its lane (`updateMeteors`).
  */
 export type StaticHazardKind = 'wreck' | 'rig' | 'boulder' | 'barrel' | 'meteor' | 'gap';
 
@@ -66,9 +66,9 @@ export type StaticHazardKind = 'wreck' | 'rig' | 'boulder' | 'barrel' | 'meteor'
  * and a landed `meteor` are too tall/violent to clear (the only out is a lane
  * change). The `barrel` is also the one blocker the gun can destroy
  * (`detonateBarrel`). The `drifter` is a wreck that slides one lane over as it
- * nears. The `meteor` falls from the sky — harmless while falling, lethal once it
+ * nears. The `meteor` falls from the sky, harmless while falling and lethal once it
  * lands. The `gap` is a hole in the road itself: not a thing to hit but a thing to
- * be *over while grounded* — jump it or change lane, or fall in and die
+ * be over while grounded: jump it or change lane, or fall in and die
  * (docs/DESIGN.md → roster; the road is the boss).
  */
 export type HazardKind = StaticHazardKind | 'drifter';
@@ -141,14 +141,14 @@ export interface CarState {
   airborne: boolean;
   /**
    * Jump charges in hand. A jump costs one; lift pickups refill them. The jump
-   * arc itself never degrades — scarcity, not a weaker hop, is the cost of
+   * arc itself never degrades. Scarcity, not a weaker hop, is the cost of
    * jumping (docs/DESIGN.md → Pillar 2).
    */
   jumpCharges: number;
   /**
    * The hull, 0..1 (docs/DESIGN.md → Pillar 2). One bar: crashes chew into it,
    * health pickups refill it, and at 0 the run ends. Damage never touches the
-   * controls — the car drives clean until the hull gives out.
+   * controls. The car drives clean until the hull gives out.
    */
   health: number;
   /** Rounds left in the gun. A shot spends ammo; ammo boxes refill it. */
@@ -187,7 +187,7 @@ export interface Hazard {
 }
 
 /**
- * A zombie the sim has materialized into the live world — mowable/shootable
+ * A zombie the sim has materialized into the live world: mowable/shootable
  * fodder, never a damaging blocker (docs/DESIGN.md → Pillar 2). `mowed` latches
  * so one zombie pays scrap once, whether it is rammed or shot. Position mirrors
  * `Hazard` so the renderer maps it the same way; `phase` is deterministic render
@@ -204,7 +204,7 @@ export interface Zombie {
 }
 
 /**
- * A collectible the sim has materialized into the live world — a lift pickup
+ * A collectible the sim has materialized into the live world: a lift pickup
  * (refills a jump charge), a health pickup (repairs the hull), or an ammo box
  * (refills the gun). All spawn only off the safe lane, so every kind of refill is
  * a greed reward (docs/DESIGN.md → Pillar 3). Position mirrors `Hazard`; `phase`
@@ -223,11 +223,11 @@ export interface Pickup {
 }
 
 export interface SimState {
-  /** The run seed — world generation is a pure function of it. */
+  /** The run seed; world generation is a pure function of it. */
   seed: number;
   /**
    * The garage loadout this run was started with: the numeric modifiers derived
-   * from owned upgrades. Pure run input alongside the seed — the sim reads it,
+   * from owned upgrades. Pure run input alongside the seed; the sim reads it,
    * never mutates it, so `(seed, loadout, intents)` reproduces the run exactly.
    */
   loadout: Loadout;
@@ -238,13 +238,13 @@ export interface SimState {
   car: CarState;
   /** Live hazards near the car, materialized on first sight, pruned behind. */
   hazards: Hazard[];
-  /** Live zombies near the car — fodder, materialized and pruned like hazards. */
+  /** Live zombies near the car: fodder, materialized and pruned like hazards. */
   zombies: Zombie[];
-  /** Live pickups near the car — jump/health/ammo refills, materialized and pruned like hazards. */
+  /** Live pickups near the car: jump/health/ammo refills, materialized and pruned like hazards. */
   pickups: Pickup[];
   /** Next chunk index whose spawns have not yet been materialized. */
   nextSpawnChunk: number;
-  /** Scrap collected this run — the currency mowing pays out. */
+  /** Scrap collected this run; the currency mowing pays out. */
   scrap: number;
   /** Total zombies killed this run (a run stat for the death card). */
   zombiesMowed: number;
@@ -252,7 +252,7 @@ export interface SimState {
   combo: number;
   /** Ticks the current streak survives without a fresh kill; 0 = no streak. */
   comboTicks: number;
-  /** True once the hull is destroyed — the run is over. */
+  /** True once the hull is destroyed; the run is over. */
   dead: boolean;
   /**
    * What dealt the killing blow, set the tick the hull empties (the blocker kind
@@ -273,8 +273,8 @@ export type ReadonlyState = Readonly<SimState>;
 /**
  * Normalized player input for one tick. The only channel from input → sim.
  * `steer` is -1 / +1 on the tick a lane-change is requested (0 otherwise) and
- * `jump` is true on the tick a jump is requested — both edge-triggered. `fire`
- * is a *held* state: true while the trigger is down, with the sim gating the
+ * `jump` is true on the tick a jump is requested. Both are edge-triggered. `fire`
+ * is a held state: true while the trigger is down, with the sim gating the
  * cadence, so holding it auto-fires (docs/DESIGN.md → Pillar 2). The input layer
  * does the edge detection; the sim stays pure.
  */

@@ -7,15 +7,15 @@ import { ACT_SPAN } from './mood';
 
 /**
  * Flat detail scattered on the dirt either side of the road. In the wasteland
- * acts it's sand drifts, cracked earth and scorch; inside the opening **city**
- * (Outbreak, the first band) it swaps to *paved* clutter — concrete sidewalk
+ * acts it is sand drifts, cracked earth and scorch; inside the opening city
+ * (Outbreak, the first band) it swaps to paved clutter: concrete sidewalk
  * slabs, manhole covers and broken-masonry rubble — so the city floor never reads
  * as the same desert dirt as the wasteland (docs/DESIGN.md → Run structure: Act I
  * is a real city). The ground plane is static (the road scrolls over it), so on
  * its own the floor reads as a dead sheet; these decals stream past with distance
  * and give it real motion and texture (docs/DESIGN.md → Art direction).
  *
- * Pure flat decals lying on the ground, only ever *off* the road, so they never
+ * Pure flat decals lying on the ground, only ever off the road, so they never
  * touch gameplay — render-only, reading `distance`. They recycle by slot exactly
  * like the road wear (z = `distance − worldZ`), each slot a pure function of its
  * index and the seed, so nothing flickers and the per-frame path allocates

@@ -6,7 +6,7 @@ import * as THREE from 'three';
  * through named distance bands, each with its own sky, fog, sun, and light tone;
  * crossing a boundary should always read as "I've crossed into somewhere worse."
  *
- * This is render-only art direction: it re-moods the *look* of the world over
+ * This is render-only art direction: it re-moods the look of the world over
  * distance and pulls nothing of the acts' gameplay (event mixes, spawn tables,
  * set-pieces) forward — those stay on the M3/M4 roadmap. Colors are a view
  * concern the sim never sees, so the table lives here beside `palette.ts`.
@@ -26,7 +26,7 @@ export interface ActMood {
   readonly sunCore: THREE.Color;
   readonly sunGlow: THREE.Color;
   readonly sunStrength: number;
-  /** Key + hemisphere light tones — these re-mood every lit surface for free. */
+  /** Key + hemisphere light tones; they re-mood lit surfaces. */
   readonly keyLight: THREE.Color;
   readonly hemiSky: THREE.Color;
   readonly hemiGround: THREE.Color;

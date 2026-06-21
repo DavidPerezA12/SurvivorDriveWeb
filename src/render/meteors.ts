@@ -36,8 +36,8 @@ function disc(radius: number, color: number): THREE.BufferGeometry {
 }
 
 /**
- * Renders the sim's meteors, instanced and allocation-free. The **telegraph is
- * the falling rock itself** — a glowing meteor descends in its target lane from
+ * Renders the sim's meteors, instanced and allocation-free. The telegraph is the
+ * falling rock itself: a glowing meteor descends in its target lane from
  * the spawn horizon (~2.5 s of warning), so the threat reads from the sky, not
  * from a painted marker on the road. Once the sim lands it (`Hazard.landed`) it
  * swaps to a scorched crater with the rock half-buried in it. The impact burst is

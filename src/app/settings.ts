@@ -1,24 +1,24 @@
 /**
  * Player settings: the small, persisted bundle the pause menu edits and the
  * impure layers (renderer, overlay, later audio) read. This lives in `app/`,
- * not `sim/` — settings are presentation, never simulation, so they can never
+ * not `sim/`. Settings are presentation, never simulation, so they can never
  * touch determinism (the same seed must drive the same road regardless of
  * graphics quality or screenshake). The renderer reads these; the sim never
  * sees them.
  *
  * The roster mirrors what a player of the inspiration (The Last Driver) reaches
- * for — graphics quality and sound — plus the accessibility controls our juice
+ * for: graphics quality and sound, plus the accessibility controls our juice
  * rules require (docs/DESIGN.md → Juice): reduced motion and a shake dial.
  */
 
-/** Render fidelity. Maps to a device-pixel-ratio cap — the cheap mobile knob. */
+/** Render fidelity. Maps to a device-pixel-ratio cap. */
 export type Quality = 'low' | 'medium' | 'high';
 
 /** Reduced motion: follow the OS preference, or force it on/off. */
 export type MotionPref = 'auto' | 'on' | 'off';
 
 export interface Settings {
-  /** Pixel-ratio cap tier. The single biggest fill-rate lever on phones. */
+  /** Pixel-ratio cap tier. Main fill-rate lever on phones. */
   quality: Quality;
   /** Camera shake / FOV-punch suppression (docs/DESIGN.md → Juice). */
   motion: MotionPref;

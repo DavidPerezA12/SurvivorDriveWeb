@@ -18,7 +18,7 @@ import type { Elevation } from './elevation';
  * worldZ`, identical to a road tile), and each slot's look is a pure function of
  * its index and the seed, so nothing flickers and the per-frame path allocates
  * nothing. One `InstancedMesh` per wear kind; the lit road material carries the
- * act re-mood and fog for free (docs/ARCHITECTURE.md → Instancing, allocation).
+ * act re-mood and fog (docs/ARCHITECTURE.md → Instancing, allocation).
  */
 
 type WearKind = 'crack' | 'patch' | 'pothole' | 'skid';

@@ -100,11 +100,10 @@ const CAP = 48;
 const BOB_SPEED = 1.1;
 
 /**
- * Per-kind metadata: how high it floats (flyers), and whether it may be stretched
- * non-uniformly. `stretch` is the cheap antidote to "every building is the same
- * model": one geometry, but each instance gets independent width/height/depth, so
- * a skyscraper reads as a hundred different towers. Set-pieces and anything whose
- * proportions are the read (UFO, mech, kaiju, pylon) keep `stretch: false`.
+ * Per-kind metadata: how high it floats, and whether it may be stretched
+ * non-uniformly. Stretchable kinds share one geometry but vary width, height, and
+ * depth per instance. Set-pieces and silhouette-critical props keep fixed
+ * proportions.
  */
 interface KindMeta {
   readonly elevation: number;
@@ -334,10 +333,8 @@ function gradient(
 /**
  * Lit window slits down the front (+z) face of a building mass. On the unlit
  * silhouette material the dim-warm panes glow against the dark structure, so a
- * tower reads as a *building with floors* instead of a flat slab — the cheap,
- * distance-legible kind of detail the style runs on (docs/DESIGN.md → detail from
- * vertex color and proportion, never triangle count). Baked flat (`ao` 0) and
- * kept to a few slits per mass to stay inside the silhouette tri budget.
+ * tower reads as a building with floors. Kept to a few slits per mass to stay
+ * inside the silhouette triangle budget.
  */
 function winSlits(w: number, h: number, x: number, y: number, z: number, count: number): THREE.BufferGeometry[] {
   const out: THREE.BufferGeometry[] = [];
@@ -426,15 +423,14 @@ function warehouseGeometry(): THREE.BufferGeometry {
 
 function cityBlockGeometry(): THREE.BufferGeometry {
   const body = [
-    // 3 main blocks
     plainBox(9, 36, 9).translate(0, 18, 0),
     plainBox(8, 28, 8).translate(9, 14, -1),
     plainBox(7, 22, 9).translate(-8.5, 11, 1),
-    // Rooftop Water Tank on Block B
+    // Rooftop water tank.
     plainCyl(1.4, 1.4, 2, 8).translate(9, 29.8, -1),
     plainCone(1.6, 0.7, 8).translate(9, 31.1, -1),
     plainBox(1.8, 0.8, 1.8).translate(9, 28.4, -1),
-    // Rooftop Billboard Frame on Block A
+    // Rooftop billboard frame.
     plainBox(0.25, 3, 0.25).translate(-2.5, 37.5, 0),
     plainBox(0.25, 3, 0.25).translate(2.5, 37.5, 0),
     plainBox(7.5, 3.8, 0.3).translate(0, 40.5, 0),
@@ -444,22 +440,21 @@ function cityBlockGeometry(): THREE.BufferGeometry {
     plainBox(9.2, 0.9, 0.2).translate(0, 36.45, 4.6),
     plainBox(9.2, 0.9, 0.2).translate(0, 36.45, -4.6),
     plainBox(7.2, 0.8, 0.2).translate(-8.5, 22.4, 5.6),
-    // Fire Escape structure on Block A
-    plainBox(1.2, 0.1, 2.5).translate(-4.6, 8, 2.2), // Platform 1
-    plainBox(1.2, 0.1, 2.5).translate(-4.6, 17, -2.2), // Platform 2
-    plainBox(1.2, 0.1, 2.5).translate(-4.6, 26, 2.2), // Platform 3
-    plainBox(0.15, 0.1, 3.2).rotateX(0.7).translate(-4.6, 12.5, 0), // Stair 1
-    plainBox(0.15, 0.1, 3.2).rotateX(-0.7).translate(-4.6, 21.5, 0), // Stair 2
-    plainBox(0.1, 28, 0.1).translate(-5.2, 14, 3.4), // Rail 1
-    plainBox(0.1, 28, 0.1).translate(-5.2, 14, -3.4), // Rail 2
+    // Fire escape.
+    plainBox(1.2, 0.1, 2.5).translate(-4.6, 8, 2.2),
+    plainBox(1.2, 0.1, 2.5).translate(-4.6, 17, -2.2),
+    plainBox(1.2, 0.1, 2.5).translate(-4.6, 26, 2.2),
+    plainBox(0.15, 0.1, 3.2).rotateX(0.7).translate(-4.6, 12.5, 0),
+    plainBox(0.15, 0.1, 3.2).rotateX(-0.7).translate(-4.6, 21.5, 0),
+    plainBox(0.1, 28, 0.1).translate(-5.2, 14, 3.4),
+    plainBox(0.1, 28, 0.1).translate(-5.2, 14, -3.4),
   ];
 
   const lights = [
-    // Glowing billboard face (neonAmber with black warning stripes)
+    // Billboard face with warning stripes.
     paint(new THREE.BoxGeometry(7.2, 3.4, 0.05), palette.neonAmber, 0).translate(0, 40.5, 0.2),
     box(1.2, 3.4, 0.08, 0x000000, 0).rotateZ(0.5).translate(-2, 40.5, 0.22),
     box(1.2, 3.4, 0.08, 0x000000, 0).rotateZ(0.5).translate(2, 40.5, 0.22),
-    // Lit windows
     ...winSlits(9, 36, 0, 18, 4.55, 3),
     ...winSlits(7, 22, -8.5, 11, 4.55, 2),
   ];
@@ -475,49 +470,35 @@ function cityBlockGeometry(): THREE.BufferGeometry {
 
 function skyscraperGeometry(): THREE.BufferGeometry {
   const body = [
-    // Tier 1 (Base)
     plainBox(12, 35, 12).translate(0, 17.5, 0),
-    // Structural columns/ribs on Tier 1 front facade
+    // Structural columns on the front facade.
     plainBox(0.4, 35, 0.4).translate(-4, 17.5, 6.1),
     plainBox(0.4, 35, 0.4).translate(0, 17.5, 6.1),
     plainBox(0.4, 35, 0.4).translate(4, 17.5, 6.1),
-    // Tier 2 (Middle)
     plainBox(9, 25, 9).translate(0, 47.5, 0),
-    // Tier 3 (Top)
     plainBox(6.5, 16, 6.5).translate(0, 68, 0),
-    // Accent Block
     plainBox(5, 45, 5).translate(8.5, 22.5, 2),
-
-    // Roof fixtures on Tier 1 top (y = 35)
+    // Roof fixtures.
     plainBox(2.2, 1.8, 2.2).translate(-3.5, 35.9, -3.5),
-    plainCyl(0.8, 0.8, 0.4, 8).translate(-3.5, 36.9, -3.5), // Fan
-
-    // Roof fixtures on Tier 2 top (y = 60)
-    plainCyl(1.6, 1.6, 2.4, 8).translate(3, 61.2, 3), // Water tank
-    plainCone(1.8, 0.8, 8).translate(3, 62.8, 3), // Conical cap
-    plainBox(2, 1.2, 2).translate(3, 60.6, 3), // Support stand
+    plainCyl(0.8, 0.8, 0.4, 8).translate(-3.5, 36.9, -3.5),
+    plainCyl(1.6, 1.6, 2.4, 8).translate(3, 61.2, 3),
+    plainCone(1.8, 0.8, 8).translate(3, 62.8, 3),
+    plainBox(2, 1.2, 2).translate(3, 60.6, 3),
     plainCyl(3, 3, 0.15, 10).translate(-2.5, 60.07, -2.5), // Helipad slab
-
-    // Roof fixtures on Tier 3 top (y = 76)
-    plainBox(1.8, 1.2, 1.8).translate(-1.5, 76.6, 1.5), // HVAC Box
-    plainBox(0.3, 16, 0.3).translate(1.5, 84, -1.5), // Antenna mast
+    plainBox(1.8, 1.2, 1.8).translate(-1.5, 76.6, 1.5),
+    plainBox(0.3, 16, 0.3).translate(1.5, 84, -1.5),
   ];
 
   const lights = [
-    // Blinking warning light on antenna tip (y = 92)
+    // Warning light on the antenna tip.
     box(0.45, 0.45, 0.45, palette.trafficRed, 0).translate(1.5, 92.2, -1.5),
-
-    // Helipad red background circle
+    // Helipad mark.
     paint(new THREE.CylinderGeometry(2.4, 2.4, 0.05, 10), 0xdd2a14, 0).translate(-2.5, 60.15, -2.5),
-    // White H lines
     box(0.2, 0.05, 1.0, 0xffffff, 0).translate(-2.9, 60.18, -2.5),
     box(0.2, 0.05, 1.0, 0xffffff, 0).translate(-2.1, 60.18, -2.5),
     box(0.6, 0.05, 0.2, 0xffffff, 0).translate(-2.5, 60.18, -2.5),
-
-    // Glowing neon sign (neonCyan) on Accent Block
+    // Neon sign on the accent block.
     box(0.25, 30, 0.25, palette.neonCyan, 0).translate(8.5, 25, 4.6),
-
-    // Win slits
     ...winSlits(12, 35, 0, 17.5, 6.05, 3),
     ...winSlits(9, 25, 0, 47.5, 4.55, 2),
     ...winSlits(5, 45, 8.5, 22.5, 4.55, 1),
@@ -546,7 +527,7 @@ function rubbleGeometry(): THREE.BufferGeometry {
   );
 }
 
-/** A broad multi-peak mountain range for the deep horizon — bigger than a mesa. */
+/** A broad multi-peak mountain range for the deep horizon. */
 function mountainGeometry(): THREE.BufferGeometry {
   return gradient(
     [
@@ -562,14 +543,14 @@ function mountainGeometry(): THREE.BufferGeometry {
   );
 }
 
-/** A cluster of wider, lower buildings — fills a skyline between the tall towers. */
+/** A cluster of wider, lower buildings. */
 function lowriseGeometry(): THREE.BufferGeometry {
   return litBuilding(
     [
       plainBox(14, 16, 12).translate(0, 8, 0),
-      plainBox(11, 12, 10).translate(6.5, 6, -2), // Compacted offset (11 -> 6.5)
-      plainBox(10, 21, 9).translate(-6.0, 10.5, 2), // Compacted offset (-10 -> -6)
-      plainBox(8, 14, 8).translate(2.5, 7, 4), // Compacted offset (4 -> 2.5)
+      plainBox(11, 12, 10).translate(6.5, 6, -2),
+      plainBox(10, 21, 9).translate(-6.0, 10.5, 2),
+      plainBox(8, 14, 8).translate(2.5, 7, 4),
     ],
     [
       ...winSlits(14, 16, 0, 8, 6.05, 4),
@@ -596,7 +577,7 @@ function spireGeometry(): THREE.BufferGeometry {
   );
 }
 
-/** A suburban ranch house with a pitched roof and a chimney — Rust's homes. */
+/** A suburban ranch house with a pitched roof and a chimney. */
 function houseGeometry(): THREE.BufferGeometry {
   return gradient(
     [
@@ -613,7 +594,7 @@ function houseGeometry(): THREE.BufferGeometry {
   );
 }
 
-/** A water tower on splayed legs with a conical cap — a classic skyline mark. */
+/** A water tower on splayed legs with a conical cap. */
 function watertowerGeometry(): THREE.BufferGeometry {
   const parts: THREE.BufferGeometry[] = [
     plainCyl(3.2, 3.4, 4.6, 12).translate(0, 12.8, 0), // tank
@@ -662,7 +643,7 @@ function downedSaucerGeometry(): THREE.BufferGeometry {
   ]);
 }
 
-/** A sheared skyscraper: a snapped stump, a tilted cap, a toppled top, a neighbor. */
+/** A sheared skyscraper: a snapped stump, a tilted cap, a toppled top, and a neighbor. */
 function brokenTowerGeometry(): THREE.BufferGeometry {
   const body = [
     // Intact neighbor (left)
@@ -694,7 +675,6 @@ function brokenTowerGeometry(): THREE.BufferGeometry {
     // Sparks/glowing embers floating
     box(0.25, 0.25, 0.25, palette.meteorCore, 0).translate(-1.2, 31.5, 3.2),
     box(0.2, 0.2, 0.2, palette.kaijuGlow, 0).translate(2.2, 32.1, -2.2),
-    // Lit windows
     ...winSlits(10, 20, 0, 10, 5.05, 2),
     ...winSlits(9, 48, -13, 24, 7.55, 3),
   ];
@@ -711,7 +691,7 @@ function brokenTowerGeometry(): THREE.BufferGeometry {
 // Variants: a second silhouette per common kind, so an act never repeats one
 // model down the whole horizon (combined with non-uniform scale + tint).
 
-/** Jagged pointed buttes instead of the flat-topped mesa. */
+/** Jagged pointed buttes. */
 function mesa2Geometry(): THREE.BufferGeometry {
   return gradient(
     [
@@ -726,7 +706,7 @@ function mesa2Geometry(): THREE.BufferGeometry {
   );
 }
 
-/** A two-storey flat-roof house with an attached garage — a different home. */
+/** A two-storey flat-roof house with an attached garage. */
 function house2Geometry(): THREE.BufferGeometry {
   return gradient(
     [
@@ -742,7 +722,7 @@ function house2Geometry(): THREE.BufferGeometry {
   );
 }
 
-/** A row of grain silos with conical caps — industrial outskirts, not a box shed. */
+/** A row of grain silos with conical caps. */
 function warehouse2Geometry(): THREE.BufferGeometry {
   return gradient(
     [
@@ -760,10 +740,9 @@ function warehouse2Geometry(): THREE.BufferGeometry {
   );
 }
 
-/** A tighter cluster of taller, more uniform towers — a different downtown wall. */
+/** A tighter cluster of taller, more uniform towers. */
 function cityBlock2Geometry(): THREE.BufferGeometry {
   const body = [
-    // 4 towers
     plainBox(7, 50, 7).translate(2, 25, 3),
     plainBox(8, 36, 8).translate(-5, 18, -3),
     plainBox(6, 30, 6).translate(6.5, 15, -2),
@@ -780,11 +759,10 @@ function cityBlock2Geometry(): THREE.BufferGeometry {
   ];
 
   const lights = [
-    // Blinking warning beacon on mast
+    // Warning beacon on the mast.
     box(0.4, 0.4, 0.4, palette.trafficRed, 0).translate(2, 62.1, 3),
-    // Neon pink logo stripe on Block B
+    // Neon logo stripe.
     box(0.2, 22, 0.2, palette.neonPink, 0).translate(-5, 23, 1.15),
-    // Windows
     ...winSlits(7, 50, 2, 25, 6.55, 2),
     ...winSlits(8, 36, -5, 18, 1.05, 2),
     ...winSlits(5, 24, -4, 12, 7.05, 1),
@@ -799,15 +777,13 @@ function cityBlock2Geometry(): THREE.BufferGeometry {
   );
 }
 
-/** A stepped, setback art-deco tower with a spire — not the slab+antenna. */
+/** A stepped, setback art-deco tower with a spire. */
 function skyscraper2Geometry(): THREE.BufferGeometry {
   const body = [
-    // Tall Main Tower
     plainBox(10, 30, 10).translate(0, 15, 0),
     plainBox(8, 24, 8).translate(0, 42, 0),
     plainBox(6, 18, 6).translate(0, 63, 0),
     plainBox(0.6, 10, 0.6).translate(0, 77, 0),
-    // Secondary Thinner Tower
     plainBox(5, 52, 5).translate(-13, 26, -1),
     // Skybridge connecting them
     plainBox(8, 2.4, 2.2).translate(-6.5, 46, -1),
@@ -820,12 +796,11 @@ function skyscraper2Geometry(): THREE.BufferGeometry {
   ];
 
   const lights = [
-    // Red warning beacons
+    // Red warning beacons.
     box(0.4, 0.4, 0.4, palette.trafficRed, 0).translate(0, 82.2, 0),
     box(0.4, 0.4, 0.4, palette.trafficRed, 0).translate(-13, 56, -1),
-    // Glowing neon diamond logo (neonPink)
+    // Neon diamond logo.
     box(1.8, 1.8, 0.2, palette.neonPink, 0).rotateZ(0.785).translate(0, 69, 3.15),
-    // Windows
     ...winSlits(10, 30, 0, 15, 5.05, 3),
     ...winSlits(8, 24, 0, 42, 4.05, 2),
     ...winSlits(5, 52, -13, 26, 1.55, 1),
@@ -840,7 +815,7 @@ function skyscraper2Geometry(): THREE.BufferGeometry {
   );
 }
 
-/** A chunk of city torn loose and hanging in the air — Static's broken physics. */
+/** A chunk of city torn loose and hanging in the air. */
 function floatChunkGeometry(): THREE.BufferGeometry {
   return gradient(
     [
@@ -857,7 +832,7 @@ function floatChunkGeometry(): THREE.BufferGeometry {
   );
 }
 
-/** Low scattered wreckage — broken slabs, a stub, a chunk of junk. Shoulder filler. */
+/** Low scattered wreckage: broken slabs, a stub, and a chunk of junk. */
 function debrisGeometry(): THREE.BufferGeometry {
   return gradient(
     [
@@ -872,7 +847,7 @@ function debrisGeometry(): THREE.BufferGeometry {
   );
 }
 
-/** A dead bush — a knot of bare twigs low to the ground. Shoulder filler. */
+/** A dead bush, a knot of bare twigs low to the ground. */
 function scrubGeometry(): THREE.BufferGeometry {
   return gradient(
     [
@@ -956,7 +931,7 @@ function kaijuGeometry(): THREE.BufferGeometry {
 
 // Act-coherent roadside clutter (the near band, per act)
 
-/** A burnt-out car shell rusting on the shoulder — Rust/Swarm wreckage. */
+/** A burnt-out car shell rusting on the shoulder. */
 function huskWreckGeometry(): THREE.BufferGeometry {
   const p = palette;
   return assemble([
@@ -971,7 +946,7 @@ function huskWreckGeometry(): THREE.BufferGeometry {
   ]);
 }
 
-/** A cluster of rusted oil drums, one toppled — Rust/Swarm. */
+/** A cluster of rusted oil drums, one toppled. */
 function barrelsGeometry(): THREE.BufferGeometry {
   const b = palette.barrelBody;
   const d = palette.wreckDark;
@@ -984,7 +959,7 @@ function barrelsGeometry(): THREE.BufferGeometry {
   ]);
 }
 
-/** Shipping containers, one stacked askew on another — Swarm/Visitors. */
+/** Shipping containers, one stacked askew on another. */
 function containerGeometry(): THREE.BufferGeometry {
   return gradient(
     [
@@ -997,7 +972,7 @@ function containerGeometry(): THREE.BufferGeometry {
   );
 }
 
-/** A cluster of alien crystal shards with a glowing core — Visitors. */
+/** A cluster of alien crystal shards with a glowing core. */
 function crystalGeometry(): THREE.BufferGeometry {
   const b = palette.crystalBody;
   const g = palette.ufoGlow;

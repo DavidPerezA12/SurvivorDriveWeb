@@ -8,7 +8,7 @@ import type { Elevation } from './elevation';
 const ROAD_WIDTH = LANE_COUNT * LANE_WIDTH;
 /**
  * Render tiles are a quarter of a chunk (12.5 m). Short tiles are what let the
- * flat asphalt *follow a hill*: a long 50 m tile is a straight chord under a
+ * flat asphalt follow a hill: a long 50 m tile is a straight chord under a
  * curved crest, so the car (which rides the true profile) floats above it on
  * crests and sinks below in troughs; quartering the tile cuts that chord error
  * ~16×, so the road stays under the wheels (docs/DESIGN.md → the road is the boss).
@@ -18,7 +18,7 @@ const TILE_LEN = CHUNK_LENGTH / 4;
 const POOL_SIZE = Math.ceil((LOOKAHEAD + CHUNK_LENGTH) / TILE_LEN) + 2;
 
 /**
- * The asphalt surface as a subdivided plane, mottled with cheap vertex-color
+ * The asphalt surface as a subdivided plane, mottled with vertex-color
  * noise so it reads as worn road, not a flat sheet. The noise is periodic in z
  * over the tile length, so the pattern is continuous across tile joins — no seam
  * (docs/DESIGN.md → Object craft: detail from vertex color).
@@ -49,7 +49,7 @@ function buildAsphalt(): THREE.BufferGeometry {
 }
 
 /**
- * Build one road tile as a *single merged geometry*: mottled asphalt, dashed lane
+ * Build one road tile as a single merged geometry: mottled asphalt, dashed lane
  * lines, solid edge lines, and raised curbs, all baked into one buffer with vertex
  * colors (docs/ARCHITECTURE.md → Merge). A dressed `TILE_LEN` of road is one draw
  * call; the dash period divides `TILE_LEN` so dashes stay even across joins.
@@ -125,8 +125,8 @@ export class RoadField {
   }
 
   /**
-   * Stream tiles across the lookahead window and **bend each one onto the road
-   * profile by displacing its vertices**: a vertex's world-forward is
+   * Stream tiles across the lookahead window and bend each one onto the road
+   * profile by displacing its vertices: a vertex's world-forward is
    * `centerForward − localZ`, and its Y is lifted onto the surface there. The road
    * becomes one continuous, smooth ribbon — no flat-tile chord step, no joint
    * gaps, no pitched tile rising in front of the car — and because the vertex at

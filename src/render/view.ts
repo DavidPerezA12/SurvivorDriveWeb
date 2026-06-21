@@ -227,7 +227,7 @@ export class GameView {
         this.gunFx.fire(event.x, this.lastDistance + 3, event.level);
         break;
       case 'zombieMowed':
-        // No shake — mowing is smooth, free fun. The body and scrap shards fly;
+        // No shake: mowing is smooth. The body and scrap shards fly;
         // the speed surge widens the FOV on its own (docs/DESIGN.md → Juice).
         this.mowFx.burst(event.x, this.lastDistance);
         break;

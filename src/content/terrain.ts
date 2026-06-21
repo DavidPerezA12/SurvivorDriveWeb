@@ -1,36 +1,36 @@
 import { hash2 } from '../sim/rng';
 
 /**
- * The road's vertical profile — **mostly flat, with the occasional purposeful
- * hill** (docs/DESIGN.md → the road is the boss). Not a constant up-and-down: the
+ * The road's vertical profile: mostly flat, with the occasional purposeful hill
+ * (docs/DESIGN.md → the road is the boss). Not a constant up-and-down: the
  * road runs level for long stretches and then climbs over a single smooth crest
- * and back down, so an incline reads as a *feature* of that stretch, not noise.
+ * and back down, so an incline reads as a feature of that stretch, not noise.
  * Pure data: a function of `(seed, forward)`, deterministic everywhere, no
  * DOM/Three/time.
  *
  * Each ~half-kilometre cell independently rolls whether it holds a hill. A hill is
- * a raised cosine — height and slope are both **zero at its edges**, so it blends
+ * a raised cosine: height and slope are both zero at its edges, so it blends
  * seamlessly into the flat road on either side (no kink where it starts). Height
  * is therefore always ≥ 0 (the road only ever rises above the flat floor, never
  * sinks below it, so it can't clip under the ground plane), and slopes stay gentle
  * enough that the spawn horizon clears the crest and the kinematic car rides it
- * with no handling change — elevation is a shared *render* offset, so the lane-grid
+ * with no handling change. Elevation is a shared render offset, so the lane-grid
  * collision math is untouched (see `src/render/elevation.ts`).
  */
 
 /** Distance (m) per cell; at most one hill per cell, so hills are spaced out. */
 const CELL = 620;
-/** Fraction of cells that actually hold a hill — the rest stay dead flat. */
+/** Fraction of cells that hold a hill; the rest stay flat. */
 const HILL_CHANCE = 0.5;
 /**
  * Hill half-width (m): how far from its centre the climb reaches before flat.
- * Long and low on purpose — a gentle highway grade, not a lump: it keeps the
+ * Long and low on purpose: a gentle highway grade, not a lump. It keeps the
  * slope shallow (the car stays glued, the horizon clears the crest) and keeps the
  * road from rising far above the flat surroundings (no berm/float look).
  */
 const HW_MIN = 170;
 const HW_MAX = 280;
-/** Hill height (m) at the crest — deliberately modest. */
+/** Hill height (m) at the crest. Deliberately modest. */
 const AMP_MIN = 1.6;
 const AMP_MAX = 3.4;
 

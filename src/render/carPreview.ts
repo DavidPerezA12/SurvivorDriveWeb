@@ -14,8 +14,8 @@ import type { ChassisId } from '../content/chassis';
  * lights — independent of the gameplay stage — and only renders while the garage
  * is open, so it costs nothing during a run.
  *
- * It shows the *same* authored car and upgrade bolt-ons the run uses
- * (`createCar` + `buildUpgradeLayer`), so what you preview is exactly what you
+ * It shows the same authored chassis and upgrade bolt-ons the run uses
+ * (`createChassis` + `buildUpgradeLayer`), so what you preview is exactly what you
  * drive. Slowly rotating, it reveals the plating, gun, tank, and stance from
  * every side; reduced motion holds it at a flattering three-quarter angle.
  */

@@ -19,7 +19,7 @@ import {
 import { weaponStats } from '../content/weapons';
 
 // Collision footprint, in meters (lane-space × world-forward). Height is only a
-// jump flag — a car above the clearance sails over ground-class hazards
+// jump flag. A car above the clearance sails over ground-class hazards
 // (docs/ARCHITECTURE.md → Collision).
 const CAR_HALF_WIDTH = 0.95;
 const CAR_LENGTH = 4;
@@ -28,11 +28,11 @@ const HAZARD_HALF_LENGTH = 1.6;
 // The toppled rig is a longer, slightly wider blocker than a car wreck.
 const RIG_HALF_WIDTH = 1.15;
 const RIG_HALF_LENGTH = 2.8;
-// A boulder is a compact rubble mound — narrower and shorter than a wreck, so it
+// A boulder is a compact rubble mound, narrower and shorter than a wreck, so it
 // leaves a little more room to thread, but it is still squarely in the lane.
 const BOULDER_HALF_WIDTH = 0.85;
 const BOULDER_HALF_LENGTH = 0.95;
-// A barrel is a slim drum — the smallest footprint of any blocker.
+// A barrel is a slim drum, the smallest footprint of any blocker.
 const BARREL_HALF_WIDTH = 0.6;
 const BARREL_HALF_LENGTH = 0.6;
 // A landed meteor is a crater of rock filling much of its lane.
@@ -42,7 +42,7 @@ const METEOR_HALF_LENGTH = 1.1;
 // road (short enough to clear with one jump).
 const GAP_HALF_WIDTH = 1.35;
 const GAP_HALF_LENGTH = 3.5;
-// Zombies are slimmer than a wreck — the car has to be genuinely on the line to
+// Zombies are slimmer than a wreck. The car has to be genuinely on the line to
 // mow them, but the bumper's reach still does the work.
 const ZOMBIE_HALF_WIDTH = 0.6;
 const ZOMBIE_HALF_LENGTH = 0.55;
@@ -57,8 +57,8 @@ const PRUNE_BEHIND = 14;
  * Materialize spawns for any chunk that has entered the lookahead window, purely
  * from `(seed, index)`, routing each by kind: wrecks/rigs/boulders/barrels become
  * damaging hazards, zombies become mowable fodder, the rest become pickups.
- * Mirrors the renderer's pull-based streaming —
- * nothing is generated until it is about to matter — and runs only when the car
+ * Mirrors the renderer's pull-based streaming: nothing is generated until it is
+ * about to matter. Runs only when the car
  * crosses a chunk boundary, not every tick.
  */
 export function materializeSpawns(state: SimState): void {
@@ -126,7 +126,7 @@ export function materializeSpawns(state: SimState): void {
  * slide runs as the gap (forward − distance) closes from `startGap` to `endGap`,
  * smoothstepped so it accelerates in and settles softly; past `endGap` it sits in
  * the target lane for the final approach (docs/DESIGN.md → roster: the slide is
- * the telegraph). Deterministic — a pure function of position, no RNG — and
+ * the telegraph). Deterministic: a pure function of position, no RNG. It is
  * allocation-free. Runs before collisions so a hit reads the wreck's current X.
  */
 export function updateDrifters(state: SimState): void {
@@ -162,14 +162,14 @@ export function updateMeteors(state: SimState): void {
 /**
  * Swept overlap of the car against live hazards. The car's front is at
  * `distance`; a hazard within the forward span and lane band is a hit unless the
- * car is jumping over it. A square hit routes to the engine; clipping the edge
- * is a glancing scrape to steering/tires. One wreck damages the car once.
+ * car is jumping over it. A square hit costs more hull and momentum than a
+ * glancing scrape. One hazard damages the car once.
  */
 export function resolveCollisions(state: SimState): void {
   const car = state.car;
   for (const h of state.hazards) {
     if (h.hit) continue;
-    // A meteor is harmless until it lands — a falling rock never collides.
+    // A meteor is harmless until it lands; a falling rock never collides.
     if (h.kind === 'meteor' && !h.landed) continue;
 
     const rig = h.kind === 'rig';
@@ -177,7 +177,7 @@ export function resolveCollisions(state: SimState): void {
     const barrel = h.kind === 'barrel';
     const meteor = h.kind === 'meteor';
     const gap = h.kind === 'gap';
-    // A landed meteor is a wall like the rig — too violent to jump.
+    // A landed meteor is a wall like the rig, too violent to jump.
     const tall = rig || meteor;
     const halfWidth = rig
       ? RIG_HALF_WIDTH
@@ -210,15 +210,15 @@ export function resolveCollisions(state: SimState): void {
     const dx = Math.abs(car.lateralX - h.x);
     if (dx >= CAR_HALF_WIDTH + halfWidth) continue;
 
-    // A jump clears ground-class hazards (wreck, boulder, barrel, and a road gap)
-    // — but a toppled rig and a landed meteor are walls too tall/violent to clear,
+    // A jump clears ground-class hazards (wreck, boulder, barrel, and a road gap),
+    // but a toppled rig and a landed meteor are walls too tall/violent to clear,
     // so the only out is a lane change (docs/DESIGN.md → telegraphed, dodgeable,
     // safe lane open).
     if (!tall && car.height > JUMP_CLEARANCE) continue;
 
     h.hit = true;
 
-    // A road gap is not a thing you hit — it is a hole you fall into while grounded.
+    // A road gap is not a thing you hit; it is a hole you fall into while grounded.
     // Armor can't save you from missing asphalt: it is an outright, attributable
     // death (you should have jumped or changed lane). No frenazo math beyond a
     // lurch; the run ends here.
@@ -239,8 +239,8 @@ export function resolveCollisions(state: SimState): void {
     const impact = car.speed;
     const glancing = dx > halfWidth;
     state.events.push({ type: 'crashed', impact, lane: h.lane });
-    // The rig's hull cost is scaled up — a square hit at speed is lethal; the
-    // boulder's is scaled down — a ram you survive to regret; the barrel's is
+    // The rig's hull cost is scaled up: a square hit at speed is lethal. The
+    // boulder's is scaled down, a ram you survive to regret. The barrel's is
     // scaled up (the blast in your face), short of the rig.
     const hazardMul = rig
       ? CRASH_TUNING.rigDamageMul
@@ -254,7 +254,7 @@ export function resolveCollisions(state: SimState): void {
     applyCrash(car, impact, glancing, state.events, state.loadout.damageMul * hazardMul);
     // The frenazo: a square hit bites momentum, a clip less so; a square rig hit
     // stops the car near-dead, a boulder less than a wreck, a barrel hard. Handling
-    // is never touched — only speed and hull.
+    // is never touched, only speed and hull.
     car.speed *= glancing
       ? CRASH_TUNING.glancingSpeedKeep
       : rig
@@ -266,7 +266,7 @@ export function resolveCollisions(state: SimState): void {
             : meteor
               ? CRASH_TUNING.meteorSpeedKeep
               : CRASH_TUNING.frontalSpeedKeep;
-    // Taking a hull hit breaks the streak — greed has a cost (docs/DESIGN.md).
+    // Taking a hull hit breaks the streak. Greed has a cost (docs/DESIGN.md).
     state.combo = 0;
     state.comboTicks = 0;
 
@@ -277,7 +277,7 @@ export function resolveCollisions(state: SimState): void {
 
     if (car.health <= 0 && !state.dead) {
       state.dead = true;
-      // The blocker that emptied the hull is the death cause — every HazardKind
+      // The blocker that emptied the hull is the death cause. Every HazardKind
       // is a DeathCause, so the kind maps straight through for the death card.
       state.deathCause = h.kind;
       state.events.push({ type: 'died' });
@@ -299,7 +299,7 @@ export function detonateBarrel(state: SimState, h: Hazard): void {
 
 /**
  * The blast core: emit the render event, kill every live zombie in the blast box,
- * and chain to any other barrel close enough. Allocation-free — it scans the live
+ * and chain to any other barrel close enough. Allocation-free: it scans the live
  * lists in place and recurses through `detonateBarrel`, whose `hit` guard bounds
  * the chain to each barrel once.
  */
@@ -321,7 +321,7 @@ function explodeBarrel(state: SimState, h: Hazard): void {
 }
 
 /**
- * Bank one zombie kill — rammed or shot. Marks it mowed (so it pays once),
+ * Bank one zombie kill, rammed or shot. Marks it mowed (so it pays once),
  * climbs the streak, pays scrap scaled by the streak, and emits the kill event
  * the renderer turns into a ragdoll + scrap ping. The ramming speed surge is
  * applied by `resolveMows` only, never by a ranged shot.
@@ -337,11 +337,11 @@ function payKill(state: SimState, z: Zombie): void {
 }
 
 /**
- * Fire the gun for one tick. The trigger is *held* (`intent.fire`); the sim gates
+ * Fire the gun for one tick. The trigger is held (`intent.fire`); the sim gates
  * the cadence with the current weapon tier's `fireIntervalTicks`, so holding it
  * auto-fires. The tier (`weaponStats(loadout.weaponLevel)`) sets how far the shot
  * reaches (`range`), how many lanes wide it shreds (`laneSpread`), and how many
- * zombies one shot destroys (`killsPerShot`) — the nearest in the covered column
+ * zombies one shot destroys (`killsPerShot`), nearest in the covered column
  * first. Each kill pays scrap and feeds the streak exactly like a mow but without
  * the ramming surge. With no ammo the gun is silent and the player goes back to
  * mowing (docs/DESIGN.md → Pillar 2). You can't shoot mid-jump. Allocation-free:
@@ -413,7 +413,7 @@ export function resolveShots(state: SimState, intent: Intent): void {
 }
 
 /**
- * Mow the fodder: any live zombie the car overlaps on the ground is plowed —
+ * Mow the fodder: any live zombie the car overlaps on the ground is plowed,
  * never damage, never a slowdown, always scrap and a tiny surge, with the streak
  * climbing per kill (docs/DESIGN.md → Pillar 2). A jump sails clean over them,
  * trading the scrap for the air. `topSpeed` bounds how far a streak can push the
@@ -435,7 +435,7 @@ export function resolveMows(state: SimState, topSpeed: number): void {
 
     payKill(state, z);
 
-    // A surge, clamped, and never below the current speed — ramming fodder only
+    // A surge, clamped, and never below the current speed. Ramming fodder only
     // ever helps you forward (a ranged shot grants no surge).
     const boosted = Math.min(car.speed + MOW_TUNING.speedBoost, topSpeed + MOW_TUNING.overspeedCap);
     car.speed = Math.max(car.speed, boosted);
@@ -444,9 +444,9 @@ export function resolveMows(state: SimState, topSpeed: number): void {
 
 /**
  * Gather pickups: any live collectible the car overlaps on the ground is
- * consumed and applied by kind — a lift pickup refills a jump charge (up to the
+ * consumed and applied by kind: a lift pickup refills a jump charge (up to the
  * cap), a health pickup repairs the hull, an ammo box refills the gun. A jump
- * sails clean over them — you cannot scoop while airborne — so refills reward
+ * sails clean over them. You cannot scoop while airborne, so refills reward
  * staying down the infested lane, not bunny-hopping it (docs/DESIGN.md →
  * Pillar 3). Each pickup pays once.
  */

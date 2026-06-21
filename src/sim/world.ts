@@ -13,7 +13,7 @@ import { spawnWeightsAt } from '../content/acts';
  * Pull-based world generation.
  *
  * A chunk is materialized purely from `(seed, index)` the first time the
- * lookahead window reaches it — nothing is pre-generated, nothing is stored
+ * lookahead window reaches it. Nothing is pre-generated, nothing is stored
  * after it scrolls behind the car. Each chunk seeds its own RNG from
  * `hash2(seed, index)`, so generation is order-independent and deterministic:
  * the same seed always produces the same road, roadside, and hazards
@@ -32,7 +32,7 @@ export function chunkAt(seed: number, index: number): Chunk {
 /**
  * The always-clear lane for a chunk. A slow sine wander whose per-chunk change
  * is bounded below 1, so the safe lane is always reachable from the previous
- * chunk's at speed — this is what guarantees the safe-line invariant
+ * chunk's at speed. This is what guarantees the safe-line invariant
  * (docs/ARCHITECTURE.md → Spawning). Hazards never fill it.
  */
 export function safeLane(seed: number, index: number): number {
@@ -45,11 +45,11 @@ export function safeLane(seed: number, index: number): number {
 }
 
 /**
- * Each non-safe lane independently rolls one spawn from the **act's** mix, so the
+ * Each non-safe lane independently rolls one spawn from the act's mix, so the
  * road's challenge changes by tramo: Rust teaches, the Swarm floods you, the
  * Visitors rain meteors, the Colossus walls you in, Static maxes everything
  * (`ACT_SPAWNS` in `src/content/acts.ts`). The safe lane is skipped entirely, so
- * it carries neither a threat nor any scrap — the greed pillar made literal
+ * it carries neither a threat nor any scrap. The greed pillar made literal
  * (docs/DESIGN.md → Pillar 3). Order of RNG draws is fixed, so the same seed
  * always produces the same road.
  */

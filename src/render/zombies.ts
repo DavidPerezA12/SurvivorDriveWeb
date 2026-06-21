@@ -13,10 +13,8 @@ const TWO_PI = Math.PI * 2;
 /**
  * A hunched shambler, built as one merged geometry: an asymmetric, stooped
  * silhouette with a lowered head and one arm reaching forward (docs/DESIGN.md →
- * Object craft). It is deliberately *not* a box — the reaching arm and the
- * forward hunch are what make a cluster read as zombies at the spawn horizon.
- * Detail is silhouette and baked vertex color, never triangle count, and the
- * whole crowd is a single draw call.
+ * Object craft). The reaching arm and forward hunch make a cluster read as
+ * zombies at the spawn horizon. The whole crowd is a single draw call.
  */
 function zombieGeometry(): THREE.BufferGeometry {
   const flesh = palette.zombieFlesh;
@@ -57,7 +55,7 @@ function zombieGeometry(): THREE.BufferGeometry {
 /**
  * Renders the sim's live, un-mowed zombies as one instanced crowd. The sim owns
  * where they are; this maps each zombie's absolute world-forward to screen z and
- * adds a cheap idle shamble (a gentle rock and bob, offset per instance by the
+ * adds a simple idle shamble (a gentle rock and bob, offset per instance by the
  * zombie's deterministic phase) so a standing cluster looks alive, not frozen.
  * No allocation per frame.
  */

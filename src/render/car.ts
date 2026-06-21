@@ -59,7 +59,7 @@ function glow(
   return paint(g.translate(x, y, z), color, 0);
 }
 
-/** A round bar/pipe/drum laid along an axis — rounded bumpers, exhausts, pods. */
+/** A round bar, pipe or drum laid along an axis. */
 function cyl(
   radius: number,
   length: number,
@@ -77,7 +77,7 @@ function cyl(
   return paint(g.translate(x, y, z), color, ao);
 }
 
-/** A tapered round form along an axis — muzzle brakes, velocity stacks, valves. */
+/** A tapered round form along an axis. */
 function cone(
   rTop: number,
   rBot: number,
@@ -96,12 +96,12 @@ function cone(
   return paint(g.translate(x, y, z), color, ao);
 }
 
-/** A faceted sphere — domed tank caps, magnet pole knobs, rounded bolt heads. */
+/** A faceted sphere for domed caps, magnet pole knobs, and bolt heads. */
 function ball(radius: number, color: number, x: number, y: number, z: number, ao = 0.4, seg = 12): THREE.BufferGeometry {
   return paint(new THREE.SphereGeometry(radius, seg, Math.max(6, seg - 4)).translate(x, y, z), color, ao);
 }
 
-/** A round self-lit lamp — pod headlights and round reverse/indicator lamps. */
+/** A round self-lit lamp. */
 function glowCyl(
   radius: number,
   length: number,
@@ -119,8 +119,8 @@ function glowCyl(
 }
 
 /**
- * A frustum — a box whose top face is scaled in (and optionally slid in z), so a
- * cabin or hood tapers like real bodywork instead of reading as a cube.
+ * A frustum: a box whose top face is scaled in (and optionally slid in z), used
+ * for tapered cabins and hoods.
  * `computeVertexNormals` after the move keeps each face flat-shaded and lit from
  * its true sloped orientation.
  */
@@ -153,11 +153,10 @@ function taper(
 }
 
 /**
- * A crowned, sloped panel — a frustum (top face scaled in, so the surface domes
- * like a real hood crown) that is *then* raked about X. Normals are recomputed
+ * A crowned, sloped panel: a frustum (top face scaled in, so the surface domes
+ * like a hood crown) that is then raked about X. Normals are recomputed
  * before the tilt so the AO bake reads the panel's true, final orientation. This
- * is what turns the hood and nose from flat wedges into bodywork that catches a
- * highlight down the centre crease.
+ * gives hood and nose panels a centre-crease highlight.
  */
 function crown(
   w: number,
@@ -190,9 +189,8 @@ function crown(
 
 /**
  * A proper alloy road wheel: a deep tyre with a sidewall shoulder, a dished alloy
- * face carrying five spokes inside a chrome lip, a centre cap and five lug nuts —
- * the detail that most makes a low-poly car read as a *real car* from the side,
- * where the plain black disc used to give it away. Built outboard-facing for the
+ * face carrying five spokes inside a chrome lip, a centre cap and five lug nuts.
+ * Built outboard-facing for the
  * wheel at (x, z); the inboard side stays a simple tyre (never seen).
  */
 function wheelAssembly(x: number, z: number, axleY: number, radius: number, width = 0.32): THREE.BufferGeometry[] {
@@ -234,9 +232,8 @@ function wheelAssembly(x: number, z: number, axleY: number, radius: number, widt
  * a smooth, bevel-edged body shell of the given `width`, oriented nose-forward
  * (+z). Optionally tuck the greenhouse by scaling the width inward above
  * `taperFromY` toward `taperTo` (1 = no tuck), so the roof narrows over one
- * continuous curved surface — the thing a stack of boxes can never do, and the
- * whole point of the real-bodywork rebuild. Bevelled edges round every seam so
- * the silhouette reads as pressed steel, not faceted blocks.
+ * continuous curved surface. Bevelled edges round every seam so the silhouette
+ * reads as pressed steel, not faceted blocks.
  */
 function extrudeBody(
   shape: THREE.Shape,
@@ -272,9 +269,9 @@ function extrudeBody(
 }
 
 /**
- * The hero asset, built as a *single merged geometry* so the whole car is one
+ * The hero asset, built as a single merged geometry so the whole car is one
  * draw call no matter how much detail it carries (docs/ARCHITECTURE.md → Detail
- * without polygons). Shape is bought with **slopes, tapers, and proportion** —
+ * without polygons). Shape is bought with slopes, tapers, and proportion:
  * a wedge nose, a raked windscreen, a greenhouse narrower than the body, a
  * fastback rear, fender haunches over the wheels — so it reads as a vehicle, not
  * a stack of cubes, while staying flat-shaded low-poly.
@@ -298,7 +295,7 @@ export function createCar(): THREE.Group {
 
   // The body shell: one smooth, bevel-edged extruded side-profile (a long-hood /
   // short-deck muscle silhouette with real wheel arches cut into the outline)
-  // instead of a stack of boxes. The greenhouse is a second extrude in glass,
+  // rather than a stack of boxes. The greenhouse is a second extrude in glass,
   // tucked narrower, with a painted roof cap and slim pillars over it. (Profile y
   // is in world units, so it lines up with the floorY-based detail parts below.)
   const lower = new THREE.Shape();
@@ -340,7 +337,7 @@ export function createCar(): THREE.Group {
     body.push(tilted(0.07, 0.58, 0.09, B.carBody, 0.62, s * 0.6, 1.22, -1.18)); // C-pillar
   }
   // Recessed dark tail panel the lights sit proud of, over a body-color valance
-  // so the tail reads as the car, not a black void.
+  // so the tail reads as part of the car.
   body.push(part(1.7, 0.4, 0.14, B.carGrille, 0, floorY + 0.4, -1.84));
   body.push(part(1.78, 0.18, 0.24, B.carBodyDark, 0, floorY + 0.15, -1.88));
   // Rounded rear bumper bar in body-dark (not black, so the tail reads as the
@@ -375,8 +372,7 @@ export function createCar(): THREE.Group {
     body.push(cyl(0.03, 0.2, B.carTrim, 'x', s * 0.86, floorY + 0.72, 0.36, 0.4, 6));
     body.push(part(0.1, 0.2, 0.14, B.carChrome, s * 0.97, floorY + 0.74, 0.34));
   }
-  // Low roof rack on the tapered roof, round tube rails on round cross-bars — a
-  // survivor carries gear up top.
+  // Low roof rack on the tapered roof, with round tube rails on cross-bars.
   for (const s of [-1, 1] as const) {
     body.push(cyl(0.04, 1.2, B.carChrome, 'z', s * 0.46, 1.58, -0.4, 0.4, 8));
   }
@@ -559,14 +555,14 @@ function upgradeParts(id: UpgradeId): THREE.BufferGeometry[] {
 }
 
 /**
- * Battle-damage parts for a severity `tier` (1..3), cumulative — a higher tier
+ * Battle-damage parts for a severity `tier` (1..3), cumulative: a higher tier
  * keeps the lower tiers' scars and adds worse ones. Authored to the same craft
  * bar as the car so a battered hull reads as deliberately wrecked, not glitched
  * (docs/DESIGN.md → Object craft: damage states modeled with the same care as the
  * pristine model). Reuses the wreck palette (scorch/rust/bare metal) so the hero
- * visibly *becomes* the wrecks it has been dodging. Positions are in the car's
+ * visibly becomes the wrecks it has been dodging. Positions are in the car's
  * nose-forward (+z) space; the whole layer is flipped to travel-forward like the
- * body. Damage never touches handling — this is feedback, not a stat.
+ * body. Damage never touches handling; this is feedback, not a stat.
  */
 function damageParts(tier: number): THREE.BufferGeometry[] {
   const P = palette;
@@ -622,7 +618,7 @@ export function buildDamageLayer(tier: number, chassisId: ChassisId = 'survivor'
  * The roof-mounted gun, sized by weapon level: the barrel lengthens and thickens
  * with the tier and splits into twin barrels at the top end, so an upgraded gun
  * visibly reads as a bigger weapon (docs/DESIGN.md → Upgrades render on the car;
- * Pillar 2). Warm amber muzzle — the gun's signature colour, matching the HUD and
+ * Pillar 2). Warm amber muzzle: the gun's signature colour, matching the HUD and
  * the ammo box.
  */
 function gunParts(level: number): THREE.BufferGeometry[] {

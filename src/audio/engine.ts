@@ -1,6 +1,6 @@
 /**
- * Engine sound — the core "feel" instrument (docs/DESIGN.md → Sound). Pitch and
- * brightness track speed, so acceleration is *heard* before it is read off the
+ * Engine sound, the core "feel" instrument (docs/DESIGN.md → Sound). Pitch and
+ * brightness track speed, so acceleration is heard before it is read off the
  * HUD. This is a read-only view of sim state, like the renderer: it never writes
  * back.
  *

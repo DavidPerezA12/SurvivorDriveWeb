@@ -4,9 +4,9 @@
  * garage's CAR tab; the render layer builds the matching model and the bolt-on
  * upgrades hang off whichever chassis is selected.
  *
- * Upgrades split two ways (the player's mental model): **global** upgrades — jump
- * charges (TANK) and the GUN — ride with you across every chassis, while
- * **per-chassis** upgrades — ARMOR, TIRES, MAGNET — are bought for the specific
+ * Upgrades split two ways (the player's mental model): global upgrades, jump
+ * charges (TANK) and the GUN, ride with you across every chassis, while
+ * per-chassis upgrades, ARMOR, TIRES, MAGNET, are bought for the specific
  * car. A chassis also carries small base modifiers so the five genuinely handle
  * differently before a single upgrade.
  */
@@ -22,7 +22,7 @@ export interface ChassisDef {
   /** One-line character note. */
   readonly blurb: string;
   /**
-   * Base loadout modifiers the chassis brings before any upgrade — what makes a
+   * Base loadout modifiers the chassis brings before any upgrade: what makes a
    * buggy hop better and a rig tank hits. Multiplicative dials default to 1, the
    * damage dial < 1 = tougher. Folded into the run loadout alongside upgrades.
    */
@@ -72,7 +72,7 @@ export function chassisDef(id: ChassisId): ChassisDef {
 }
 
 /**
- * The run loadout for driving `id` with `owned` upgrades — the chassis's base
+ * The run loadout for driving `id` with `owned` upgrades: the chassis's base
  * feel folded onto the upgrade modifiers. Pure run input (chassis + owned set +
  * seed fully determine the run), so determinism holds.
  */

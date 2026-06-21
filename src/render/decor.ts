@@ -22,7 +22,7 @@ function postGeometry(): THREE.BufferGeometry {
     // Bolted anchor flange just above the base plate.
     box(0.3, 0.08, 0.3, palette.postCollar, 0.5).translate(0, 0.13, 0),
     box(0.2, 3.2, 0.2, palette.post, 0.6).translate(0, 1.6, 0),
-    // A weathered junction box clamped to the pole — read of a real fixture.
+    // A weathered junction box clamped to the pole.
     box(0.26, 0.4, 0.18, palette.postCollar, 0.45).translate(0.05, 1.1, 0.16),
     box(0.7, 0.16, 0.16, palette.post, 0.5).translate(0.3, 3.15, 0),
     // A diagonal gusset bracing the arm to the pole.
@@ -33,7 +33,7 @@ function postGeometry(): THREE.BufferGeometry {
   ]);
 }
 
-/** An irregular boulder cluster — never a clean cube. */
+/** An irregular boulder cluster. */
 function rockGeometry(): THREE.BufferGeometry {
   const a = box(1.1, 0.8, 1.0, palette.rock, 0.6).translate(0, 0.4, 0);
   a.rotateY(0.4);
@@ -99,7 +99,7 @@ const GEOMETRY: Record<PropKind, () => THREE.BufferGeometry> = {
 const KINDS: PropKind[] = ['post', 'rock', 'husk', 'barrier'];
 
 /**
- * Roadside decoration, instanced. The sim owns *where* and *how* the props sit
+ * Roadside decoration, instanced. The sim owns where and how the props sit
  * (it generates position, scale, and yaw deterministically from the seed); this
  * field is the read-only view that draws them — one `InstancedMesh` per class,
  * so the whole roadside is four draw calls regardless of count

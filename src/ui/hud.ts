@@ -183,7 +183,7 @@ export class Hud {
     }
   }
 
-  /** Grow or shrink the pip row to `cap` sockets (cheap no-op once it matches). */
+  /** Grow or shrink the pip row to `cap` sockets (no-op once it matches). */
   private ensureJumpPips(cap: number): void {
     while (this.jumpPips.length < cap) {
       const pip = document.createElement('div');

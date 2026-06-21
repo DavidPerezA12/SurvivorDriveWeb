@@ -14,11 +14,10 @@ import { GUN_UPGRADES, type UpgradeId } from '../content/upgrades';
  * Detail comes from silhouette and baked vertex-colour AO, not triangle count.
  * The kit below trades the flat box for tapered frustums (`taper`), round tube
  * and cone (`cyl`/`cone`), and wheel-arch eyebrows (`arch`). Each car is one body
- * draw call plus one self-lit lamp draw call, so the lamps glow in shadow under
- * the unlit `lightMaterial` instead of going muddy as opaque boxes.
+ * draw call plus one self-lit lamp draw call under the unlit `lightMaterial`.
  *
- * Bolt-on upgrades (`buildUpgradeLayer`) share the Survivor's axle/floor heights
- * and wheel track, so the gun, plating, tank and magnet sit right on any body.
+ * Bolt-on upgrades (`buildUpgradeLayer`) use shared coordinate conventions plus
+ * per-chassis anchors, so the gun, plating, tank and magnet sit right on each body.
  *
  * Like the hero, bodies are modelled nose-forward (+z) and flipped 180° so the
  * chase camera and the bolt-ons (also flipped) agree on travel (−z).
@@ -47,8 +46,8 @@ function wedge(w: number, h: number, d: number, color: number, rx: number, x: nu
 }
 
 /**
- * A frustum: a box whose top face is scaled in (and optionally slid in z), so a
- * cabin, hood or fender tapers instead of reading as a cube. `computeVertexNormals`
+ * A frustum: a box whose top face is scaled in (and optionally slid in z), used
+ * for tapered cabins, hoods and fenders. `computeVertexNormals`
  * after the vertex move keeps each face flat-shaded and lit from its true (now
  * sloped) orientation.
  */
@@ -88,7 +87,7 @@ function cyl(radius: number, length: number, color: number, axis: 'x' | 'y' | 'z
   return paint(g.translate(x, y, z), color, ao);
 }
 
-/** A tapered round form — nose cones, velocity stacks, exhaust tips. */
+/** A tapered round form. */
 function cone(rTop: number, rBot: number, length: number, color: number, axis: 'x' | 'y' | 'z', x: number, y: number, z: number, ao = 0.45, seg = 12): THREE.BufferGeometry {
   const g = new THREE.CylinderGeometry(rTop, rBot, length, seg);
   if (axis === 'x') g.rotateZ(Math.PI / 2);
@@ -146,15 +145,17 @@ function extrudeBody(
   return paint(geo, color, ao);
 }
 
-/** A self-lit lamp panel — flat (no AO) so it glows full-bright under the unlit
- *  `lightMaterial` even on a face turned from the sun. Optional `rx` tilt. */
+/**
+ * A self-lit lamp panel: flat (no AO) so it stays bright under the unlit
+ * `lightMaterial` even on a face turned from the sun. Optional `rx` tilt.
+ */
 function glow(w: number, h: number, d: number, color: number, x: number, y: number, z: number, rx = 0): THREE.BufferGeometry {
   const g = new THREE.BoxGeometry(w, h, d);
   if (rx) g.rotateX(rx);
   return paint(g.translate(x, y, z), color, 0);
 }
 
-/** A round self-lit lamp — pod headlights, light-bar spots, round tail lamps. */
+/** A round self-lit lamp. */
 function glowCyl(radius: number, length: number, color: number, axis: 'x' | 'y' | 'z', x: number, y: number, z: number, seg = 12): THREE.BufferGeometry {
   const g = new THREE.CylinderGeometry(radius, radius, length, seg);
   if (axis === 'x') g.rotateZ(Math.PI / 2);
@@ -216,10 +217,10 @@ function addWheels(
     const out = x > 0 ? 1 : -1;
     const faceX = x + out * (width / 2);
 
-    // 1. Chunky tyre cylinder
+    // Chunky tyre cylinder.
     parts.push(wheel(radius, width, B.wheel).translate(x, axleY, z));
 
-    // 2. Alternating 3D knobby tread blocks (for off-road)
+    // Alternating 3D knobby tread blocks for off-road tyres.
     if (isOffRoad) {
       const treadCount = 10;
       for (let i = 0; i < treadCount; i += 1) {
@@ -237,19 +238,19 @@ function addWheels(
       }
     }
 
-    // 3. Dark rim barrel
+    // Dark rim barrel.
     parts.push(wheel(radius * 0.64, width * 0.6, B.carGrille).translate(x, axleY, z));
 
-    // 4. Alloy rim face (recessed slightly inward)
+    // Alloy rim face, recessed slightly inward.
     parts.push(cyl(radius * 0.58, 0.05, rimColor, 'x', faceX - out * 0.03, axleY, z, 0.5, 16));
 
-    // 5. Chrome outer lip ring (proud of the tyre edge, facing outboard)
+    // Chrome outer lip ring, proud of the tyre edge and facing outboard.
     const lip = new THREE.TorusGeometry(radius * 0.59, 0.035, 6, 16)
       .rotateY(Math.PI / 2)
       .translate(faceX + out * 0.01, axleY, z);
     parts.push(paint(lip, B.carChrome, 0.5));
 
-    // 6. 5 Spokes (contrasting bright silver, sitting proud of the face)
+    // Five bright spokes sitting proud of the face.
     const spokeCount = 5;
     for (let i = 0; i < spokeCount; i += 1) {
       const a = (i / spokeCount) * Math.PI * 2;
@@ -260,10 +261,10 @@ function addWheels(
       parts.push(paint(sp, B.carChrome, 0.4));
     }
 
-    // 7. Chrome center hub cap
+    // Chrome center hub cap.
     parts.push(cyl(radius * 0.17, 0.06, B.carChrome, 'x', faceX + out * 0.02, axleY, z, 0.45, 10));
 
-    // 8. 5 chrome lug nuts
+    // Five chrome lug nuts.
     for (let i = 0; i < 5; i += 1) {
       const a = (i / 5) * Math.PI * 2 + 0.3;
       const lx = faceX + out * 0.015;
@@ -292,9 +293,8 @@ function buildRig(): THREE.Group {
   // Dark ladder-frame rocker + round axle tubes the lifted body sits on.
   parts.push(panel(1.66, 0.22, 3.9, B.carTrim, 0, FLOOR_Y - 0.06, 0));
   for (const z of [1.4, -1.4] as const) parts.push(cyl(0.1, 2.0, dark, 'x', 0, AXLE_Y, z, 0.5, 8));
-  // The cab + hood + fenders: ONE extruded shell — a rounded hood, a raked
-  // windshield, a domed cab roof — with the open cargo bed dropping to a low deck
-  // behind it (its walls/floor added as panels). Real truck bodywork, not boxes.
+  // Cab, hood and fenders as one extruded shell: rounded hood, raked windshield,
+  // and domed cab roof. The open cargo bed drops to a low deck behind it.
   const shell = new THREE.Shape();
   shell.moveTo(2.05, 0.36);
   shell.lineTo(2.05, 0.72);
@@ -374,8 +374,7 @@ function buildRig(): THREE.Group {
   }
 
   // Tailgate face detail: a pressed centre channel, a chrome grab handle, and a
-  // bolted licence-plate box — the back of the truck reads as a real tailgate,
-  // the face the chase camera lives behind.
+  // bolted licence-plate box. This is the face the chase camera lives behind.
   parts.push(panel(1.2, 0.46, 0.05, dark, 0, FLOOR_Y + 0.3, -2.07)); // recessed channel
   parts.push(cyl(0.05, 0.8, B.carChrome, 'x', 0, FLOOR_Y + 0.42, -2.12, 0.4, 8)); // grab handle
   parts.push(panel(0.5, 0.22, 0.05, B.carTrim, 0, FLOOR_Y + 0.16, -2.12)); // plate housing
@@ -393,22 +392,22 @@ function buildRig(): THREE.Group {
     for (const dy of [0.43, 0.25]) parts.push(panel(0.46, 0.03, 0.14, B.carTrim, s * 0.7, FLOOR_Y + dy, -2.14)); // dividers
   }
 
-  // 1. Hood stripes
+  // Hood stripes.
   parts.push(panel(0.08, 0.015, 0.5, rust, 0.22, FLOOR_Y + 0.95, 1.35));
   parts.push(panel(0.08, 0.015, 0.5, rust, -0.22, FLOOR_Y + 0.95, 1.35));
 
-  // 2. Windshield wipers
+  // Windshield wipers.
   parts.push(cyl(0.012, 0.38, B.carTrim, 'x', 0.25, FLOOR_Y + 0.98, 0.88, 0.4, 5));
   parts.push(cyl(0.012, 0.38, B.carTrim, 'x', -0.25, FLOOR_Y + 0.98, 0.88, 0.4, 5));
 
-  // 3. Headlight grille guards & Hook
+  // Headlight grille guards and hook.
   for (const s of [-1, 1] as const) {
     parts.push(cyl(0.015, 0.38, B.carChrome, 'x', s * 0.62, FLOOR_Y + 0.49, 1.94, 0.4, 6));
     parts.push(cyl(0.015, 0.38, B.carChrome, 'x', s * 0.62, FLOOR_Y + 0.41, 1.94, 0.4, 6));
   }
   parts.push(cyl(0.035, 0.16, B.carChrome, 'y', 0, FLOOR_Y + 0.28, 2.06, 0.4, 8)); // hook
 
-  // 4. Strapped wooden crate in cargo bed
+  // Strapped wooden crate in cargo bed.
   parts.push(panel(0.66, 0.48, 0.66, 0x6e5033, -0.42, FLOOR_Y + 0.74, -1.42));
   parts.push(panel(0.7, 0.05, 0.05, 0x4f3620, -0.42, FLOOR_Y + 0.96, -1.42));
   parts.push(panel(0.7, 0.05, 0.05, 0x4f3620, -0.42, FLOOR_Y + 0.52, -1.42));
@@ -434,8 +433,8 @@ function buildHauler(): THREE.Group {
   const lights: THREE.BufferGeometry[] = [];
 
   parts.push(panel(1.86, 0.16, 2.6, B.carTrim, 0, FLOOR_Y - 0.1, -0.1)); // rocker sill
-  // The body: ONE tall extruded shell — a short rounded nose, a near-vertical
-  // windshield and a long rounded-edge cargo box — instead of a raw cube.
+  // The body is a tall extruded shell with a short rounded nose, a near-vertical
+  // windshield and a long rounded-edge cargo box.
   const shell = new THREE.Shape();
   shell.moveTo(2.05, 0.34);
   shell.lineTo(2.05, 0.62);
@@ -518,17 +517,17 @@ function buildHauler(): THREE.Group {
     for (const dy of [0.47, 0.31]) parts.push(panel(0.3, 0.03, 0.14, B.carTrim, s * 0.74, FLOOR_Y + dy, -2.13)); // dividers
   }
 
-  // 1. Two sloped steel plow blades on the push bar
+  // Two sloped steel plow blades on the push bar.
   parts.push(wedge(0.72, 0.38, 0.08, plate, 0.45, 0.42, FLOOR_Y + 0.18, 2.12, 0.4));
   parts.push(wedge(0.72, 0.38, 0.08, plate, 0.45, -0.42, FLOOR_Y + 0.18, 2.12, 0.4));
 
-  // 2. Rivets on the side panels
+  // Rivets on the side panels.
   for (const s of [-1, 1] as const) {
     parts.push(cyl(0.02, 0.04, dark, 'x', s * 1.02, FLOOR_Y + 1.4, 0.5, 0.4, 4));
     parts.push(cyl(0.02, 0.04, dark, 'x', s * 1.02, FLOOR_Y + 1.4, -0.5, 0.4, 4));
   }
 
-  // 3. Rear utility steps, tow ball hitch and backup camera pod
+  // Rear utility steps, tow ball hitch and backup camera pod.
   parts.push(cyl(0.04, 1.2, B.carChrome, 'x', 0, FLOOR_Y - 0.08, -2.14, 0.4, 8));
   parts.push(ball(0.06, B.carChrome, 0, FLOOR_Y + 0.14, -2.26, 0.4));
   parts.push(panel(0.12, 0.1, 0.1, dark, 0, FLOOR_Y + 1.28, -2.05));
@@ -616,21 +615,21 @@ function buildBuggy(): THREE.Group {
     lights.push(glowCyl(0.045, 0.06, B.carReverse, 'z', s * 0.2, FLOOR_Y + 0.34, -1.78, 8));
   }
 
-  // 1. Steering wheel and dashboard console
+  // Steering wheel and dashboard console.
   parts.push(panel(1.0, 0.14, 0.22, B.buggyTub, 0, FLOOR_Y + 0.74, 0.25));
   parts.push(cyl(0.025, 0.32, B.carChrome, 'z', -0.3, FLOOR_Y + 0.62, 0.1, 0.4, 6));
   parts.push(paint(new THREE.TorusGeometry(0.14, 0.025, 6, 12).translate(-0.3, FLOOR_Y + 0.74, -0.05), B.carTrim, 0.4));
 
-  // 2. Radiator and cooling fans
+  // Radiator and cooling fans.
   parts.push(panel(0.74, 0.46, 0.08, B.carGrille, 0, FLOOR_Y + 0.66, -1.02));
   parts.push(cyl(0.2, 0.03, B.carTrim, 'z', -0.18, FLOOR_Y + 0.66, -0.98, 0.4, 8));
   parts.push(cyl(0.2, 0.03, B.carTrim, 'z', 0.18, FLOOR_Y + 0.66, -0.98, 0.4, 8));
 
-  // 3. Fire extinguisher
+  // Fire extinguisher.
   parts.push(cyl(0.08, 0.28, 0xbf2c24, 'y', 0.42, FLOOR_Y + 0.24, -0.1, 0.4, 8));
   parts.push(cyl(0.03, 0.06, B.carChrome, 'y', 0.42, FLOOR_Y + 0.4, -0.1, 0.4, 6));
 
-  // 4. Cockpit window safety nets
+  // Cockpit window safety nets.
   for (const s of [-1, 1] as const) {
     parts.push(cyl(0.02, 0.66, B.carTrim, 'y', s * 0.6, FLOOR_Y + 0.8, 0.0, 0.4, 4));
     parts.push(cyl(0.015, 0.5, B.carTrim, 'z', s * 0.6, FLOOR_Y + 0.7, 0.0, 0.4, 4));
@@ -728,17 +727,17 @@ function buildCoupe(): THREE.Group {
     lights.push(glowCyl(0.05, 0.06, B.carReverse, 'z', s * 0.16, FLOOR_Y + 0.18, -2.06, 8));
   }
 
-  // 1. Front Intercooler visible in nose bumper
+  // Front intercooler visible in nose bumper.
   parts.push(panel(0.68, 0.16, 0.1, B.carChrome, 0, FLOOR_Y + 0.1, 1.94, 0.4));
   parts.push(panel(0.02, 0.14, 0.04, B.carGrille, -0.2, FLOOR_Y + 0.1, 1.96));
   parts.push(panel(0.02, 0.14, 0.04, B.carGrille, 0.0, FLOOR_Y + 0.1, 1.96));
   parts.push(panel(0.02, 0.14, 0.04, B.carGrille, 0.2, FLOOR_Y + 0.1, 1.96));
 
-  // 2. Windshield wipers at base of raked window
+  // Windshield wipers at base of raked window.
   parts.push(cyl(0.012, 0.42, B.carTrim, 'x', 0.22, FLOOR_Y + 0.9, 0.55, 0.4, 4));
   parts.push(cyl(0.012, 0.42, B.carTrim, 'x', -0.22, FLOOR_Y + 0.9, 0.55, 0.4, 4));
 
-  // 3. Wing endplates on the GT ducktail wing
+  // Wing endplates on the GT ducktail wing.
   parts.push(panel(0.04, 0.16, 0.34, B.coupeDark, 0.88, FLOOR_Y + 0.54, -1.86));
   parts.push(panel(0.04, 0.16, 0.34, B.coupeDark, -0.88, FLOOR_Y + 0.54, -1.86));
 
@@ -899,7 +898,7 @@ export function buildChassisUpgradeParts(owned: ReadonlySet<UpgradeId>, id: Chas
     const gy = gunCenter.y;
     const gz = gunCenter.z;
 
-    // 1. Chassis-specific structural gun mount brackets / turret hatches
+    // Chassis-specific gun mount brackets / turret hatches.
     if (id === 'rig') {
       parts.push(panel(0.64, 0.04, 0.4, B.carTrim, gx, gy - 0.04, gz));
     } else if (id === 'hauler') {
@@ -912,22 +911,22 @@ export function buildChassisUpgradeParts(owned: ReadonlySet<UpgradeId>, id: Chas
       parts.push(panel(0.64, 0.04, 0.34, B.carGrille, gx, gy - 0.02, gz));
     }
 
-    // 2. Base turret mechanism
+    // Base turret mechanism.
     parts.push(cyl(0.22, 0.08, B.carChrome, 'y', gx, gy, gz, 0.4, 16));
     parts.push(cyl(0.16, 0.14, B.carTrim, 'y', gx, gy + 0.08, gz, 0.4, 12));
     parts.push(taper(0.46, 0.3, 0.62, 0.34, 0.5, B.carTrim, gx, gy + 0.18, gz - 0.12, 0.4));
 
-    // 3. Round drum magazine + ammo feed chute
+    // Round drum magazine and ammo feed chute.
     parts.push(cyl(0.19, 0.5, B.ammoBox, 'x', gx, gy + 0.36, gz - 0.22, 0.4, 16));
     parts.push(cyl(0.2, 0.08, B.ammoBand, 'x', gx, gy + 0.36, gz - 0.22, 0.4, 16));
     parts.push(ball(0.08, B.carChrome, gx, gy + 0.36, gz + 0.06, 0.4, 8));
     parts.push(panel(0.1, 0.12, 0.14, B.ammoBand, gx, gy + 0.24, gz - 0.18)); // ammo feed chute
 
-    // 4. Charging handle on the side of the receiver
+    // Charging handle on the side of the receiver.
     parts.push(cyl(0.02, 0.12, B.carChrome, 'x', gx + 0.22, gy + 0.22, gz - 0.06, 0.4, 6));
     parts.push(ball(0.03, B.carTrim, gx + 0.28, gy + 0.22, gz - 0.06, 0.4, 6));
 
-    // 5. Weapon barrels based on level
+    // Weapon barrels based on level.
     const len = 0.7 + gunLevel * 0.13;
     const girth = 0.07 + gunLevel * 0.014;
     const offsets = gunLevel >= 4 ? ([-0.11, 0.11] as const) : ([0] as const);

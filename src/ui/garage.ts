@@ -15,7 +15,7 @@ import { CHASSIS, chassisDef, type ChassisId } from '../content/chassis';
  * Upgrades render on the car model). It is a `ui/` DOM overlay built once and
  * toggled by `display`: the hero car turns on its 3D turntable dead centre, a CAR
  * INFO panel reads the build's stats, category tabs (UPGRADES · GUN · CAR ·
- * COLOR) switch the rack, and a row of **levelled** upgrade cards lines the
+ * COLOR) switch the rack, and a row of levelled upgrade cards lines the
  * bottom. It reads no sim state and writes none — purchases and "drive" flow back
  * through callbacks.
  *
@@ -135,7 +135,7 @@ export class Garage {
       'z-index:25',
     ].join(';');
 
-    // ---- Top bar: scrap (left) · mode title (centre) · DRIVE (right).
+    // Top bar: scrap (left), mode title (centre), DRIVE (right).
     const top = document.createElement('div');
     top.className = 'sdw-garage__top';
     top.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:16px';
@@ -152,7 +152,7 @@ export class Garage {
     this.driveBtn.addEventListener('click', () => this.cb.onClose());
     top.append(walletPlate, this.title, this.driveBtn);
 
-    // ---- Middle: CAR INFO (left) · the car turntable (centre) · RUN status (right).
+    // Middle: CAR INFO (left), car turntable (centre), RUN status (right).
     const middle = document.createElement('div');
     middle.className = 'sdw-garage__middle';
     middle.style.cssText = 'flex:1;display:flex;align-items:stretch;gap:16px;min-height:0';
@@ -188,7 +188,7 @@ export class Garage {
     status.append(this.resultBox);
     middle.append(info, this.previewSlot, status);
 
-    // ---- Bottom: tabs + card rack, grouped as one control surface.
+    // Bottom: tabs and card rack, grouped as one control surface.
     const bottom = document.createElement('div');
     bottom.className = 'sdw-garage__bottom';
     bottom.style.cssText = [
@@ -259,7 +259,7 @@ export class Garage {
     this.placeholder.style.display = soon ? 'block' : 'none';
   }
 
-  // ---- builders -----------------------------------------------------------
+  // Builders
 
   private buildStatRow(def: { label: string; key: string }): HTMLDivElement {
     const row = document.createElement('div');
@@ -318,7 +318,7 @@ export class Garage {
     return root;
   }
 
-  // ---- sync ---------------------------------------------------------------
+  // Sync
 
   private sync(): void {
     const v = this.view;
@@ -409,7 +409,7 @@ function cardHighlight(el: HTMLElement, live: boolean): void {
   el.style.boxShadow = `inset 0 1px 0 #ffffff12, 0 3px 10px #0009${live ? ', 0 0 12px #e89a3a40' : ''}`;
 }
 
-// ---- skin helpers ---------------------------------------------------------
+// Skin helpers
 
 function plate(extra = ''): HTMLDivElement {
   const p = document.createElement('div');

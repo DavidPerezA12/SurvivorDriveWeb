@@ -22,7 +22,7 @@ const MAX_FRAME_S = 0.25;
  * 60 Hz ticks, render the leftover as an interpolation `alpha`
  * (docs/ARCHITECTURE.md → Game loop).
  *
- * Wall-clock time lives *here*, never in the sim — `performance.now()` feeds the
+ * Wall-clock time lives here, never in the sim. `performance.now()` feeds the
  * accumulator and never reaches a tick.
  *
  * Pausing stops the rAF loop outright rather than gating the body: an open
@@ -31,7 +31,7 @@ const MAX_FRAME_S = 0.25;
  * startup, apply to the impure layers here, and persist on every change.
  *
  * (Audio is intentionally not wired: the engine-sound layer exists in
- * `src/audio/` but is disabled for now — the volume setting persists but is
+ * `src/audio/` but is disabled for now. The volume setting persists but is
  * inert until it lands.)
  */
 export class Game {
@@ -56,7 +56,7 @@ export class Game {
   /** The just-ended run's result, frozen for the garage to display across buys. */
   private lastRun = { distance: 0, zombiesMowed: 0, runScrap: 0, title: '' };
 
-  /** Reused snapshot of the pre-step state for interpolation — never realloc'd. */
+  /** Reused snapshot of the pre-step state for interpolation. Never realloc'd. */
   private readonly prev: RenderSnapshot = {
     distance: 0,
     carLateralX: 0,
@@ -176,7 +176,7 @@ export class Game {
   }
 
   /**
-   * Restart the run on the same seed — "drive the same apocalypse" again — now
+   * Restart the run on the same seed, "drive the same apocalypse" again, now
    * wearing whatever the garage has installed. The loadout is read fresh, so a
    * purchase made on the wreck screen takes effect the instant you drive.
    */
@@ -227,7 +227,7 @@ export class Game {
     this.openGarage();
   }
 
-  /** Open the garage from the pause menu — a between-runs visit, not a wreck. */
+  /** Open the garage from the pause menu, a between-runs visit rather than a wreck. */
   private openGarageFromPause(): void {
     this.garageMode = 'pause';
     this.menu.hide();
@@ -251,7 +251,7 @@ export class Game {
     this.carPreview.resize(slot.clientWidth, slot.clientHeight);
   }
 
-  /** Pick the chassis in the CAR tab — persists, and updates the live preview + its upgrades. */
+  /** Pick the chassis in the CAR tab; persists and updates the live preview + its upgrades. */
   private selectChassis(id: ChassisId): void {
     this.selectedChassis = id;
     this.save.setChassis(id);

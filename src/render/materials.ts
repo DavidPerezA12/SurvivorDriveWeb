@@ -3,9 +3,8 @@ import * as THREE from 'three';
 /**
  * One shared, flat-shaded, vertex-colored material backs almost every prop, so
  * the renderer makes minimal program/state switches (docs/ARCHITECTURE.md →
- * Materials). Detail is bought with baked vertex color — not triangles or
- * textures — which is exactly what keeps the look crafted *and* the frame rate
- * stable (docs/DESIGN.md → Object craft).
+ * Materials). Detail is bought with baked vertex color, not triangles or
+ * textures (docs/DESIGN.md → Object craft).
  */
 export const propMaterial = new THREE.MeshLambertMaterial({
   vertexColors: true,
@@ -15,14 +14,14 @@ export const propMaterial = new THREE.MeshLambertMaterial({
 /**
  * Unlit, vertex-colored material for self-lit details — headlights, taillights.
  * Because it ignores scene lighting, a light reads at full brightness even on a
- * face turned away from the sun (the car's rear), so lamps actually *glow*
- * instead of going muddy in shadow (docs/DESIGN.md → Juice as information).
+ * face turned away from the sun (the car's rear), so lamps stay readable in
+ * shadow (docs/DESIGN.md → Juice as information).
  *
  * `polygonOffset` biases lamp fragments a hair toward the camera so a lamp set
  * flush on (or coplanar with) the bodywork it sits on always wins the depth test
- * instead of z-fighting it — the cause of the intermittent flicker on rear lamps
- * like the coupe's full-width tail bar, where the lamp's back face landed exactly
- * on the body's rear face.
+ * instead of z-fighting it. This prevents intermittent flicker on rear lamps like
+ * the coupe's full-width tail bar, where the lamp's back face landed exactly on
+ * the body's rear face.
  */
 export const lightMaterial = new THREE.MeshBasicMaterial({
   vertexColors: true,
@@ -43,10 +42,10 @@ export const silhouetteMaterial = new THREE.MeshBasicMaterial({
 });
 
 /**
- * Bake per-vertex color into a geometry with a cheap directional ambient-
+ * Bake per-vertex color into a geometry with a directional ambient-
  * occlusion gradient: surfaces facing up stay bright, undersides darken. This
- * is the low-poly craft trick — a flat box reads as a deliberately shaded form
- * for the cost of one extra attribute and zero extra triangles.
+ * lets a flat box read as a shaded form for the cost of one extra attribute and
+ * zero extra triangles.
  */
 export function paint(geometry: THREE.BufferGeometry, color: THREE.ColorRepresentation, ao = 0.4): THREE.BufferGeometry {
   const position = geometry.getAttribute('position');
@@ -67,7 +66,7 @@ export function paint(geometry: THREE.BufferGeometry, color: THREE.ColorRepresen
   return geometry;
 }
 
-/** A vertex-colored box. The workhorse of the low-poly kit. */
+/** A vertex-colored box. */
 export function box(
   w: number,
   h: number,
@@ -78,10 +77,10 @@ export function box(
   return paint(new THREE.BoxGeometry(w, h, d), color, ao);
 }
 
-/** A vertex-colored cylinder, laid on its side to roll along X (a wheel). 24
- *  radial segments so the tyre reads round, not as a faceted polygon, even under
- *  flat shading (the wheels are large on screen — the faceting was the loudest
- *  blocky tell). */
+/**
+ * A vertex-colored cylinder, laid on its side to roll along X (a wheel). 24
+ * radial segments keep the tyre round under flat shading.
+ */
 export function wheel(radius: number, width: number, color: THREE.ColorRepresentation): THREE.BufferGeometry {
   const geo = new THREE.CylinderGeometry(radius, radius, width, 24);
   geo.rotateZ(Math.PI / 2);

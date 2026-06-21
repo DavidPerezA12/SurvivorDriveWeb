@@ -1,9 +1,9 @@
 /**
- * Render-side palette. Colors are a *view* concern — the sim never sees them.
+ * Render-side palette. Colors are a view concern; the sim never sees them.
  *
  * M0 ships the "Rust" act look: a sick orange haze over abandoned asphalt. The
  * road owns the high-contrast values; the world sits in the act's sky tone so
- * fog can pull the spawn horizon into the act color for free (docs/DESIGN.md →
+ * fog can pull the spawn horizon into the act color (docs/DESIGN.md →
  * Art & audio direction).
  */
 export const palette = {
@@ -46,9 +46,8 @@ export const palette = {
   structureBase: 0x1b1a1c,
   structureHaze: 0x393640,
   // Lit window panes baked into city buildings: a dim warm glow that, on the
-  // unlit silhouette material, reads as a few floors still catching the dusk —
-  // so a tower reads as a building, not a flat slab (docs/DESIGN.md → detail from
-  // vertex color, not triangles).
+  // unlit silhouette material, makes a tower read as a building with floors
+  // (docs/DESIGN.md → detail from vertex color, not triangles).
   structureWin: 0x705028,
   // Static-act wreckage: fractured shards in a dead, desaturated grey.
   spireBase: 0x18181c,
@@ -246,7 +245,7 @@ export const palette = {
   ammoBand: 0xe0a93a,
   ammoTip: 0xcaa24a,
 
-  // Neon colors for city signs and street lighting
+  // Neon colors for city signs and street lighting.
   neonPink: 0xff3399,
   neonCyan: 0x00f0ff,
   neonAmber: 0xff8c00,

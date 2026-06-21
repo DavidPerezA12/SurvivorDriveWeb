@@ -2,13 +2,10 @@
  * Acts — the run's named distance bands and the per-act spawn mix that gives each
  * one its own character (docs/DESIGN.md → Run structure: "acts are tuned, not
  * procedural; each act's event mix and spawn weights are data tables"). The world
- * is **not** one uniform random sheet: every band throws a different challenge —
- * Outbreak eases you in, Rust teaches, the Swarm floods you with the dead, the
- * Visitors rain meteors, the Colossus walls you in with rigs, and Static turns
- * everything to eleven.
+ * is not one uniform random sheet: every band throws a different challenge.
  *
  * Pure data: the sim reads this to weight each chunk's spawns by where it sits in
- * the run. The render side has its own act *mood/scenery* tables in
+ * the run. The render side has its own act mood/scenery tables in
  * `src/render/mood.ts`; both walk the same six acts at the same `ACT_SPAN_M`
  * cadence, so "I died in act III" lines up between what you see and what you fight.
  */
@@ -55,7 +52,7 @@ export interface SpawnWeights {
 /**
  * Six hand-tuned profiles, one per act. Per-lane chances sum to < 1 so a lane can
  * still come up empty (and the safe lane is always skipped). The character of each
- * band is in the *shape* of its mix, not just its density.
+ * band is in the shape of its mix, not just its density.
  */
 export const ACT_SPAWNS: readonly SpawnWeights[] = [
   // I · Outbreak — day one in the city, things just starting to go wrong. The

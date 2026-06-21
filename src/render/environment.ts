@@ -11,13 +11,10 @@ import type { Elevation } from './elevation';
  * → Run structure: the world ends in stages). Without the backdrop the road
  * floats in void; without the mood shift the apocalypse never escalates.
  *
- * The shift is cheap by construction. Fog, background, and the two lights are
- * just colors — re-tinting them every frame costs a handful of `lerpColors`, and
- * re-tinting the *lights* re-moods every lit surface (road, car, decor) for free,
- * because flat Lambert shading multiplies vertex color by light color. Only the
- * sky dome carries baked per-vertex color, so it is the one thing rebaked — and
- * only while a transition is actually in progress, into a reused buffer with no
- * allocation (docs/ARCHITECTURE.md → allocation discipline).
+ * Fog, background, and the two lights are just colors, so most frames only do a
+ * few `lerpColors`. The sky dome is the one baked vertex-color surface, and it is
+ * rebaked only during transitions into a reused buffer with no allocation
+ * (docs/ARCHITECTURE.md → allocation discipline).
  */
 export class EnvironmentDirector {
   private readonly scene: THREE.Scene;
@@ -112,9 +109,9 @@ export class EnvironmentDirector {
     this.bakeGround(1);
   }
 
-  /** Re-mood the world for the car's distance. Cheap every frame; rebakes rarely. */
+  /** Re-mood the world for the car's distance. Most frames only update colors. */
   update(distance: number, elevation: Elevation): void {
-    // Ride the road's vertical profile so the wasteland floor undulates *with* the
+    // Ride the road's vertical profile so the wasteland floor undulates with the
     // road instead of staying a flat sheet the road floats above on a hill. Each
     // vertex's world-forward is `distance − worldZ`; lift its Y onto the surface
     // there. Allocation-free (the position buffer is rewritten in place).
@@ -136,7 +133,7 @@ export class EnvironmentDirector {
     this.hemi.color.lerpColors(a.hemiSky, b.hemiSky, t);
     this.hemi.groundColor.lerpColors(a.hemiGround, b.hemiGround, t);
 
-    // The sky's baked vertex colors only change when the blend actually moves.
+    // The sky's baked vertex colors only change when the blend moves.
     if (index !== this.lastIndex || Math.abs(t - this.lastT) > 0.004) {
       this.bakeSky(a, b, t);
       this.lastIndex = index;
@@ -184,10 +181,10 @@ export class EnvironmentDirector {
 }
 
 /**
- * A wide floor plane just below the road, mottled with cheap value noise baked
+ * A wide floor plane just below the road, mottled with value noise baked
  * into vertex colors so it reads as dusty ground rather than a flat sheet. It is
  * lit and fogged, so the act's lights re-mood it and its far edge dissolves into
- * the act's fog horizon for free. It carries the *wasteland* (desert) colors at
+ * the act's fog horizon. It carries the wasteland (desert) colors at
  * build time; the director crossfades it to the city palette inside Act I.
  */
 function buildGround(): THREE.Mesh {
@@ -216,7 +213,7 @@ function bakeGroundColors(geo: THREE.BufferGeometry, nearHex: number, farHex: nu
   for (let i = 0; i < pos.count; i += 1) {
     const x = pos.getX(i);
     const z = pos.getZ(i);
-    // Two octaves of sine "noise" → soft patches. Cheap, deterministic, subtle.
+    // Two octaves of sine "noise" → soft deterministic patches.
     const n =
       0.5 +
       0.3 * Math.sin(x * 0.07 + z * 0.05) +

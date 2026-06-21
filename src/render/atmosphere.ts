@@ -2,10 +2,9 @@ import * as THREE from 'three';
 import { palette } from './palette';
 
 /**
- * Fine dust and embers hanging in the dead air. It is the cheapest way to give
- * the wasteland weight: the road already conveys speed, but a sky full of drifting
- * motes streaming past the windscreen is what makes the air itself feel real
- * (docs/DESIGN.md → Art direction; Juice as information — subtle, never noise).
+ * Fine dust and embers hanging in the dead air. The road already conveys speed;
+ * drifting motes add a subtle world-streaming cue (docs/DESIGN.md → Art
+ * direction; Juice as information).
  *
  * One `THREE.Points` cloud, fixed capacity, drawn in a single call. Motes carry
  * an absolute road position and stream past exactly like the road tiles do, then

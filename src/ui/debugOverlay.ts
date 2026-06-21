@@ -4,10 +4,8 @@ const HISTORY = 120;
 
 /**
  * The always-on dev overlay (docs/ARCHITECTURE.md → Budgets). It reports draw
- * calls, triangles, FPS, and — crucially — frame-*time stability*, not just an
- * average: a rolling graph plus the 95th-percentile / median ratio, because the
- * budget is the worst frame, not the mean. The p95/median figure turns red when
- * it crosses 1.5×, the stability ceiling.
+ * calls, triangles, FPS, and frame-time stability, not just an average. The
+ * p95/median figure turns red when it crosses 1.5×, the stability ceiling.
  */
 export class DebugOverlay {
   private readonly root: HTMLDivElement;

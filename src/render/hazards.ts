@@ -8,22 +8,13 @@ import type { Elevation } from './elevation';
 const MAX_INSTANCES = 48;
 
 /**
- * A wrecked car blocking a lane — beaten, burnt, abandoned. Authored to the
- * interactive-object craft bar (docs/DESIGN.md → Object craft): a crumpled front,
- * a sprung hood over a scorched engine bay, shattered glass, a door hung open,
- * three tyres with one torn off, and rust eating the panels. The warm body and
- * the orange hazard stripe stay dominant so it still reads as a threat at the
- * spawn horizon (threats warm). One merged geometry, instanced — the whole field
- * of blockers is a single draw call.
+ * A wrecked car blocking a lane. The warm body and orange stripe stay dominant
+ * so it reads as a threat at the spawn horizon (docs/DESIGN.md → Object craft).
+ * One merged geometry, instanced.
  */
 function wreckGeometry(): THREE.BufferGeometry {
   const p = palette;
-  // A battered sedan, authored to the hero-prop craft bar (docs/DESIGN.md → Object
-  // craft): shape from slopes and proportion (a raked windscreen, a fastback rear,
-  // fender haunches, a narrowed greenhouse), not stacked cubes — and asymmetric
-  // damage that tells a story (a smashed window, a door hung open, a blown tyre,
-  // dead lamps, rust, scorch). The crumpled nose + hazard stripe face the oncoming
-  // player. One merged geometry, instanced.
+  // The crumpled nose and hazard stripe face the oncoming player.
   const tb = (w: number, h: number, d: number, c: number, rx: number, x: number, y: number, z: number, ao = 0.45) =>
     paint(new THREE.BoxGeometry(w, h, d).rotateX(rx).translate(x, y, z), c, ao);
   const parts = [
@@ -74,10 +65,8 @@ function wreckGeometry(): THREE.BufferGeometry {
 }
 
 /**
- * A second wrecked vehicle — a panel van — so a stretch of blockers isn't the same
- * sedan over and over (the static `wreck` is split between this and the sedan).
- * A clearly different silhouette: a low cab up front under a raked screen, then a
- * tall boxy cargo body with split rear doors; battered with rust and a flat tyre.
+ * A second wrecked vehicle, used so static wrecks are not all the same sedan.
+ * The van reads as a low cab plus a tall cargo body.
  */
 function wreckVanGeometry(): THREE.BufferGeometry {
   const p = palette;
@@ -114,12 +103,9 @@ function wreckVanGeometry(): THREE.BufferGeometry {
 }
 
 /**
- * A toppled big rig blocking a lane — the lethal, un-jumpable blocker. Tall and
- * heavy: a long box trailer crashed lengthwise, a cab jackknifed off the front,
- * spilled cargo, rust — and bold amber hazard chevrons on the rear doors facing
- * the oncoming car, so it reads at the spawn horizon as "wall: dodge, don't jump"
- * (docs/DESIGN.md → readability: threats warm, telegraph the danger). One merged
- * geometry, instanced.
+ * A toppled big rig blocking a lane, the lethal un-jumpable blocker. Amber
+ * chevrons face the player so it reads as "wall: dodge, don't jump"
+ * (docs/DESIGN.md → readability). One merged geometry, instanced.
  */
 function rigGeometry(): THREE.BufferGeometry {
   const p = palette;
@@ -154,14 +140,9 @@ function rigGeometry(): THREE.BufferGeometry {
 }
 
 /**
- * A boulder blocking a lane — the low rubble mound the player is meant to jump.
- * Authored to the interactive-object craft bar (docs/DESIGN.md → Object craft): a
- * chunky two-lobe mound of angular blocks at varied warm tones with a shadowed
- * crevice and spilled rubble around the base, so its outline reads as "low rock,
- * hop it" — distinct from the car silhouette of a wreck and short enough that the
- * jumpable read is obvious at the spawn horizon. Kept warm (not the desaturated
- * decoration `rock`) so it never reads as off-road scenery. One merged geometry,
- * instanced — the whole field of boulders is a single draw call.
+ * A boulder blocking a lane, low enough to read as jumpable. Warm tones separate
+ * it from off-road scenery while keeping it in the threat palette. One merged
+ * geometry, instanced.
  */
 function boulderGeometry(): THREE.BufferGeometry {
   const p = palette;
@@ -186,13 +167,9 @@ function boulderGeometry(): THREE.BufferGeometry {
 }
 
 /**
- * An explosive barrel blocking a lane — a fuel drum the gun is meant to pop.
- * Authored to the interactive-object craft bar (docs/DESIGN.md → Object craft): a
- * dented steel drum with raised top/bottom rims, a bright hazard-yellow warning
- * band, a worn lid, and a small bung — warm red so it reads "blow me up" at the
- * spawn horizon, distinct from the brown wreck/boulder and the desaturated
- * decorative oil drum. A cylinder, so its round silhouette is unmistakable. One
- * merged geometry, instanced — the whole field of barrels is a single draw call.
+ * An explosive barrel blocking a lane. The red body, yellow band, and round
+ * silhouette keep it distinct from wrecks, boulders, and decorative drums. One
+ * merged geometry, instanced.
  */
 function barrelGeometry(): THREE.BufferGeometry {
   const p = palette;
@@ -218,16 +195,11 @@ function barrelGeometry(): THREE.BufferGeometry {
 }
 
 /**
- * A hole in the road — the gap you jump or fall into. Authored as a recessed dark
- * void ringed by a broken asphalt lip and a couple of torn-off chunks, so it reads
- * unmistakably as "missing road, hop it" at the spawn horizon (docs/DESIGN.md →
- * the road is the boss; readability). Sized to the collision footprint (≈ one lane
- * wide, a short run long), instanced — the whole field of gaps is one draw call.
+ * A hole in the road, sized to the collision footprint and framed by broken
+ * asphalt so it reads as "missing road, hop it" at the spawn horizon.
  */
-// The gap is drawn on the UNLIT silhouette material so the act's ambient light
-// can't lift its black void into a pale slab (which made it read as a panel on the
-// road, not a hole). Colours are baked dark and shown as-is. The void is recessed
-// deep and walled so it reads as an actual pit; a broken-asphalt lip frames it.
+// The gap uses the unlit silhouette material so act lighting does not wash the
+// pit into a pale slab. Colours are baked dark and shown as-is.
 const GAP_VOID = 0x050507; // near-black hole
 const GAP_WALL = 0x0c0d10; // pit walls, a touch lighter than the floor
 const GAP_LIP = 0x202227; // torn asphalt rim, near the road's own dark tone
@@ -272,8 +244,7 @@ export class HazardField {
   /** Reused per-instance tint, so a row of the same blocker never reads identical. */
   private readonly tint = new THREE.Color();
 
-  /** Stable pseudo-random in [0,1) keyed on a world-forward + a salt — so a given
-   *  blocker's angle/size/shade are fixed (no per-frame flicker). */
+  /** Stable pseudo-random in [0,1), keyed on world-forward and salt. */
   private hv(key: number, salt: number): number {
     let h = (Math.imul((Math.floor(key * 16) | 0) + 1, 374761393) ^ Math.imul(salt, 668265263)) >>> 0;
     h = Math.imul(h ^ (h >>> 13), 1274126177);
@@ -312,7 +283,7 @@ export class HazardField {
     let barrels = 0;
     let gaps = 0;
     for (const h of state.hazards) {
-      // A detonated barrel is gone from the world — stop drawing it.
+      // A detonated barrel is gone from the world.
       if (h.kind === 'barrel' && h.hit) continue;
       // Meteors are drawn by MeteorField (falling rock → crater); skip here so
       // they aren't also drawn as a wrecked car by the default branch below.
@@ -341,10 +312,9 @@ export class HazardField {
         count = wrecks;
       }
       if (count >= MAX_INSTANCES) continue;
-      // Per-instance variety so a stretch of the same blocker never reads as
-      // clones: ground-class blockers sit at a crashed angle and a varied size; a
-      // drifter keeps its slide yaw; the rig stays square (it is a wall). A rust/
-      // shade tint is applied to all but the gap (whose black void must stay black).
+      // Per-instance variety keeps a stretch of the same blocker from reading as
+      // clones. Drifters keep their slide yaw; rigs stay square because they are
+      // walls. Tint is applied to all but the gap, whose dark pit must stay dark.
       const drifter = h.kind === 'drifter';
       const shaped = h.kind === 'wreck' || drifter || h.kind === 'boulder' || h.kind === 'barrel';
       const yaw = drifter ? this.driftYaw(h) : shaped ? (this.hv(h.forward, 1) - 0.5) * 0.7 : 0;

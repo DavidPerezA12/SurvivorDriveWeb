@@ -6,12 +6,12 @@ import { LOOKAHEAD } from '../content/tuning';
 import type { Elevation } from './elevation';
 
 /**
- * Highway overpasses crossing the road — the structures the drive passes *under*.
+ * Highway overpasses crossing the road, the structures the drive passes under.
  * Some still span clean; many have collapsed, their decks drooping and snapped,
  * a pier toppled, rubble heaped on the shoulder. They give the road a third
  * dimension and sell "this highway used to go somewhere", and the broken ones are
  * the visual of "the road ahead is wrecked" without touching the drivable surface
- * (docs/DESIGN.md → Art direction; the road-reshaping that the car actually drives
+ * (docs/DESIGN.md → Art direction; the road-reshaping that the car drives
  * over is the M3 "road is the boss" work, deliberately not pulled forward here).
  *
  * Deck and piers clear the car (and any jump) with room to spare, and the piers
@@ -51,7 +51,7 @@ function intactGeometry(): THREE.BufferGeometry {
 
 /**
  * A collapsed span: the road-side deck is gone (the dramatic gap, sky showing
- * through), and the wreckage droops toward the *shoulder*, never into the drivable
+ * through), and the wreckage droops toward the shoulder, never into the drivable
  * corridor — everything over |x| < 9 stays high above any jump. The piers sit off
  * the road, one toppled, with rubble heaped beneath the break.
  */

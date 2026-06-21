@@ -1,13 +1,12 @@
 /**
  * Weapon tiers — data, not code (docs/DESIGN.md → Pillar 2 / Upgrades).
  *
- * The gun has a **level**, 1..MAX, derived from owned garage upgrades (see
+ * The gun has a level, 1..MAX, derived from owned garage upgrades (see
  * `weaponLevel` in `Loadout`). Each level is a flat data row the sim reads at
- * fire time, so balancing the whole weapon track is editing this table — never
- * touching engine code. Modeled on *The Last Driver*'s "default shotgun → bigger
- * guns, more ammo" progression: every tier raises **destruction** (zombies one
- * shot drops), **range** (how far ahead it reaches), **cadence** (shots/sec),
- * the **spread** (how many lanes wide it shreds), and the **ammo** it carries.
+ * fire time, so balancing the whole weapon track is editing this table, never
+ * touching engine code. Every tier raises destruction (zombies one shot drops),
+ * range (how far ahead it reaches), cadence (shots/sec), spread (how many lanes
+ * wide it shreds), and ammo.
  *
  * Pure data: this module imports nothing impure and is safe for the sim to read.
  */
@@ -19,7 +18,7 @@ export interface WeaponStats {
   readonly name: string;
   /** How far ahead of the car a shot reaches, in meters (the "distance"). */
   readonly range: number;
-  /** Ticks between shots while the trigger is held — lower = faster cadence. */
+  /** Ticks between shots while the trigger is held; lower = faster cadence. */
   readonly fireIntervalTicks: number;
   /** Destruction: how many zombies a single shot drops (nearest first). */
   readonly killsPerShot: number;
@@ -27,14 +26,14 @@ export interface WeaponStats {
   readonly laneSpread: number;
   /** Rounds the mag starts a run with. */
   readonly startAmmo: number;
-  /** Rounds the gun can hold — ammo boxes never refill past this. */
+  /** Rounds the gun can hold; ammo boxes never refill past this. */
   readonly maxAmmo: number;
 }
 
 /**
  * Five tiers, from the scavenged shotgun to a road-clearing autocannon. Each step
- * is meant to pass the blindfold test — you feel the extra reach, rate, and
- * carnage within seconds, not read it on a stat screen.
+ * is meant to pass the blindfold test: the extra reach, rate, and width are felt
+ * within seconds.
  */
 export const WEAPON_LEVELS: readonly WeaponStats[] = [
   { level: 1, name: 'Scrap Shotgun', range: 60, fireIntervalTicks: 9, killsPerShot: 1, laneSpread: 1, startAmmo: 45, maxAmmo: 90 },

@@ -1,15 +1,14 @@
 /**
  * Upgrades — data, not code (docs/DESIGN.md → Upgrades: "feel first, numbers
- * second"). Upgrades are grouped into **families**, each a short ordered chain of
+ * second"). Upgrades are grouped into families, each a short ordered chain of
  * tiers bought with banked scrap: owning tier N requires tier N-1, and each tier
- * pushes one numeric dial further — TIRES 0/2, JUMP 0/3, the GUN 0/4, modeled on
- * *The Last Driver*'s levelled garage. A single owned set drives everything, so
+ * pushes one numeric dial further: TIRES 0/2, JUMP 0/3, the GUN 0/4. A single owned set drives everything, so
  * `Loadout` stays pure run input and the save schema never changes.
  *
- * The build is also *visible on the car* (docs/DESIGN.md → Upgrades render on the
+ * The build is also visible on the car (docs/DESIGN.md → Upgrades render on the
  * car model); the render layer reads the same owned set to dress the hero car.
  * Every tier must pass the blindfold test, and all of it is earned with in-run
- * scrap — no numeric-only filler, no soft paywall.
+ * scrap. No numeric-only filler, no soft paywall.
  */
 
 export type UpgradeId =
@@ -84,25 +83,25 @@ export const UPGRADE_FAMILIES: readonly UpgradeFamily[] = [
 export const GUN_UPGRADES: readonly UpgradeId[] = ['gunMkII', 'gunMkIII', 'gunMkIV', 'gunMkV'];
 
 export const UPGRADES: readonly UpgradeDef[] = [
-  // ----- ARMOR: each tier shaves more hull off every crash.
+  // ARMOR: each tier shaves more hull off every crash.
   { id: 'reinforcedPlating', name: 'Reinforced Plating I', blurb: 'Plated panels — every crash costs the hull less.', cost: 60 },
   { id: 'reinforcedPlating2', name: 'Reinforced Plating II', blurb: 'Heavier plate — crashes barely dent you.', cost: 110 },
   { id: 'reinforcedPlating3', name: 'Reinforced Plating III', blurb: 'Battle armor — shrug off the hits that ended past runs.', cost: 180 },
-  // ----- TIRES: snappier lane changes.
+  // TIRES: snappier lane changes.
   { id: 'stickyTires', name: 'Sticky Tires I', blurb: 'Lane changes snap instead of slide.', cost: 40 },
   { id: 'stickyTires2', name: 'Sticky Tires II', blurb: 'Knife-sharp — the car darts between lanes.', cost: 80 },
-  // ----- JUMP: taller, longer arc.
+  // JUMP: taller, longer arc.
   { id: 'hydraulicJump', name: 'Hydraulic Jump I', blurb: 'Higher, longer arc — rooftop and trench lines open.', cost: 45 },
   { id: 'hydraulicJump2', name: 'Hydraulic Jump II', blurb: 'Big air — clear wider gaps.', cost: 85 },
   { id: 'hydraulicJump3', name: 'Hydraulic Jump III', blurb: 'Moon hops — sail clean over whole pileups.', cost: 140 },
-  // ----- TANK: more jump charges.
+  // TANK: more jump charges.
   { id: 'liftTank', name: 'Lift Tank I', blurb: 'Carry more jump charges, and bank more before they spill.', cost: 50 },
   { id: 'liftTank2', name: 'Lift Tank II', blurb: 'A deeper tank — more hops between refills.', cost: 90 },
   { id: 'liftTank3', name: 'Lift Tank III', blurb: 'Long-haul tank — jump almost at will.', cost: 150 },
-  // ----- MAGNET: wider loot/mow reach.
+  // MAGNET: wider loot/mow reach.
   { id: 'scrapMagnet', name: 'Scrap Magnet I', blurb: 'Wider reach — scoop loot and fodder you used to skim past.', cost: 55 },
   { id: 'scrapMagnet2', name: 'Scrap Magnet II', blurb: 'Full-lane pull — nothing in your lane escapes.', cost: 100 },
-  // ----- GUN: weapon tiers (the level lives in content/weapons.ts).
+  // GUN: weapon tiers (the level lives in content/weapons.ts).
   { id: 'gunMkII', name: 'Gun Mk II — Pump Repeater', blurb: 'Faster, farther, two fodder per shot instead of one.', cost: 55 },
   { id: 'gunMkIII', name: 'Gun Mk III — Street Sweeper', blurb: 'Shreds the neighbouring lanes too — three down a shot.', cost: 95 },
   { id: 'gunMkIV', name: 'Gun Mk IV — Twin Autocannon', blurb: 'Long reach, rapid fire, four a shot — the road clears ahead.', cost: 150 },

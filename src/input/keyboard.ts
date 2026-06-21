@@ -3,12 +3,12 @@ import type { Intent } from '../sim';
 /**
  * Keyboard → typed intents, the only channel from input into the sim.
  *
- * Steering is edge-triggered and *queued*: each fresh key press enqueues one
+ * Steering is edge-triggered and queued: each fresh key press enqueues one
  * lane-change, and the loop drains one per tick. So a single tap is exactly one
  * lane change even when a frame runs several catch-up ticks, and holding a key
  * (which fires `repeat`) never machine-guns across the road. Jump is a latch,
  * consumed once per press (the sim also gates it on being grounded). Fire is a
- * *held* state — true while the trigger key is down — and the sim gates the
+ * held state, true while the trigger key is down, and the sim gates the
  * cadence, so holding it auto-fires (docs/DESIGN.md → Pillar 2).
  */
 export class Keyboard {

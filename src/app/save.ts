@@ -9,8 +9,8 @@ import { CHASSIS, type ChassisId } from '../content/chassis';
  * window must degrade to an in-memory session, never crash the game.
  *
  * The payload carries settings plus the garage's meta-progression: the banked
- * scrap wallet, the **selected chassis**, the **global** upgrades (jump charges,
- * the gun — shared across every car), and the **per-chassis** upgrades (armor,
+ * scrap wallet, the selected chassis, the global upgrades (jump charges,
+ * the gun, shared across every car), and the per-chassis upgrades (armor,
  * tires, jump arc, magnet — bought and tracked separately on each car). New
  * fields are added backward-compatibly and an old flat `upgrades` list migrates
  * forward by routing each id to global or to the Survivor's per-chassis bucket.
@@ -22,11 +22,11 @@ const WRITE_DEBOUNCE_MS = 400;
 export interface SaveData {
   schemaVersion: number;
   settings: Settings;
-  /** Banked scrap the garage spends — survivor savings between runs. */
+  /** Banked scrap the garage spends between runs. */
   wallet: number;
   /** The chassis currently selected to drive. */
   chassis: ChassisId;
-  /** Owned global upgrades (jump charges, the gun) — applied on every chassis. */
+  /** Owned global upgrades (jump charges, the gun), applied on every chassis. */
   globalUpgrades: UpgradeId[];
   /** Owned per-chassis upgrades, keyed by chassis id (armor, tires, jump, magnet). */
   chassisUpgrades: Partial<Record<ChassisId, UpgradeId[]>>;

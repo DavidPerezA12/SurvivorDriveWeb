@@ -217,7 +217,7 @@ function pick<T>(rng: Rng, pool: readonly T[]): T {
 /**
  * Fill every `{token}` in `template`. Pool tokens draw from `POOLS`; the stat
  * tokens `{dist}`/`{kills}` read `stats`. Slots resolve left-to-right so the
- * draw order — and thus the result — is fully determined by the stream. Pool
+ * draw order, and thus the result, is fully determined by the stream. Pool
  * entries may themselves contain tokens (e.g. a `finale` of "at Mile {dist}"),
  * so we expand repeatedly until the string is stable, with a depth guard so a
  * malformed self-referential pool can never loop forever.
