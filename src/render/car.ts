@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { lightMaterial, paint, propMaterial, wheel } from './materials';
+import { lightMaterial, nonIndexed, paint, propMaterial, wheel } from './materials';
 import { palette } from './palette';
 import { GUN_UPGRADES, type UpgradeId } from '../content/upgrades';
 import type { ChassisId } from '../content/chassis';
@@ -444,7 +444,7 @@ export function createCar(): THREE.Group {
   // The extruded body shells are non-indexed while the box/cyl parts are indexed;
   // mergeGeometries refuses to mix the two, so normalise everything to non-indexed
   // first (the temporary copies are CPU-only and get GC'd, never uploaded).
-  const bodyGeo = mergeGeometries(body.map((g) => g.toNonIndexed()), false);
+  const bodyGeo = mergeGeometries(body.map(nonIndexed), false);
   const lightGeo = mergeGeometries(lights, false);
   for (const p of body) p.dispose();
   for (const p of lights) p.dispose();

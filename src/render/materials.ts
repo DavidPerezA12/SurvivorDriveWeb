@@ -66,6 +66,10 @@ export function paint(geometry: THREE.BufferGeometry, color: THREE.ColorRepresen
   return geometry;
 }
 
+export function nonIndexed(geometry: THREE.BufferGeometry): THREE.BufferGeometry {
+  return geometry.index ? geometry.toNonIndexed() : geometry;
+}
+
 /** A vertex-colored box. */
 export function box(
   w: number,

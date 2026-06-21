@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { paint, wheel, propMaterial, lightMaterial } from './materials';
+import { nonIndexed, paint, wheel, propMaterial, lightMaterial } from './materials';
 import { palette } from './palette';
 import { createCar } from './car';
 import type { ChassisId } from '../content/chassis';
@@ -180,7 +180,7 @@ function assemble(body: THREE.BufferGeometry[], lights: THREE.BufferGeometry[], 
 
   // Normalise to non-indexed so extruded shells (non-indexed) merge with the
   // box/cyl parts (indexed); mergeGeometries refuses to mix the two.
-  const bodyGeo = mergeGeometries(body.map((g) => g.toNonIndexed()), false);
+  const bodyGeo = mergeGeometries(body.map(nonIndexed), false);
   for (const p of body) p.dispose();
   if (bodyGeo) {
     bodyGeo.rotateY(Math.PI);
