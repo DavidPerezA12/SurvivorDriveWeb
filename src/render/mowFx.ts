@@ -82,7 +82,7 @@ export class ParticlePool {
     this.mesh.instanceMatrix.needsUpdate = true;
   }
 
-  spawn(x: number, forward: number): void {
+  spawn(x: number, forward: number, baseY = 0.4): void {
     const c = this.cfg;
     const motion = this.reduced ? 0.35 : 1;
     for (let n = 0; n < c.perBurst; n += 1) {
@@ -90,7 +90,7 @@ export class ParticlePool {
       this.cursor = (this.cursor + 1) % c.count;
       this.fwd[i] = forward + (Math.random() - 0.5) * 0.6;
       this.px[i] = x + (Math.random() - 0.5) * c.spread * 0.3;
-      this.py[i] = 0.4;
+      this.py[i] = baseY;
       this.vx[i] = (Math.random() - 0.5) * c.spread * motion;
       this.vy[i] = (c.vyMin + Math.random() * (c.vyMax - c.vyMin)) * motion;
       this.vf[i] = (Math.random() - 0.3) * c.spread * 0.6 * motion;

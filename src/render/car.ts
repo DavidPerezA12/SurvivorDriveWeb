@@ -648,6 +648,18 @@ function gunParts(level: number): THREE.BufferGeometry[] {
 }
 
 /**
+ * Local-space muzzle of the roof gun at a weapon level: how far ahead of the car
+ * centre the barrel tip sits (`forward`, in metres) and how high (`y`). The gun FX
+ * reads this so the tracers and muzzle flash leave the actual barrel, and the
+ * origin moves out as the barrel lengthens with the tier (`gunParts` uses the same
+ * `len`). X stays centred; the twin barrels split in the FX itself.
+ */
+export function gunMuzzle(level: number): { readonly forward: number; readonly y: number } {
+  const len = 0.7 + Math.max(1, level) * 0.13;
+  return { forward: 0.22 + len + 0.18, y: FLOOR_Y + 1.16 };
+}
+
+/**
  * Build one merged mesh carrying every owned upgrade's bolt-on parts, or `null`
  * when nothing is installed. Merging keeps the whole garage build to a single
  * extra draw call no matter how many upgrades are worn (docs/ARCHITECTURE.md →

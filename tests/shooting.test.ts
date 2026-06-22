@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createSim, type Intent, type SimState } from '../src/sim';
 import { resolveShots } from '../src/sim/collision';
 import { BASE_LOADOUT, computeLoadout, upgradePrereq, type Loadout } from '../src/content/upgrades';
-import { laneCenterX } from '../src/content/tuning';
+import { laneCenterX, WEAPON_TUNING } from '../src/content/tuning';
 import { weaponStats } from '../src/content/weapons';
 
 /**
@@ -148,5 +148,57 @@ describe('weapon tiers', () => {
     expect(createSim(1, computeLoadout(['gunMkII'])).car.ammo).toBeGreaterThan(
       createSim(1).car.ammo,
     );
+  });
+});
+
+function putWreck(s: SimState, lane: number, forward: number): void {
+  s.hazards.push({ kind: 'wreck', lane, x: laneCenterX(lane), forward, hit: false, hp: WEAPON_TUNING.wreckHp });
+}
+
+describe('the gun blows up cars', () => {
+  it('chips a car down over several hits and blasts it apart at zero', () => {
+    const s = gunner(); // level 1: killsPerShot 1
+    putWreck(s, CAR_LANE, s.distance + 20);
+    for (let i = 0; i < WEAPON_TUNING.wreckHp - 1; i += 1) {
+      s.car.fireCooldown = 0;
+      resolveShots(s, FIRE);
+      expect(s.hazards[0].hit).toBe(false); // still standing
+    }
+    s.car.fireCooldown = 0;
+    resolveShots(s, FIRE);
+    expect(s.hazards[0].hit).toBe(true); // the last hit wrecks it
+    expect(s.events.some((e) => e.type === 'exploded')).toBe(true);
+  });
+
+  it('the apocalypse cannon blows a car apart in one shot', () => {
+    const s = gunner({ ...BASE_LOADOUT, weaponLevel: 5 }); // killsPerShot 6 > wreckHp
+    putWreck(s, CAR_LANE, s.distance + 20);
+    resolveShots(s, FIRE);
+    expect(s.hazards[0].hit).toBe(true);
+  });
+
+  it('a car blocks the shot — zombies behind it are spared that round', () => {
+    const s = gunner();
+    putWreck(s, CAR_LANE, s.distance + 15); // nearer
+    putZombie(s, CAR_LANE, s.distance + 25); // behind the car
+    resolveShots(s, FIRE);
+    expect(s.zombies[0].mowed).toBe(false); // shot ate the car
+    expect(s.hazards[0].hp).toBeLessThan(WEAPON_TUNING.wreckHp); // car took the hit
+  });
+
+  it('a zombie nearer than a car is dropped first, leaving the car untouched', () => {
+    const s = gunner();
+    putZombie(s, CAR_LANE, s.distance + 12); // nearer
+    putWreck(s, CAR_LANE, s.distance + 26); // behind the zombie
+    resolveShots(s, FIRE);
+    expect(s.zombies[0].mowed).toBe(true);
+    expect(s.hazards[0].hp).toBe(WEAPON_TUNING.wreckHp); // untouched
+  });
+
+  it('cannot destroy a rig — it must still be dodged', () => {
+    const s = gunner({ ...BASE_LOADOUT, weaponLevel: 5 });
+    s.hazards.push({ kind: 'rig', lane: CAR_LANE, x: laneCenterX(CAR_LANE), forward: s.distance + 20, hit: false });
+    resolveShots(s, FIRE);
+    expect(s.hazards[0].hit).toBe(false);
   });
 });

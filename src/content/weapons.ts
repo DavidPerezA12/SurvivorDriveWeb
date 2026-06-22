@@ -36,11 +36,11 @@ export interface WeaponStats {
  * within seconds.
  */
 export const WEAPON_LEVELS: readonly WeaponStats[] = [
-  { level: 1, name: 'Scrap Shotgun', range: 60, fireIntervalTicks: 9, killsPerShot: 1, laneSpread: 1, startAmmo: 45, maxAmmo: 90 },
-  { level: 2, name: 'Pump Repeater', range: 76, fireIntervalTicks: 8, killsPerShot: 2, laneSpread: 1, startAmmo: 70, maxAmmo: 140 },
-  { level: 3, name: 'Street Sweeper', range: 92, fireIntervalTicks: 7, killsPerShot: 3, laneSpread: 3, startAmmo: 100, maxAmmo: 200 },
-  { level: 4, name: 'Twin Autocannon', range: 110, fireIntervalTicks: 6, killsPerShot: 4, laneSpread: 3, startAmmo: 140, maxAmmo: 280 },
-  { level: 5, name: 'Apocalypse Cannon', range: 132, fireIntervalTicks: 5, killsPerShot: 6, laneSpread: 5, startAmmo: 180, maxAmmo: 360 },
+  { level: 1, name: 'Scrap Shotgun', range: 78, fireIntervalTicks: 9, killsPerShot: 1, laneSpread: 1, startAmmo: 45, maxAmmo: 90 },
+  { level: 2, name: 'Pump Repeater', range: 100, fireIntervalTicks: 8, killsPerShot: 2, laneSpread: 1, startAmmo: 70, maxAmmo: 140 },
+  { level: 3, name: 'Street Sweeper', range: 124, fireIntervalTicks: 7, killsPerShot: 3, laneSpread: 3, startAmmo: 100, maxAmmo: 200 },
+  { level: 4, name: 'Twin Autocannon', range: 150, fireIntervalTicks: 6, killsPerShot: 4, laneSpread: 3, startAmmo: 140, maxAmmo: 280 },
+  { level: 5, name: 'Apocalypse Cannon', range: 180, fireIntervalTicks: 5, killsPerShot: 6, laneSpread: 5, startAmmo: 180, maxAmmo: 360 },
 ] as const;
 
 /** The highest weapon tier the garage can reach. */

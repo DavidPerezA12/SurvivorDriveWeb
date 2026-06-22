@@ -283,6 +283,14 @@ export const WEAPON_TUNING = {
   ammoPerShot: 1,
   /** Half-width (m) of the base one-lane column; spread tiers widen it per lane. */
   laneHalfWidth: LANE_WIDTH * 0.5,
+  /**
+   * A car's shootable integrity: each shot chips it by the weapon's `killsPerShot`,
+   * so the scrap shotgun (1) needs five hits to wreck a car while the apocalypse
+   * cannon (6) blows it apart in one. Cars block the shot, so clearing traffic with
+   * the gun is a real, ammo-priced choice; the un-shootable rig still has to be
+   * dodged (docs/DESIGN.md → the gun clears fodder, the road is still the boss).
+   */
+  wreckHp: 5,
 } as const;
 
 /** What the on-road repair/ammo pickups restore (docs/DESIGN.md → roster). */

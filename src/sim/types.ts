@@ -219,6 +219,13 @@ export interface Hazard {
    */
   beamFromX?: number;
   beamToX?: number;
+  /**
+   * Shootable integrity, set only on a `wreck`/`drifter` (a car): the gun chips it
+   * down and blows it apart at 0 (`resolveShots`). The bigger the cannon, the fewer
+   * shots it takes. Undefined on hazards the gun cannot destroy (rig, boulder,
+   * meteor, gap), which must still be dodged.
+   */
+  hp?: number;
 }
 
 /**

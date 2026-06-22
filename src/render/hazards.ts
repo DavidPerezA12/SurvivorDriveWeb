@@ -337,8 +337,8 @@ export class HazardField {
     let cracks = 0;
     let beams = 0;
     for (const h of state.hazards) {
-      // A detonated barrel is gone from the world.
-      if (h.kind === 'barrel' && h.hit) continue;
+      // A detonated barrel or a shot-apart car is gone from the world.
+      if ((h.kind === 'barrel' || h.kind === 'wreck' || h.kind === 'drifter') && h.hit) continue;
       // Meteors are drawn by MeteorField (falling rock → crater); skip here so
       // they aren't also drawn as a wrecked car by the default branch below.
       if (h.kind === 'meteor') continue;

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { FrameEvent, ReadonlyState } from '../sim';
 import { createStage, type Stage } from './scene';
-import { buildUpgradeLayer, buildDamageLayer } from './car';
+import { buildUpgradeLayer, buildDamageLayer, gunMuzzle } from './car';
 import { createChassis } from './chassis';
 import type { UpgradeId } from '../content/upgrades';
 import type { ChassisId } from '../content/chassis';
@@ -221,11 +221,14 @@ export class GameView {
         // shook for the impact; this reads the damage (docs/DESIGN.md → Juice).
         this.stage.camera.addTrauma(0.1 + Math.min(event.amount * 1.5, 0.3));
         break;
-      case 'shotFired':
-        // A bright muzzle spit at the nose, bigger at higher gun tiers — no
-        // shake, the gun is smooth (docs/DESIGN.md → Juice: reads with sound off).
-        this.gunFx.fire(event.x, this.lastDistance + 3, event.level);
+      case 'shotFired': {
+        // Spit the flash and tracers from the actual barrel tip: at the car's
+        // lateral X, raised to the roof gun's muzzle height, and the forward offset
+        // grows as the barrel lengthens with the tier (no shake; the gun is smooth).
+        const m = gunMuzzle(event.level);
+        this.gunFx.fire(event.x, this.lastDistance + m.forward, m.y, event.level);
         break;
+      }
       case 'zombieMowed':
         // No shake: mowing is smooth. The body and scrap shards fly;
         // the speed surge widens the FOV on its own (docs/DESIGN.md → Juice).

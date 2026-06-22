@@ -101,6 +101,7 @@ export function materializeSpawns(state: SimState): void {
           hit: false,
           driftFromX: fromX,
           driftToX: laneCenterX(spawn.toLane),
+          hp: WEAPON_TUNING.wreckHp,
         });
       } else if (spawn.kind === 'beam') {
         // A UFO beam: a lethal strip that sweeps from its start lane across to its
@@ -135,6 +136,7 @@ export function materializeSpawns(state: SimState): void {
           forward: base + spawn.z,
           hit: false,
           open: spawn.kind === 'gap' && spawn.opening ? false : undefined,
+          hp: spawn.kind === 'wreck' ? WEAPON_TUNING.wreckHp : undefined,
         });
       }
     }
@@ -463,6 +465,41 @@ export function resolveShots(state: SimState, intent: Intent): void {
     }
     if (barrelAhead <= nearestZombie) {
       detonateBarrel(state, barrel);
+      return;
+    }
+  }
+
+  // A car (wreck or drifting wreck) in the column is shot apart by the gun: a shot
+  // chips its integrity by `killsPerShot`, and at 0 it blows up. The car blocks the
+  // shot, so one nearer than the nearest zombie eats this shot (the zombies behind
+  // it are spared this round). The bigger the cannon, the fewer shots a car takes.
+  let wreck: Hazard | null = null;
+  let wreckAhead = Infinity;
+  for (const h of state.hazards) {
+    if ((h.kind !== 'wreck' && h.kind !== 'drifter') || h.hit) continue;
+    const ahead = h.forward - state.distance;
+    if (ahead <= 0 || ahead > w.range) continue;
+    if (Math.abs(h.x - car.lateralX) > halfWidth) continue;
+    if (ahead < wreckAhead) {
+      wreckAhead = ahead;
+      wreck = h;
+    }
+  }
+  if (wreck) {
+    let nearestZombie = Infinity;
+    for (const z of state.zombies) {
+      if (z.mowed) continue;
+      const ahead = z.forward - state.distance;
+      if (ahead <= 0 || ahead > w.range) continue;
+      if (Math.abs(z.x - car.lateralX) > halfWidth) continue;
+      if (ahead < nearestZombie) nearestZombie = ahead;
+    }
+    if (wreckAhead <= nearestZombie) {
+      wreck.hp = (wreck.hp ?? WEAPON_TUNING.wreckHp) - w.killsPerShot;
+      if (wreck.hp <= 0) {
+        wreck.hit = true;
+        state.events.push({ type: 'exploded', x: wreck.x, forward: wreck.forward });
+      }
       return;
     }
   }
