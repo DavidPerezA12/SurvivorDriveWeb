@@ -3,6 +3,7 @@ import { applyCrash } from './health';
 import { chunkAt } from './world';
 import {
   BARREL_TUNING,
+  BEAM_TUNING,
   CAR_TUNING,
   CHUNK_LENGTH,
   CRASH_TUNING,
@@ -43,6 +44,10 @@ const METEOR_HALF_LENGTH = 1.1;
 // road (short enough to clear with one jump).
 const GAP_HALF_WIDTH = 1.35;
 const GAP_HALF_LENGTH = 3.5;
+// The UFO beam's lethal strip: about a lane wide, a thin band across the road. You
+// jump it or be off its settled lane (the safe lane is always clear of it).
+const BEAM_HALF_WIDTH = 1.2;
+const BEAM_HALF_LENGTH = 2.2;
 // Zombies are slimmer than a wreck. The car has to be genuinely on the line to
 // mow them, but the bumper's reach still does the work.
 const ZOMBIE_HALF_WIDTH = 0.6;
@@ -97,6 +102,19 @@ export function materializeSpawns(state: SimState): void {
           driftFromX: fromX,
           driftToX: laneCenterX(spawn.toLane),
         });
+      } else if (spawn.kind === 'beam') {
+        // A UFO beam: a lethal strip that sweeps from its start lane across to its
+        // target lane as it nears (`updateBeams`). Both lanes are non-safe.
+        const fromX = laneCenterX(spawn.lane);
+        state.hazards.push({
+          kind: 'beam',
+          lane: spawn.lane,
+          x: fromX,
+          forward: base + spawn.z,
+          hit: false,
+          beamFromX: fromX,
+          beamToX: laneCenterX(spawn.toLane),
+        });
       } else if (spawn.kind === 'meteor') {
         // A sky meteor: harmless until `updateMeteors` lands it on this lane.
         state.hazards.push({
@@ -142,6 +160,28 @@ export function updateDrifters(state: SimState): void {
     t = t < 0 ? 0 : t > 1 ? 1 : t;
     const s = t * t * (3 - 2 * t); // smoothstep
     h.x = h.driftFromX + (h.driftToX - h.driftFromX) * s;
+  }
+}
+
+/**
+ * Sweep each UFO beam's lethal strip from its start lane across to its target lane
+ * as the gap closes from `BEAM_TUNING.startGap` to `endGap`, then hold it there for
+ * the final approach. The sweep is the telegraph: the strip is visible crossing the
+ * lanes long before the car arrives, and it settles on a committed lane before the
+ * crossing, so a square hit is always on a lane it plainly moved to. The strip stays
+ * among non-safe lanes, so fleeing to the safe lane is always the out. Deterministic
+ * (a function of the gap) and allocation-free; runs before collisions read `x`.
+ */
+export function updateBeams(state: SimState): void {
+  const b = BEAM_TUNING;
+  for (const h of state.hazards) {
+    if (h.kind !== 'beam' || h.hit) continue;
+    if (h.beamFromX === undefined || h.beamToX === undefined) continue;
+    const gap = h.forward - state.distance;
+    let t = (b.startGap - gap) / (b.startGap - b.endGap);
+    t = t < 0 ? 0 : t > 1 ? 1 : t;
+    const s = t * t * (3 - 2 * t); // smoothstep
+    h.x = h.beamFromX + (h.beamToX - h.beamFromX) * s;
   }
 }
 
@@ -201,7 +241,9 @@ export function resolveCollisions(state: SimState): void {
     const barrel = h.kind === 'barrel';
     const meteor = h.kind === 'meteor';
     const gap = h.kind === 'gap';
-    // A landed meteor is a wall like the rig, too violent to jump.
+    const beam = h.kind === 'beam';
+    // A landed meteor is a wall like the rig, too violent to jump. The beam is
+    // ground-class: a jump clears it (docs/DESIGN.md → jump it or be in the safe lane).
     const tall = rig || meteor;
     const halfWidth = rig
       ? RIG_HALF_WIDTH
@@ -213,7 +255,9 @@ export function resolveCollisions(state: SimState): void {
             ? METEOR_HALF_WIDTH
             : gap
               ? GAP_HALF_WIDTH
-              : HAZARD_HALF_WIDTH;
+              : beam
+                ? BEAM_HALF_WIDTH
+                : HAZARD_HALF_WIDTH;
     const halfLength = rig
       ? RIG_HALF_LENGTH
       : boulder
@@ -224,7 +268,9 @@ export function resolveCollisions(state: SimState): void {
             ? METEOR_HALF_LENGTH
             : gap
               ? GAP_HALF_LENGTH
-              : HAZARD_HALF_LENGTH;
+              : beam
+                ? BEAM_HALF_LENGTH
+                : HAZARD_HALF_LENGTH;
 
     // Forward overlap: car spans [distance - CAR_LENGTH, distance].
     const forwardOverlap =
@@ -274,7 +320,9 @@ export function resolveCollisions(state: SimState): void {
           ? CRASH_TUNING.barrelDamageMul
           : meteor
             ? CRASH_TUNING.meteorDamageMul
-            : 1;
+            : beam
+              ? CRASH_TUNING.beamDamageMul
+              : 1;
     applyCrash(car, impact, glancing, state.events, state.loadout.damageMul * hazardMul);
     // The frenazo: a square hit bites momentum, a clip less so; a square rig hit
     // stops the car near-dead, a boulder less than a wreck, a barrel hard. Handling
@@ -289,7 +337,9 @@ export function resolveCollisions(state: SimState): void {
             ? CRASH_TUNING.barrelSpeedKeep
             : meteor
               ? CRASH_TUNING.meteorSpeedKeep
-              : CRASH_TUNING.frontalSpeedKeep;
+              : beam
+                ? CRASH_TUNING.beamSpeedKeep
+                : CRASH_TUNING.frontalSpeedKeep;
     // Taking a hull hit breaks the streak. Greed has a cost (docs/DESIGN.md).
     state.combo = 0;
     state.comboTicks = 0;

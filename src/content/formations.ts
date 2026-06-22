@@ -27,6 +27,7 @@ export type FormationRole =
   | 'boulder' // jump-clears, small ram
   | 'barrel' // shoot to clear (and the crowd around it)
   | 'drifter' // slides one lane over as it nears
+  | 'beam' // a UFO beam strip that sweeps across the flanking lanes
   | 'meteor' // falls onto its lane, then lethal
   | 'gap' // hole in the road; jump it or change lane
   | 'crackgap' // a quake gap: a telegraph crack that tears open into a lethal hole
@@ -42,6 +43,12 @@ export interface FormationCell {
   /** Position along the chunk, 0..1 from its near edge. */
   readonly z: number;
   readonly role: FormationRole;
+  /**
+   * For a `beam` (and reserved for other swept threats): the lane offset from the
+   * safe lane the sweep ends on. Must sit on the same side of the safe lane as
+   * `off`, so the lethal strip never crosses the safe line. Ignored by other roles.
+   */
+  readonly toOff?: number;
   /**
    * A generous extra pickup (not the one that makes the formation fair). These are
    * thinned out deep in a run as the economy tightens; essential pickups stay.
@@ -250,6 +257,18 @@ export const FORMATIONS: readonly Formation[] = [
       { off: 1, z: 0.35, role: 'crackgap' },
       { off: -1, z: 0.52, role: 'crackgap' },
       { off: 2, z: 0.7, role: 'crackgap' },
+    ],
+  },
+  // Beam sweep: a UFO drags a lethal beam across the flanking lanes toward the
+  // safe line. Watch it sweep, then flee to safety or jump it. The Visitors' own
+  // signature; the safe lane is never in its arc.
+  {
+    id: 'beam-sweep',
+    hardness: 0.74,
+    acts: [0, 0, 0, 4, 3, 2],
+    cells: [
+      { off: -1, z: 0.08, role: 'lift', bonus: true },
+      { off: 2, z: 0.5, role: 'beam', toOff: 1 },
     ],
   },
   // The wall: rigs across every flanking lane. Only the safe line passes. Reading

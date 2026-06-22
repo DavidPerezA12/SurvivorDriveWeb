@@ -34,7 +34,8 @@ export interface Prop {
  * speed), the `boulder` (a low rubble mound you jump over or eat for a smaller
  * crash), the explosive `barrel` (shoot it to detonate, chaining a blast that
  * clears a crowd; ram it for a big hit), and the `drifter` (a wreck that slides
- * one lane over as it nears, carrying its target lane) — the zombie (mowable/shootable
+ * one lane over as it nears, carrying its target lane), plus late road events like
+ * the `meteor`, `gap`, and `beam` — the zombie (mowable/shootable
  * fodder), and three cool collectibles: a lift pickup (refills a jump charge), a
  * health pickup (repairs the hull), and an ammo box (refills the gun). Zombie and
  * every pickup carry a deterministic `phase`: render-only variety (shamble/bob
@@ -48,6 +49,7 @@ export type SpawnKind =
   | 'drifter'
   | 'meteor'
   | 'gap'
+  | 'beam'
   | 'zombie'
   | 'jump'
   | 'health'
@@ -71,7 +73,7 @@ export type StaticHazardKind = 'wreck' | 'rig' | 'boulder' | 'barrel' | 'meteor'
  * be over while grounded: jump it or change lane, or fall in and die
  * (docs/DESIGN.md → roster; the road is the boss).
  */
-export type HazardKind = StaticHazardKind | 'drifter';
+export type HazardKind = StaticHazardKind | 'drifter' | 'beam';
 
 /** The three on-ground collectible kinds, shared by `Spawn` and `Pickup`. */
 export type PickupKind = 'jump' | 'health' | 'ammo';
@@ -99,6 +101,18 @@ export type Spawn =
        * The adjacent lane it slides into as it nears the car. Always non-safe and
        * exactly one lane from `lane`, so the slide never crosses the safe line
        * (docs/DESIGN.md → Pillar 3: the safe lane always stays open).
+       */
+      readonly toLane: number;
+    }
+  | {
+      readonly kind: 'beam';
+      /** The non-safe lane the sweep starts over. */
+      readonly lane: number;
+      readonly z: number;
+      /**
+       * The non-safe lane the beam sweeps across to as it nears. The sweep stays
+       * among non-safe lanes and never crosses the safe lane, so fleeing to safety
+       * is always the out (docs/DESIGN.md → the safe line always exists).
        */
       readonly toLane: number;
     }
@@ -197,6 +211,14 @@ export interface Hazard {
    * from the start. The renderer reads it to draw a glowing fissure before the pit.
    */
   open?: boolean;
+  /**
+   * Sweep endpoints, set only on a `beam`: the lane-center X it starts over and the
+   * one it sweeps across to as it nears (`updateBeams` eases `x` between them). Both
+   * are non-safe lanes, so the lethal strip never crosses the safe line. The
+   * renderer reads `x` for the beam column and the ground glow that telegraphs it.
+   */
+  beamFromX?: number;
+  beamToX?: number;
 }
 
 /**

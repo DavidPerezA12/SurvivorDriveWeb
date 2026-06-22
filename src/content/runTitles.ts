@@ -29,6 +29,7 @@ export type DeathCause =
   | 'barrel'
   | 'drifter'
   | 'meteor'
+  | 'beam'
   | 'gap'
   | 'attrition';
 
@@ -40,6 +41,7 @@ export const DEATH_CAUSES: readonly DeathCause[] = [
   'barrel',
   'drifter',
   'meteor',
+  'beam',
   'gap',
   'attrition',
 ];
@@ -191,6 +193,13 @@ const TEMPLATES: Record<DeathCause, readonly string[]> = {
     'Stood Under the {adj} Sky',
     'Out-Run by a Meteor',
     'Parked in the Impact Zone {finale}',
+  ],
+  beam: [
+    '{verb} by an {adj} Light',
+    'Beamed Up {finale}',
+    'Out-Swept by the Saucers',
+    'Carved Up by {invader}',
+    'Stood in the {adj} Beam',
   ],
   gap: [
     'Found the Hole in the {adj} Plan',

@@ -248,6 +248,29 @@ function quakeCrackGeometry(): THREE.BufferGeometry {
   return geo;
 }
 
+// The UFO strafe beam: a hot column with a glowing strip burned onto the lane it is
+// about to strike. Warm/red on purpose so it reads as a threat at a glance (the
+// readability rule: threats warm, pickups cool), even though the saucers glow green.
+// Drawn at the beam's swept X each frame, so the strip slides across the lanes as a
+// telegraph. Unlit silhouette material shows the baked glow as light.
+const BEAM_DANGER = 0xff3320;
+const BEAM_HOT = 0xff7a40;
+function beamGeometry(): THREE.BufferGeometry {
+  const parts = [
+    // The lethal strip burned onto the road: the lane marker you must be off.
+    box(2.3, 0.06, 5.2, BEAM_DANGER, 0).translate(0, 0.05, 0),
+    // A hotter core line down its middle.
+    box(0.7, 0.08, 5.2, BEAM_HOT, 0).translate(0, 0.07, 0),
+    // The descending shaft, slim so it never curtains off the road ahead.
+    box(0.7, 22, 0.95, BEAM_DANGER, 0).translate(0, 11, 0),
+    box(0.28, 22, 0.4, BEAM_HOT, 0).translate(0, 11, 0),
+  ];
+  const geo = mergeGeometries(parts, false);
+  for (const part of parts) part.dispose();
+  if (!geo) throw new Error('Failed to merge beam geometry');
+  return geo;
+}
+
 /**
  * Renders the sim's live hazards, instanced. The sim owns where they are; this
  * is a read-only view that maps each hazard's absolute world-forward to screen
@@ -262,6 +285,7 @@ export class HazardField {
   private readonly barrelMesh: THREE.InstancedMesh;
   private readonly gapMesh: THREE.InstancedMesh;
   private readonly crackMesh: THREE.InstancedMesh;
+  private readonly beamMesh: THREE.InstancedMesh;
   private readonly dummy = new THREE.Object3D();
   /** Reused per-instance tint, so a row of the same blocker never reads identical. */
   private readonly tint = new THREE.Color();
@@ -284,6 +308,8 @@ export class HazardField {
     this.gapMesh = new THREE.InstancedMesh(gapGeometry(), silhouetteMaterial, MAX_INSTANCES);
     // The pre-open crack telegraph; unlit so its baked glow reads as hot light.
     this.crackMesh = new THREE.InstancedMesh(quakeCrackGeometry(), silhouetteMaterial, MAX_INSTANCES);
+    // Unlit so the beam's baked glow reads as hot light against any act lighting.
+    this.beamMesh = new THREE.InstancedMesh(beamGeometry(), silhouetteMaterial, MAX_INSTANCES);
     for (const mesh of [
       this.wreckMesh,
       this.wreckVanMesh,
@@ -292,6 +318,7 @@ export class HazardField {
       this.barrelMesh,
       this.gapMesh,
       this.crackMesh,
+      this.beamMesh,
     ]) {
       mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       mesh.frustumCulled = false;
@@ -308,6 +335,7 @@ export class HazardField {
     let barrels = 0;
     let gaps = 0;
     let cracks = 0;
+    let beams = 0;
     for (const h of state.hazards) {
       // A detonated barrel is gone from the world.
       if (h.kind === 'barrel' && h.hit) continue;
@@ -332,6 +360,9 @@ export class HazardField {
       } else if (h.kind === 'gap') {
         mesh = this.gapMesh;
         count = gaps;
+      } else if (h.kind === 'beam') {
+        mesh = this.beamMesh;
+        count = beams;
       } else if (h.kind === 'wreck' && this.hv(h.forward, 6) < 0.5) {
         // Half the static wrecks are the van variant, so a row isn't all one model.
         mesh = this.wreckVanMesh;
@@ -361,7 +392,9 @@ export class HazardField {
       }
       this.dummy.updateMatrix();
       mesh.setMatrixAt(count, this.dummy.matrix);
-      if (h.kind !== 'gap') {
+      // The gap pit and the beam keep their baked colours (a dark hole, a hot glow);
+      // everything else gets a per-instance shade so a row never reads as clones.
+      if (h.kind !== 'gap' && h.kind !== 'beam') {
         const shade = 0.8 + this.hv(h.forward, 4) * 0.38;
         this.tint.setRGB(shade, shade, shade);
         mesh.setColorAt(count, this.tint);
@@ -371,6 +404,7 @@ export class HazardField {
       else if (h.kind === 'barrel') barrels += 1;
       else if (h.kind === 'gap' && h.open === false) cracks += 1;
       else if (h.kind === 'gap') gaps += 1;
+      else if (h.kind === 'beam') beams += 1;
       else if (h.kind === 'wreck' && this.hv(h.forward, 6) < 0.5) vans += 1;
       else wrecks += 1;
     }
@@ -381,6 +415,7 @@ export class HazardField {
     this.barrelMesh.count = barrels;
     this.gapMesh.count = gaps;
     this.crackMesh.count = cracks;
+    this.beamMesh.count = beams;
     for (const mesh of [
       this.wreckMesh,
       this.wreckVanMesh,
@@ -389,6 +424,7 @@ export class HazardField {
       this.barrelMesh,
       this.gapMesh,
       this.crackMesh,
+      this.beamMesh,
     ]) {
       mesh.instanceMatrix.needsUpdate = true;
       if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;

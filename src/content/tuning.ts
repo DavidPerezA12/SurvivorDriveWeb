@@ -181,6 +181,14 @@ export const CRASH_TUNING = {
    */
   meteorDamageMul: 3,
   meteorSpeedKeep: 0.18,
+
+  /**
+   * The UFO beam is a heavy strike, scaled like a meteor so a square hit at speed
+   * empties the hull, but unlike the meteor it is ground-class: a jump clears it,
+   * and the safe lane is never swept. The sweep telegraph is what keeps it fair.
+   */
+  beamDamageMul: 2.7,
+  beamSpeedKeep: 0.3,
 } as const;
 
 /**
@@ -246,6 +254,21 @@ export const METEOR_TUNING = {
 export const QUAKE_TUNING = {
   /** Gap (m) at which a telegraph crack tears open into a lethal hole. */
   openGap: 90,
+} as const;
+
+/**
+ * The UFO beam sweep (docs/DESIGN.md → Pillar 1: the road is the boss). A lethal
+ * strip that eases laterally from its start lane across to its target lane as the
+ * gap closes from `startGap` to `endGap`, then holds there for the final approach.
+ * The sweep is visible from the spawn horizon, well over two seconds of road, and
+ * settles on a committed lane before the crossing, so the strike is never a
+ * surprise. The strip stays among non-safe lanes; the safe lane is the refuge.
+ */
+export const BEAM_TUNING = {
+  /** Gap (m) at which the sweep begins. */
+  startGap: 150,
+  /** Gap (m) by which the sweep has finished and the strip holds its target lane. */
+  endGap: 30,
 } as const;
 
 /**

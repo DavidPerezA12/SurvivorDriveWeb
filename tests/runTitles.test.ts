@@ -86,6 +86,7 @@ describe('runTitle', () => {
       'barrel',
       'drifter',
       'meteor',
+      'beam',
       'gap',
       'attrition',
     ];

@@ -160,6 +160,17 @@ function resolveCell(
       else spawns.push({ kind: 'wreck', lane, z });
       break;
     }
+    case 'beam': {
+      // Sweeps from this lane across to `cell.toOff` only when that target stays on
+      // the same side of the safe lane. Invalid targets become a static beam strike,
+      // so a malformed formation cannot silently sweep through the refuge line.
+      const toOff = cell.toOff ?? cell.off;
+      const want = safe + toOff;
+      const sameSide = Math.sign(toOff) === Math.sign(cell.off);
+      const toLane = sameSide && want >= 0 && want < LANE_COUNT && want !== safe ? want : lane;
+      spawns.push({ kind: 'beam', lane, z, toLane });
+      break;
+    }
     case 'horde':
       addZombieCluster(spawns, lane, rng, z, nextInt(rng, clusterMin, clusterMax + 1));
       break;

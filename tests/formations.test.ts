@@ -35,6 +35,13 @@ describe('formation library', () => {
         expect(c.off).not.toBe(0);
         expect(c.z).toBeGreaterThanOrEqual(0);
         expect(c.z).toBeLessThanOrEqual(1);
+        if (c.role === 'beam') {
+          expect(c.toOff).not.toBeUndefined();
+          if (c.toOff !== undefined) {
+            expect(c.toOff).not.toBe(0);
+            expect(Math.sign(c.toOff)).toBe(Math.sign(c.off));
+          }
+        }
       }
     }
   });
@@ -70,12 +77,12 @@ describe('formation library', () => {
     }
   });
 
-  it('keeps the opening city free of meteors, drifters, gaps and walls', () => {
+  it('keeps the opening city free of meteors, beams, drifters, gaps and walls', () => {
     // Act I (Outbreak) must not draw the late-act catastrophes.
     for (const f of FORMATIONS) {
       if (f.acts[0] <= 0) continue;
       for (const c of f.cells) {
-        expect(['meteor', 'drifter', 'gap']).not.toContain(c.role);
+        expect(['meteor', 'beam', 'drifter', 'gap']).not.toContain(c.role);
       }
     }
   });

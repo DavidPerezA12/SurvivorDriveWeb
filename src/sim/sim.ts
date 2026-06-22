@@ -8,6 +8,7 @@ import {
   resolveMows,
   resolvePickups,
   resolveShots,
+  updateBeams,
   updateDrifters,
   updateMeteors,
   updateQuakes,
@@ -90,6 +91,8 @@ export function step(state: SimState, intent: Intent): SimState {
 
   // Slide any drifting wrecks toward their target lane before collisions read X.
   updateDrifters(state);
+  // Sweep any UFO beam toward its target lane before collisions read X.
+  updateBeams(state);
   // Land any meteor that has reached its impact point (turns it lethal this tick).
   updateMeteors(state);
   // Tear open any quake crack the car has reached (turns it lethal this tick).
