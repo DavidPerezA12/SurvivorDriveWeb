@@ -30,6 +30,20 @@ export interface ActMood {
   readonly keyLight: THREE.Color;
   readonly hemiSky: THREE.Color;
   readonly hemiGround: THREE.Color;
+  /**
+   * Cloud masses baked into the dome: the tone of the overcast and how much of the
+   * sky it smothers (0 = clear). The catastrophe owns the weather — rising smog,
+   * dust storms, alien overcast, red thunderheads, grey static.
+   */
+  readonly cloudColor: THREE.Color;
+  readonly cloudAmount: number;
+  /**
+   * Aurora ribbons across the mid sky and their strength (0 = none). Mostly the
+   * Visitors' green sky-glow and a faint Colossus/Static wash; the wasteland skies
+   * leave it at 0.
+   */
+  readonly bandColor: THREE.Color;
+  readonly bandAmount: number;
 }
 
 function mood(
@@ -43,6 +57,10 @@ function mood(
   keyLight: number,
   hemiSky: number,
   hemiGround: number,
+  cloudColor: number,
+  cloudAmount: number,
+  bandColor: number,
+  bandAmount: number,
 ): ActMood {
   return {
     name,
@@ -55,6 +73,10 @@ function mood(
     keyLight: new THREE.Color(keyLight),
     hemiSky: new THREE.Color(hemiSky),
     hemiGround: new THREE.Color(hemiGround),
+    cloudColor: new THREE.Color(cloudColor),
+    cloudAmount,
+    bandColor: new THREE.Color(bandColor),
+    bandAmount,
   };
 }
 
@@ -62,18 +84,19 @@ function mood(
 export const ACTS: readonly ActMood[] = [
   // I — Outbreak: day one. A real, lit city at dusk as it starts to come apart —
   // cool night-blue sky over a smoggy amber horizon where the first fires glow.
-  // Power's still on (lit windows), but the smoke is rising.
-  mood('Outbreak', 0x243248, 0x3a4458, 0x2b313c, 0xf0b888, 0xb0623a, 0.5, 0xffe2c2, 0xb4bcd2, 0x15171d),
-  // II — Rust: sick orange haze, abandoned suburbia (the M1 look).
-  mood('Rust', 0x0e0a09, 0x53301a, 0x46291a, 0xf2c486, 0xb8602c, 1.0, 0xfff1d8, 0xffe7c4, 0x1a1208),
-  // III — Swarm: dust-brown, city outskirts; the sun dims through the haze.
-  mood('Swarm', 0x130d07, 0x4c3a20, 0x3c2e1a, 0xe6c79a, 0xa86c2c, 0.7, 0xf2e0b2, 0xe6d2a2, 0x161005),
-  // IV — Visitors: sickly green aurora, downtown canyons; no honest sun.
-  mood('Visitors', 0x05110b, 0x1c3a26, 0x163020, 0x9fe0a6, 0x2f7a48, 0.5, 0xc6e6b6, 0xb4e0c0, 0x0b1710),
-  // V — Colossus: deep red, skyline silhouettes; an angry low sun.
-  mood('Colossus', 0x150404, 0x4c0f10, 0x360a0a, 0xff8a66, 0x8a1d12, 0.65, 0xffae98, 0xe88e7e, 0x1a0707),
-  // VI+ — Static: reality fraying, the palette desaturating toward grey.
-  mood('Static', 0x0c0c0f, 0x2d2d32, 0x252529, 0xb6b6bc, 0x494950, 0.2, 0xd6d6da, 0xc6c6cc, 0x131315),
+  // Power's still on (lit windows), but the smoke is rising: thin smog overcast.
+  mood('Outbreak', 0x243248, 0x3a4458, 0x2b313c, 0xf0b888, 0xb0623a, 0.5, 0xffe2c2, 0xb4bcd2, 0x15171d, 0x141826, 0.34, 0x000000, 0),
+  // II — Rust: sick orange haze, abandoned suburbia (the M1 look). Dim dust streaks.
+  mood('Rust', 0x0e0a09, 0x53301a, 0x46291a, 0xf2c486, 0xb8602c, 1.0, 0xfff1d8, 0xffe7c4, 0x1a1208, 0x2a1a10, 0.26, 0x000000, 0),
+  // III — Swarm: dust-brown, city outskirts; the sun dims through a heavy dust pall.
+  mood('Swarm', 0x130d07, 0x4c3a20, 0x3c2e1a, 0xe6c79a, 0xa86c2c, 0.7, 0xf2e0b2, 0xe6d2a2, 0x161005, 0x2a2014, 0.44, 0x000000, 0),
+  // IV — Visitors: sickly green aurora ribboning a dark overcast; no honest sun.
+  mood('Visitors', 0x05110b, 0x1c3a26, 0x163020, 0x9fe0a6, 0x2f7a48, 0.5, 0xc6e6b6, 0xb4e0c0, 0x0b1710, 0x0c1e14, 0.26, 0x3fae74, 0.42),
+  // V — Colossus: deep red, red-black thunderheads; an angry low sun, a faint wash.
+  mood('Colossus', 0x150404, 0x4c0f10, 0x360a0a, 0xff8a66, 0x8a1d12, 0.65, 0xffae98, 0xe88e7e, 0x1a0707, 0x230606, 0.46, 0x5a1410, 0.18),
+  // VI+ — Static: reality fraying, the palette desaturating toward grey; the sky
+  // breaks into flat grey static bands.
+  mood('Static', 0x0c0c0f, 0x2d2d32, 0x252529, 0xb6b6bc, 0x494950, 0.2, 0xd6d6da, 0xc6c6cc, 0x131315, 0x2a2a30, 0.34, 0x3a3a42, 0.22),
 ];
 
 /** Meters of road per act band. Crossing one is the landmark "somewhere worse". */

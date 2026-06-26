@@ -35,12 +35,17 @@ export class EnvironmentDirector {
   private readonly height: Float32Array;
   private readonly halo: Float32Array;
   private readonly core: Float32Array;
+  /** Per-vertex cloud cover and aurora-ribbon masks (pure function of direction). */
+  private readonly cloud: Float32Array;
+  private readonly band: Float32Array;
 
   // Reused blend targets — never reallocated in the per-frame path.
   private readonly cZenith = new THREE.Color();
   private readonly cHorizon = new THREE.Color();
   private readonly cGlow = new THREE.Color();
   private readonly cCore = new THREE.Color();
+  private readonly cCloud = new THREE.Color();
+  private readonly cBand = new THREE.Color();
   private readonly cVtx = new THREE.Color();
 
   private lastIndex = -1;
@@ -52,25 +57,47 @@ export class EnvironmentDirector {
     this.hemi = hemi;
 
     const radius = LOOKAHEAD * 1.05;
-    const geo = new THREE.SphereGeometry(radius, 32, 20);
+    // Enough segments that baked cloud masses read as shapes, not flat facets.
+    const geo = new THREE.SphereGeometry(radius, 48, 28);
     const pos = geo.getAttribute('position');
     const count = pos.count;
 
     this.height = new Float32Array(count);
     this.halo = new Float32Array(count);
     this.core = new Float32Array(count);
+    this.cloud = new Float32Array(count);
+    this.band = new Float32Array(count);
 
     // Forward is -z; a small +y keeps the sun just off the horizon, +x nudges it
     // off the dead-center vanishing point so it never hides behind the road.
     const sun = new THREE.Vector3(0.22, 0.1, -1).normalize();
     const dir = new THREE.Vector3();
     for (let i = 0; i < count; i += 1) {
+      const px = pos.getX(i);
+      const py = pos.getY(i);
+      const pz = pos.getZ(i);
       // Height factor, biased so the warm haze hugs the horizon and fades up fast.
-      this.height[i] = Math.pow(Math.max(0, pos.getY(i) / radius), 0.55);
-      const d = Math.max(0, dir.set(pos.getX(i), pos.getY(i), pos.getZ(i)).normalize().dot(sun));
+      this.height[i] = Math.pow(Math.max(0, py / radius), 0.55);
+      const d = Math.max(0, dir.set(px, py, pz).normalize().dot(sun));
       // A wide halo with a tight, hot core, prebaked so rebakes never call pow().
       this.halo[i] = Math.pow(d, 7) * 0.55;
       this.core[i] = Math.pow(d, 110);
+
+      // Cloud/aurora masks from the vertex's sky direction. Both hang in the mid
+      // sky: they fade in just above the horizon and fade out toward the zenith, so
+      // the warm horizon and the clean overhead are left alone.
+      const el = py / radius; // -1 (nadir) .. 1 (zenith)
+      const az = Math.atan2(pz, px);
+      const lift = Math.max(0, Math.min(1, el / 0.12));
+      const cap = 1 - Math.max(0, Math.min(1, (el - 0.55) / 0.45));
+      const mask = lift * cap;
+      // A few octaves of sine "noise" → soft, patchy cloud masses.
+      let cn = 0.5 + 0.3 * Math.sin(az * 2 + el * 3 + 1.3) + 0.2 * Math.sin(az * 5 - el * 2) + 0.12 * Math.sin(az * 9 + 2.1);
+      cn = Math.min(1, Math.max(0, cn));
+      this.cloud[i] = cn * cn * mask; // squared → gaps between the masses
+      // Horizontal aurora ribbons, wobbled by azimuth.
+      const ribbon = Math.max(0, Math.sin(el * 7 + Math.sin(az * 1.5) * 0.8));
+      this.band[i] = ribbon * ribbon * mask;
     }
 
     this.skyColors = new THREE.BufferAttribute(new Float32Array(count * 3), 3);
@@ -165,13 +192,22 @@ export class EnvironmentDirector {
     this.cHorizon.lerpColors(a.horizon, b.horizon, t);
     this.cGlow.lerpColors(a.sunGlow, b.sunGlow, t);
     this.cCore.lerpColors(a.sunCore, b.sunCore, t);
+    this.cCloud.lerpColors(a.cloudColor, b.cloudColor, t);
+    this.cBand.lerpColors(a.bandColor, b.bandColor, t);
     const strength = a.sunStrength + (b.sunStrength - a.sunStrength) * t;
+    const cloudAmt = a.cloudAmount + (b.cloudAmount - a.cloudAmount) * t;
+    const bandAmt = a.bandAmount + (b.bandAmount - a.bandAmount) * t;
 
     const arr = this.skyColors.array as Float32Array;
     for (let i = 0; i < this.height.length; i += 1) {
       this.cVtx.copy(this.cHorizon).lerp(this.cZenith, this.height[i]);
+      // Cloud cover smothers the gradient, but is held off the hot sun core so the
+      // sun still burns through.
+      this.cVtx.lerp(this.cCloud, this.cloud[i] * cloudAmt * (1 - this.core[i]));
+      // The sun reads over the cloud; aurora ribbons glow on top of everything.
       this.cVtx.lerp(this.cGlow, this.halo[i] * strength);
       this.cVtx.lerp(this.cCore, this.core[i] * strength);
+      this.cVtx.lerp(this.cBand, this.band[i] * bandAmt);
       arr[i * 3] = this.cVtx.r;
       arr[i * 3 + 1] = this.cVtx.g;
       arr[i * 3 + 2] = this.cVtx.b;

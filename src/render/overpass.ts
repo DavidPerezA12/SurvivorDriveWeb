@@ -3,6 +3,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { box, propMaterial } from './materials';
 import { palette } from './palette';
 import { LOOKAHEAD } from '../content/tuning';
+import { ACT_SPAN } from './mood';
 import type { Elevation } from './elevation';
 
 /**
@@ -27,6 +28,9 @@ import type { Elevation } from './elevation';
 const SPACING = 330;
 /** Pool size — at most a couple are ever in the lookahead window at once. */
 const POOL = 3;
+/** Distance over which spans go from mostly-standing to mostly-fallen, as the
+ *  run drives deeper into the end of the world: the five act spans up to Static. */
+const DECAY_SPAN = ACT_SPAN * 5;
 /** Underside clearance of the deck — well above the ~1.1 m jump peak. */
 const DECK_Y = 9.5;
 
@@ -121,7 +125,11 @@ export class Overpass {
       // Not every candidate site has an overpass — leaves clean stretches.
       if (this.rand(site, 1) < 0.32) continue;
       const mesh = this.pool[slot];
-      mesh.geometry = this.rand(site, 2) < 0.5 ? this.collapsed : this.intact;
+      // Spans fall as the world ends: ~25% collapsed near the opening city, ~80%
+      // deep in. Keyed to the site's absolute forward, so a given overpass always
+      // looks the same and never flips as the car nears it.
+      const decay = Math.min(Math.max((site * SPACING) / DECAY_SPAN, 0), 1);
+      mesh.geometry = this.rand(site, 2) < 0.25 + 0.55 * decay ? this.collapsed : this.intact;
       mesh.position.z = distance - site * SPACING;
       // Ride the road profile so the piers stay planted on a hill, not floating.
       mesh.position.y = elevation.yAt(site * SPACING, distance);

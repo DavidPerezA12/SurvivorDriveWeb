@@ -3,6 +3,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { box, propMaterial } from './materials';
 import { palette } from './palette';
 import { LOOKAHEAD, roadHalfWidth } from '../content/tuning';
+import { ACT_SPAN } from './mood';
 import type { Elevation } from './elevation';
 
 /**
@@ -29,6 +30,9 @@ const REACH = LOOKAHEAD * 0.78;
 const OFFSET = roadHalfWidth() + 1.1;
 const RAIL_TOP = 0.82;
 const MAX = 96;
+/** Distance over which the rail decays from "just neglected" to "mostly ruined":
+ *  the five act spans up to Static, so the shoulder rots as the world ends. */
+const DECAY_SPAN = ACT_SPAN * 5;
 
 /** One post plus the W-beam panel that runs from it to the next post. */
 function segmentGeometry(): THREE.BufferGeometry {
@@ -77,13 +81,20 @@ export class Guardrail {
         if (n >= MAX) break;
         const key = slot * 2 + (side < 0 ? 0 : 1);
 
-        // ~16% of segments have collapsed entirely — a gap in the line.
-        if (this.rand(key, 1) < 0.16) continue;
+        // The shoulder rots as the run drives deeper into the apocalypse: a
+        // mostly-intact rail in the opening city, a mostly-collapsed one in the
+        // deep acts. Keyed to the slot's absolute forward (not the car distance),
+        // so a segment's state is fixed and never flickers as you approach it.
+        const decay = Math.min(Math.max((slot * SEGMENT) / DECAY_SPAN, 0), 1);
 
-        // A buckled minority leans and sags; the rest stand true.
-        const bent = this.rand(key, 2) < 0.22;
-        const roll = bent ? (this.rand(key, 3) - 0.5) * 0.7 : 0;
-        const drop = bent ? this.rand(key, 4) * 0.25 : 0;
+        // Collapsed-entirely segments (a gap in the line) climb ~10% → ~50%.
+        if (this.rand(key, 1) < 0.1 + 0.4 * decay) continue;
+
+        // The buckled minority (leaning, sagging) grows and leans harder deep in.
+        const bent = this.rand(key, 2) < 0.16 + 0.3 * decay;
+        const lean = 0.7 + 0.5 * decay;
+        const roll = bent ? (this.rand(key, 3) - 0.5) * lean : 0;
+        const drop = bent ? this.rand(key, 4) * (0.25 + 0.25 * decay) : 0;
         const yaw = bent ? (this.rand(key, 5) - 0.5) * 0.3 : 0;
 
         this.dummy.position.set(
