@@ -226,7 +226,7 @@ export class GameView {
         // lateral X, raised to the roof gun's muzzle height, and the forward offset
         // grows as the barrel lengthens with the tier (no shake; the gun is smooth).
         const m = gunMuzzle(event.level);
-        this.gunFx.fire(event.x, this.lastDistance + m.forward, m.y, event.level);
+        this.gunFx.fire(event.x, m.forward, m.y, event.level, this.lastDistance);
         break;
       }
       case 'zombieMowed':

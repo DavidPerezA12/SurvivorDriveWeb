@@ -16,7 +16,7 @@ import { ParticlePool, prefersReducedMotion } from './mowFx';
  */
 const FLASH = 0xffe2b0; // hot muzzle flash for the ballistic guns
 const TARGET_Y = 0.85; // where shots earth out ahead — target height, above the road
-const ARC_GAP = 2.2; // the electric bolt forms ahead of the hull, never through it
+const ARC_GAP = 0.0; // the electric bolt leaves right at the muzzle brake, not floating ahead
 
 type Style = 'pellets' | 'slug' | 'twin' | 'arc';
 interface TierFx {
@@ -161,6 +161,10 @@ interface Arc {
  * The apocalypse cannon's electric bolt: a jagged lightning arc rebuilt every frame
  * so it crackles, from the muzzle straight down the lane. Segment boxes instanced on
  * the unlit light material — one draw call.
+ *
+ * Origin and target are kept in car-local forward (metres ahead of the car, which
+ * the render world parks at z = 0), so the bolt stays pinned to the muzzle for its
+ * brief life instead of sliding back over the hull as the car drives through it.
  */
 class ArcFx {
   private readonly mesh: THREE.InstancedMesh;
@@ -207,7 +211,7 @@ class ArcFx {
     a.color = color;
   }
 
-  update(distance: number, dt: number): void {
+  update(dt: number): void {
     let seg = 0;
     for (const a of this.arcs) {
       if (a.age >= ARC_LIFE) continue;
@@ -219,10 +223,10 @@ class ArcFx {
       this.tint.setHex(a.color);
       const x0 = a.ox;
       const y0 = a.oy;
-      const z0 = distance - a.of;
+      const z0 = -a.of; // car-local: the car sits at z = 0, bolt forms ahead
       const x1 = a.tx;
       const y1 = a.ty;
-      const z1 = distance - a.tf;
+      const z1 = -a.tf;
       let px = x0;
       let py = y0;
       let pz = z0;
@@ -277,13 +281,20 @@ export class GunFx {
   }
 
   /**
-   * Fire feedback for weapon `level` from the muzzle (`x`, world `forward`, height
-   * `y`): the tier's own shot, reaching deep down the lane (scaled to the weapon's
-   * range) — buckshot, slug, twin tracers, or the electric arc.
+   * Fire feedback for weapon `level` from the muzzle (`x`, car-local `muzzle`
+   * forward offset, height `y`, with the car at world `distance`): the tier's own
+   * shot, reaching deep down the lane (scaled to the weapon's range) — buckshot,
+   * slug, twin tracers, or the electric arc.
+   *
+   * The ballistic tracers fly away in world space (they outrun the car), so they
+   * take a world forward. The electric arc instead stays locked to the muzzle for
+   * its brief life: it is spawned in car-local space so the car can't overtake it
+   * and leave the bolt hanging back over the hull.
    */
-  fire(x: number, forward: number, y: number, level = 1): void {
+  fire(x: number, muzzle: number, y: number, level = 1, distance = 0): void {
     const fx = TIERS[Math.max(0, Math.min(level, TIERS.length) - 1)];
     const range = weaponStats(level).range;
+    const forward = distance + muzzle; // world forward of the barrel tip
 
     for (let i = 0; i < fx.flashBursts; i += 1) this.flash.spawn(x, forward, y);
 
@@ -295,7 +306,8 @@ export class GunFx {
     };
 
     if (fx.style === 'arc') {
-      this.arcs.spawn(x, forward + ARC_GAP, y, range * 0.6, fx.w, fx.color);
+      // Car-local forward: the bolt forms ahead of the hull and stays there.
+      this.arcs.spawn(x, muzzle + ARC_GAP, y, range * 0.6, fx.w, fx.color);
       return;
     }
 
@@ -332,6 +344,6 @@ export class GunFx {
   update(distance: number, dt: number): void {
     this.flash.update(distance, dt);
     this.tracers.update(distance, dt);
-    this.arcs.update(distance, dt);
+    this.arcs.update(dt);
   }
 }
