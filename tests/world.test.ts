@@ -113,7 +113,9 @@ describe('zombie clusters', () => {
     // it like any other spawn.
     let checked = 0;
     for (let i = SPAWN_TUNING.graceChunks; i < 400 && checked < 6; i += 1) {
-      const zombies = chunkAt(99, i).spawns.filter((s) => s.kind === 'zombie');
+      // Brutes are standalone obstacles, not cluster members, so they are excluded
+      // from the fodder-cluster line/spacing checks.
+      const zombies = chunkAt(99, i).spawns.filter((s) => s.kind === 'zombie' && !s.brute);
       if (zombies.length < 2) continue;
       // Group by lane and verify spacing within each lane's run.
       const byLane = new Map<number, number[]>();
@@ -140,7 +142,8 @@ describe('zombie clusters', () => {
       const w = spawnWeightsAt(i * CHUNK_LENGTH);
       const byLane = new Map<number, number>();
       for (const s of chunkAt(7, i).spawns) {
-        if (s.kind === 'zombie') byLane.set(s.lane, (byLane.get(s.lane) ?? 0) + 1);
+        // Brutes are standalone obstacles, not part of a fodder cluster's size.
+        if (s.kind === 'zombie' && !s.brute) byLane.set(s.lane, (byLane.get(s.lane) ?? 0) + 1);
       }
       for (const count of byLane.values()) {
         expect(count).toBeGreaterThanOrEqual(w.clusterMin);

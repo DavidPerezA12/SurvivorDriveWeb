@@ -82,12 +82,16 @@ describe('runTitle', () => {
     const causes: DeathCause[] = [
       'wreck',
       'rig',
+      'barrier',
+      'bus',
       'boulder',
       'barrel',
+      'spikes',
       'drifter',
       'meteor',
       'beam',
       'gap',
+      'brute',
       'attrition',
     ];
     expect(causes).toEqual([...DEATH_CAUSES]);

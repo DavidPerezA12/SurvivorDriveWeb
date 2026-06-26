@@ -29,49 +29,87 @@ export interface Prop {
 }
 
 /**
- * Interactive objects on the road: five damaging blockers — the abandoned-car
- * `wreck` (a hard crash), the toppled big-`rig` (tall, un-jumpable, lethal at
- * speed), the `boulder` (a low rubble mound you jump over or eat for a smaller
- * crash), the explosive `barrel` (shoot it to detonate, chaining a blast that
- * clears a crowd; ram it for a big hit), and the `drifter` (a wreck that slides
- * one lane over as it nears, carrying its target lane), plus late road events like
- * the `meteor`, `gap`, and `beam` — the zombie (mowable/shootable
- * fodder), and three cool collectibles: a lift pickup (refills a jump charge), a
- * health pickup (repairs the hull), and an ammo box (refills the gun). Zombie and
- * every pickup carry a deterministic `phase`: render-only variety (shamble/bob
- * offset, yaw) the sim never reads.
+ * Interactive objects on the road, split into two readable classes by silhouette
+ * (docs/DESIGN.md → readability: lethal reads as a massive wall, survivable reads
+ * as low bumpable junk):
+ *
+ * Survivable blockers (low, warm, jumpable, a hit you live to regret): the
+ * abandoned-car `wreck`, the `boulder` rubble mound, the explosive `barrel`
+ * (shoot to detonate, ram for a big hit), and the `drifter` (a wreck that slides
+ * one lane over as it nears).
+ *
+ * Lethal walls (tall solid mass, un-jumpable, a square hit ends the run): the
+ * toppled big-`rig`, the concrete `barrier`, the crashed `bus` (a long wall),
+ * plus the late-event `meteor`. They read as "you cannot pass this, dodge it."
+ *
+ * Lethal ground traps (on the road surface, jumpable or dodgeable, fatal if you
+ * are on them grounded): the `gap` (a hole), the `spikes` strip, and the UFO
+ * `beam`.
+ *
+ * The `ramp` is the lone non-damaging on-road object: collapsed-building rubble
+ * piled into a launch ramp. Driving onto it grounded vaults the car over the
+ * debris beyond (a free launch, no hull cost). It shares the static `{lane, z}`
+ * shape, so it rides the same spawn/hazard plumbing as the blockers.
+ *
+ * Plus the `zombie` (mowable/shootable fodder; a `brute` variant is a heavy one
+ * that costs hull if you ram it instead of shooting it), and three cool
+ * collectibles: a lift pickup (refills a jump charge), a health pickup (repairs
+ * the hull), and an ammo box (refills the gun). Zombie and every pickup carry a
+ * deterministic `phase`: render-only variety (shamble/bob offset, yaw) the sim
+ * never reads.
  */
 export type SpawnKind =
   | 'wreck'
   | 'rig'
+  | 'barrier'
+  | 'bus'
   | 'boulder'
   | 'barrel'
+  | 'spikes'
   | 'drifter'
   | 'meteor'
   | 'gap'
   | 'beam'
+  | 'ramp'
   | 'zombie'
   | 'jump'
   | 'health'
   | 'ammo';
 
 /**
- * The blockers spawned with a plain `{lane, z}` shape (everything but the
+ * The objects spawned with a plain `{lane, z}` shape (everything but the
  * `drifter`, which also carries a target lane). The `meteor` shares the shape but
  * is not literally static; it falls from the sky onto its lane (`updateMeteors`).
+ * The `ramp` shares the shape too but is the lone non-damaging member: it launches
+ * the car over the debris rather than crashing it (`resolveCollisions`).
  */
-export type StaticHazardKind = 'wreck' | 'rig' | 'boulder' | 'barrel' | 'meteor' | 'gap';
+export type StaticHazardKind =
+  | 'wreck'
+  | 'rig'
+  | 'barrier'
+  | 'bus'
+  | 'boulder'
+  | 'barrel'
+  | 'spikes'
+  | 'meteor'
+  | 'gap'
+  | 'ramp';
 
 /**
- * The damaging on-road blockers, shared by `Spawn` and `Hazard`. The `wreck`,
- * `boulder`, and `barrel` are ground-class — a jump sails over them; the `rig`
- * and a landed `meteor` are too tall/violent to clear (the only out is a lane
- * change). The `barrel` is also the one blocker the gun can destroy
- * (`detonateBarrel`). The `drifter` is a wreck that slides one lane over as it
- * nears. The `meteor` falls from the sky, harmless while falling and lethal once it
- * lands. The `gap` is a hole in the road itself: not a thing to hit but a thing to
- * be over while grounded: jump it or change lane, or fall in and die
- * (docs/DESIGN.md → roster; the road is the boss).
+ * The damaging on-road blockers, shared by `Spawn` and `Hazard`, in three
+ * readability classes (docs/DESIGN.md → readability):
+ *
+ * - Ground-class survivable: `wreck`, `boulder`, `barrel`, `drifter`. A jump
+ *   sails over them and a hit only chews hull. The `barrel` is the one the gun
+ *   can detonate (`detonateBarrel`); the `drifter` slides one lane over as it nears.
+ * - Lethal walls: `rig`, `barrier`, `bus`, and a landed `meteor`. Too tall/solid
+ *   to clear (the only out is a lane change); a square hit at speed ends the run.
+ * - Lethal ground traps: the `gap` (a hole), the `spikes` strip, and the `beam`.
+ *   Not things you ram but things you must not be on while grounded: jump them or
+ *   change lane, or die (the road is the boss).
+ * - The lone friendly object: the `ramp` (collapsed-building rubble). Driving onto
+ *   it grounded launches the car over the debris beyond, no hull cost. It lives in
+ *   the hazard list only to share the spawn/prune/render plumbing.
  */
 export type HazardKind = StaticHazardKind | 'drifter' | 'beam';
 
@@ -122,6 +160,13 @@ export type Spawn =
       readonly z: number;
       /** Deterministic 0..1 render variety; the sim never reads it. */
       readonly phase: number;
+      /**
+       * A brute: a heavy zombie that is a damaging obstacle, not free fodder.
+       * Ramming one costs hull and momentum (and breaks the streak); the gun takes
+       * several hits to drop it. The renderer draws it as a bigger, bulkier
+       * silhouette so it reads apart from a normal shambler (docs/DESIGN.md → roster).
+       */
+      readonly brute?: boolean;
     }
   | {
       readonly kind: PickupKind;
@@ -230,10 +275,14 @@ export interface Hazard {
 
 /**
  * A zombie the sim has materialized into the live world: mowable/shootable
- * fodder, never a damaging blocker (docs/DESIGN.md → Pillar 2). `mowed` latches
- * so one zombie pays scrap once, whether it is rammed or shot. Position mirrors
- * `Hazard` so the renderer maps it the same way; `phase` is deterministic render
- * variety the sim itself ignores.
+ * fodder. `mowed` latches so one zombie pays scrap once, whether it is rammed or
+ * shot. Position mirrors `Hazard` so the renderer maps it the same way; `phase` is
+ * deterministic render variety the sim itself ignores.
+ *
+ * A `brute` is the exception to "fodder never damages": a heavy zombie that is a
+ * real obstacle. Ramming one costs hull and momentum like a crash (and breaks the
+ * streak), and the gun needs several hits to drop it (`hp`). The smart play is to
+ * shoot it from range or dodge it, not bulldoze it (docs/DESIGN.md → roster).
  */
 export interface Zombie {
   readonly lane: number;
@@ -243,6 +292,14 @@ export interface Zombie {
   readonly forward: number;
   readonly phase: number;
   mowed: boolean;
+  /** True on a brute: a damaging heavy zombie, not free fodder. */
+  readonly brute?: boolean;
+  /**
+   * Shootable integrity, set only on a brute: each shot's `killsPerShot` chips it
+   * and it drops at 0 (`resolveShots`). Undefined on a normal zombie, which dies
+   * in one hit.
+   */
+  hp?: number;
 }
 
 /**
@@ -335,6 +392,7 @@ export const NO_INTENT: Intent = { steer: 0, jump: false, fire: false };
 export type FrameEvent =
   | { type: 'laneChanged'; lane: number }
   | { type: 'jumped' }
+  | { type: 'ramped'; x: number; forward: number }
   | { type: 'landed'; impact: number }
   | { type: 'crashed'; impact: number; lane: number }
   | { type: 'hullDamaged'; amount: number; destroyed: boolean }

@@ -53,41 +53,99 @@ function zombieGeometry(): THREE.BufferGeometry {
 }
 
 /**
- * Renders the sim's live, un-mowed zombies as one instanced crowd. The sim owns
- * where they are; this maps each zombie's absolute world-forward to screen z and
- * adds a simple idle shamble (a gentle rock and bob, offset per instance by the
- * zombie's deterministic phase) so a standing cluster looks alive, not frozen.
- * No allocation per frame.
+ * A brute: a heavy, swollen zombie that is a damaging obstacle, not free fodder
+ * (docs/DESIGN.md → roster). Built far bulkier than a shambler — a broad barrel
+ * torso, thick legs, two heavy reaching arms — and warmed/darkened by its own
+ * palette, so it reads as "a real threat" even planted in a normal crowd. One
+ * merged geometry, instanced as its own draw call.
+ */
+function bruteGeometry(): THREE.BufferGeometry {
+  const flesh = palette.bruteFlesh;
+  const dark = palette.bruteFleshDark;
+  const rag = palette.bruteRag;
+  const scar = palette.bruteScar;
+
+  const parts = [
+    // Thick, planted legs.
+    box(0.36, 0.78, 0.42, rag).translate(-0.26, 0.4, 0),
+    box(0.36, 0.74, 0.42, rag).translate(0.26, 0.38, 0.06),
+    // A broad, barrel torso hunched forward — the signature heavy mass.
+    box(1.0, 0.6, 0.6, dark).translate(0, 0.95, 0.04),
+    box(1.12, 0.86, 0.7, flesh).rotateX(0.22).translate(0, 1.45, 0.12),
+    // A swollen upper back hump.
+    box(0.8, 0.4, 0.5, flesh).rotateX(0.3).translate(0, 1.86, -0.1),
+    // Raw warm wounds split across the chest and shoulder.
+    box(0.5, 0.34, 0.14, scar).rotateX(0.22).translate(-0.1, 1.4, 0.5),
+    box(0.3, 0.2, 0.12, scar).translate(0.5, 1.7, 0.2),
+    // A small, sunk head between heavy shoulders.
+    box(0.36, 0.36, 0.36, flesh).translate(0, 1.92, 0.34),
+    box(0.26, 0.1, 0.2, dark).translate(0, 1.82, 0.46),
+    // Two heavy reaching arms + broad clubbed hands.
+    box(0.28, 0.28, 0.84, flesh).rotateX(-0.4).translate(0.5, 1.46, 0.6),
+    box(0.34, 0.22, 0.3, dark).translate(0.54, 1.24, 1.0),
+    box(0.28, 0.28, 0.78, flesh).rotateX(-0.3).translate(-0.5, 1.44, 0.5),
+    box(0.34, 0.22, 0.3, dark).translate(-0.54, 1.26, 0.86),
+  ];
+  const geo = mergeGeometries(parts, false);
+  for (const p of parts) p.dispose();
+  if (!geo) throw new Error('Failed to merge brute geometry');
+  return geo;
+}
+
+/**
+ * Renders the sim's live, un-mowed zombies as instanced crowds: one mesh for the
+ * fodder shamblers and one for the heavy brutes (a separate draw call so each
+ * keeps its own geometry and palette). The sim owns where they are; this maps each
+ * zombie's absolute world-forward to screen z and adds a simple idle shamble (a
+ * gentle rock and bob, offset per instance by the zombie's deterministic phase) so
+ * a standing cluster looks alive, not frozen. No allocation per frame.
  */
 export class ZombieField {
   private readonly mesh: THREE.InstancedMesh;
+  private readonly bruteMesh: THREE.InstancedMesh;
   private readonly dummy = new THREE.Object3D();
   private clock = 0;
 
   constructor(scene: THREE.Scene) {
     this.mesh = new THREE.InstancedMesh(zombieGeometry(), propMaterial, MAX_INSTANCES);
-    this.mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-    this.mesh.frustumCulled = false;
-    this.mesh.count = 0;
-    scene.add(this.mesh);
+    this.bruteMesh = new THREE.InstancedMesh(bruteGeometry(), propMaterial, MAX_INSTANCES);
+    for (const m of [this.mesh, this.bruteMesh]) {
+      m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      m.frustumCulled = false;
+      m.count = 0;
+      scene.add(m);
+    }
   }
 
   update(state: ReadonlyState, dt: number, elevation: Elevation): void {
     this.clock += dt;
     let count = 0;
+    let brutes = 0;
     for (const z of state.zombies) {
-      if (z.mowed || count >= MAX_INSTANCES) continue;
-      const sway = Math.sin(this.clock * 5 + z.phase * TWO_PI);
+      if (z.mowed) continue;
+      const brute = z.brute === true;
+      if (brute ? brutes >= MAX_INSTANCES : count >= MAX_INSTANCES) continue;
+      // Brutes shamble slower and rock harder, reading as heavy even while idle.
+      const rate = brute ? 3 : 5;
+      const sway = Math.sin(this.clock * rate + z.phase * TWO_PI);
       const groundY = elevation.yAt(z.forward, state.distance);
       this.dummy.position.set(z.x, groundY + Math.abs(sway) * 0.04, state.distance - z.forward);
       // Static facing variety from phase, plus a small live rock from the sway.
-      this.dummy.rotation.set(0, (z.phase - 0.5) * 1.6, sway * 0.08);
-      this.dummy.scale.setScalar(0.92 + z.phase * 0.18);
+      this.dummy.rotation.set(0, (z.phase - 0.5) * 1.6, sway * (brute ? 0.05 : 0.08));
+      // Brutes are bigger and vary less; shamblers keep their wider size jitter.
+      this.dummy.scale.setScalar(brute ? 1.12 + z.phase * 0.12 : 0.92 + z.phase * 0.18);
       this.dummy.updateMatrix();
-      this.mesh.setMatrixAt(count, this.dummy.matrix);
-      count += 1;
+      if (brute) {
+        this.bruteMesh.setMatrixAt(brutes, this.dummy.matrix);
+        brutes += 1;
+      } else {
+        this.mesh.setMatrixAt(count, this.dummy.matrix);
+        count += 1;
+      }
     }
     this.mesh.count = count;
+    this.bruteMesh.count = brutes;
     this.mesh.instanceMatrix.needsUpdate = true;
+    this.bruteMesh.instanceMatrix.needsUpdate = true;
   }
 }

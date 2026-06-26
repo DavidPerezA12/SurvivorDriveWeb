@@ -4,6 +4,7 @@ import { chunkAt } from './world';
 import {
   BARREL_TUNING,
   BEAM_TUNING,
+  BRUTE_TUNING,
   CAR_TUNING,
   CHUNK_LENGTH,
   CRASH_TUNING,
@@ -15,6 +16,7 @@ import {
   MOW_TUNING,
   PICKUP_TUNING,
   QUAKE_TUNING,
+  RAMP_TUNING,
   WEAPON_TUNING,
   laneCenterX,
 } from '../content/tuning';
@@ -30,6 +32,16 @@ const HAZARD_HALF_LENGTH = 1.6;
 // The toppled rig is a longer, slightly wider blocker than a car wreck.
 const RIG_HALF_WIDTH = 1.15;
 const RIG_HALF_LENGTH = 2.8;
+// The concrete barrier is a wide, shallow wall: it fills the lane side to side but
+// is shallow front-to-back, so it reads as a wall, not a long vehicle.
+const BARRIER_HALF_WIDTH = 1.2;
+const BARRIER_HALF_LENGTH = 0.8;
+// The crashed bus is the longest blocker, a wall along the whole lane.
+const BUS_HALF_WIDTH = 1.15;
+const BUS_HALF_LENGTH = 4.6;
+// A spike strip is a thin band across the lane: lane-wide, shallow front-to-back.
+const SPIKES_HALF_WIDTH = 1.3;
+const SPIKES_HALF_LENGTH = 0.9;
 // A boulder is a compact rubble mound, narrower and shorter than a wreck, so it
 // leaves a little more room to thread, but it is still squarely in the lane.
 const BOULDER_HALF_WIDTH = 0.85;
@@ -48,6 +60,10 @@ const GAP_HALF_LENGTH = 3.5;
 // jump it or be off its settled lane (the safe lane is always clear of it).
 const BEAM_HALF_WIDTH = 1.2;
 const BEAM_HALF_LENGTH = 2.2;
+// The collapse ramp: a lane-wide wedge of rubble a few meters deep. Touching its
+// near base launches the car, so its footprint only needs to cover the run-up.
+const RAMP_HALF_WIDTH = 1.2;
+const RAMP_HALF_LENGTH = 2.0;
 // Zombies are slimmer than a wreck. The car has to be genuinely on the line to
 // mow them, but the bumper's reach still does the work.
 const ZOMBIE_HALF_WIDTH = 0.6;
@@ -79,6 +95,10 @@ export function materializeSpawns(state: SimState): void {
           forward: base + spawn.z,
           phase: spawn.phase,
           mowed: false,
+          // A brute is a damaging heavy zombie with several hit points; a plain
+          // zombie leaves both unset and dies in one hit, never costing hull.
+          brute: spawn.brute ? true : undefined,
+          hp: spawn.brute ? BRUTE_TUNING.hp : undefined,
         });
       } else if (spawn.kind === 'jump' || spawn.kind === 'health' || spawn.kind === 'ammo') {
         // The three on-ground collectibles.
@@ -127,8 +147,10 @@ export function materializeSpawns(state: SimState): void {
           landed: false,
         });
       } else {
-        // wreck | rig | boulder | barrel | gap — the static road hazards. A gap
-        // flagged `opening` is a quake crack: harmless until `updateQuakes` opens it.
+        // wreck | rig | barrier | bus | boulder | barrel | spikes | gap | ramp —
+        // the static road objects. A gap flagged `opening` is a quake crack:
+        // harmless until `updateQuakes` opens it. A ramp is the lone non-damaging
+        // one (it launches the car; `resolveCollisions`).
         state.hazards.push({
           kind: spawn.kind,
           lane: spawn.lane,
@@ -238,41 +260,83 @@ export function resolveCollisions(state: SimState): void {
     // A quake gap is harmless while it is still just a telegraph crack.
     if (h.kind === 'gap' && h.open === false) continue;
 
+    // The collapse ramp is the lone friendly object: it launches the car over the
+    // rubble instead of crashing it. Handled here on its own footprint so it skips
+    // the wall/crash machinery below, and so the rest of the loop narrows `h.kind`
+    // to the damaging kinds (the death-cause assignment relies on that).
+    if (h.kind === 'ramp') {
+      const onRamp =
+        state.distance >= h.forward - RAMP_HALF_LENGTH &&
+        state.distance - CAR_LENGTH <= h.forward + RAMP_HALF_LENGTH;
+      if (!onRamp) continue;
+      if (Math.abs(car.lateralX - h.x) >= CAR_HALF_WIDTH + RAMP_HALF_WIDTH) continue;
+      h.hit = true;
+      // A grounded car is vaulted into a free arc (no charge spent, no hull cost,
+      // momentum kept). An airborne car is already clearing the debris, so it just
+      // passes over without a second launch.
+      if (!car.airborne) {
+        car.airborne = true;
+        car.vertVel = RAMP_TUNING.launchImpulse;
+        state.events.push({ type: 'ramped', x: h.x, forward: h.forward });
+      }
+      continue;
+    }
+
     const rig = h.kind === 'rig';
+    const barrier = h.kind === 'barrier';
+    const bus = h.kind === 'bus';
     const boulder = h.kind === 'boulder';
     const barrel = h.kind === 'barrel';
     const meteor = h.kind === 'meteor';
     const gap = h.kind === 'gap';
+    const spikes = h.kind === 'spikes';
     const beam = h.kind === 'beam';
-    // A landed meteor is a wall like the rig, too violent to jump. The beam is
-    // ground-class: a jump clears it (docs/DESIGN.md → jump it or be in the safe lane).
-    const tall = rig || meteor;
+    // Lethal walls (rig, concrete barrier, crashed bus, landed meteor) are too
+    // tall/solid to jump: the only out is a lane change. Everything else is
+    // ground-class — a jump clears it (the beam, gap, and spikes included)
+    // (docs/DESIGN.md → readability: lethal reads as a wall; jump it or take the lane).
+    const tall = rig || barrier || bus || meteor;
+    // A road gap and a spike strip are lethal ground traps: not things you ram but
+    // things you must not be on while grounded (jump or change lane, or die).
+    const lethalTrap = gap || spikes;
     const halfWidth = rig
       ? RIG_HALF_WIDTH
-      : boulder
-        ? BOULDER_HALF_WIDTH
-        : barrel
-          ? BARREL_HALF_WIDTH
-          : meteor
-            ? METEOR_HALF_WIDTH
-            : gap
-              ? GAP_HALF_WIDTH
-              : beam
-                ? BEAM_HALF_WIDTH
-                : HAZARD_HALF_WIDTH;
+      : barrier
+        ? BARRIER_HALF_WIDTH
+        : bus
+          ? BUS_HALF_WIDTH
+          : boulder
+            ? BOULDER_HALF_WIDTH
+            : barrel
+              ? BARREL_HALF_WIDTH
+              : meteor
+                ? METEOR_HALF_WIDTH
+                : gap
+                  ? GAP_HALF_WIDTH
+                  : spikes
+                    ? SPIKES_HALF_WIDTH
+                    : beam
+                      ? BEAM_HALF_WIDTH
+                      : HAZARD_HALF_WIDTH;
     const halfLength = rig
       ? RIG_HALF_LENGTH
-      : boulder
-        ? BOULDER_HALF_LENGTH
-        : barrel
-          ? BARREL_HALF_LENGTH
-          : meteor
-            ? METEOR_HALF_LENGTH
-            : gap
-              ? GAP_HALF_LENGTH
-              : beam
-                ? BEAM_HALF_LENGTH
-                : HAZARD_HALF_LENGTH;
+      : barrier
+        ? BARRIER_HALF_LENGTH
+        : bus
+          ? BUS_HALF_LENGTH
+          : boulder
+            ? BOULDER_HALF_LENGTH
+            : barrel
+              ? BARREL_HALF_LENGTH
+              : meteor
+                ? METEOR_HALF_LENGTH
+                : gap
+                  ? GAP_HALF_LENGTH
+                  : spikes
+                    ? SPIKES_HALF_LENGTH
+                    : beam
+                      ? BEAM_HALF_LENGTH
+                      : HAZARD_HALF_LENGTH;
 
     // Forward overlap: car spans [distance - CAR_LENGTH, distance].
     const forwardOverlap =
@@ -282,19 +346,19 @@ export function resolveCollisions(state: SimState): void {
     const dx = Math.abs(car.lateralX - h.x);
     if (dx >= CAR_HALF_WIDTH + halfWidth) continue;
 
-    // A jump clears ground-class hazards (wreck, boulder, barrel, and a road gap),
-    // but a toppled rig and a landed meteor are walls too tall/violent to clear,
-    // so the only out is a lane change (docs/DESIGN.md → telegraphed, dodgeable,
-    // safe lane open).
+    // A jump clears every ground-class hazard (wreck, boulder, barrel, gap, spikes,
+    // beam), but the lethal walls (rig, barrier, bus, landed meteor) are too
+    // tall/solid to clear, so the only out is a lane change (docs/DESIGN.md →
+    // telegraphed, dodgeable, safe lane open).
     if (!tall && car.height > JUMP_CLEARANCE) continue;
 
     h.hit = true;
 
-    // A road gap is not a thing you hit; it is a hole you fall into while grounded.
-    // Armor can't save you from missing asphalt: it is an outright, attributable
-    // death (you should have jumped or changed lane). No frenazo math beyond a
-    // lurch; the run ends here.
-    if (gap) {
+    // A lethal ground trap (a road gap, a spike strip) is not a thing you ram; it is
+    // a thing you fall into / shred on while grounded. Armor can't save you from
+    // missing asphalt or a bed of spikes: it is an outright, attributable death (you
+    // should have jumped or changed lane). No frenazo math beyond a lurch.
+    if (lethalTrap) {
       state.events.push({ type: 'crashed', impact: car.speed, lane: h.lane });
       state.events.push({ type: 'hullDamaged', amount: car.health, destroyed: true });
       car.health = 0;
@@ -303,7 +367,7 @@ export function resolveCollisions(state: SimState): void {
       state.comboTicks = 0;
       if (!state.dead) {
         state.dead = true;
-        state.deathCause = 'gap';
+        state.deathCause = gap ? 'gap' : 'spikes';
         state.events.push({ type: 'died' });
       }
       continue;
@@ -311,37 +375,45 @@ export function resolveCollisions(state: SimState): void {
     const impact = car.speed;
     const glancing = dx > halfWidth;
     state.events.push({ type: 'crashed', impact, lane: h.lane });
-    // The rig's hull cost is scaled up: a square hit at speed is lethal. The
-    // boulder's is scaled down, a ram you survive to regret. The barrel's is
-    // scaled up (the blast in your face), short of the rig.
+    // The lethal walls (rig, barrier, bus, meteor) scale the hull cost up so a
+    // square hit at speed empties the bar outright. The boulder's is scaled down, a
+    // ram you survive to regret; the barrel's is scaled up (the blast in your face).
     const hazardMul = rig
       ? CRASH_TUNING.rigDamageMul
-      : boulder
-        ? CRASH_TUNING.boulderDamageMul
-        : barrel
-          ? CRASH_TUNING.barrelDamageMul
-          : meteor
-            ? CRASH_TUNING.meteorDamageMul
-            : beam
-              ? CRASH_TUNING.beamDamageMul
-              : 1;
+      : barrier
+        ? CRASH_TUNING.barrierDamageMul
+        : bus
+          ? CRASH_TUNING.busDamageMul
+          : boulder
+            ? CRASH_TUNING.boulderDamageMul
+            : barrel
+              ? CRASH_TUNING.barrelDamageMul
+              : meteor
+                ? CRASH_TUNING.meteorDamageMul
+                : beam
+                  ? CRASH_TUNING.beamDamageMul
+                  : 1;
     applyCrash(car, impact, glancing, state.events, state.loadout.damageMul * hazardMul);
-    // The frenazo: a square hit bites momentum, a clip less so; a square rig hit
-    // stops the car near-dead, a boulder less than a wreck, a barrel hard. Handling
-    // is never touched, only speed and hull.
+    // The frenazo: a square hit bites momentum, a clip less so; a square wall hit
+    // (rig, barrier, bus, meteor) stops the car near-dead, a boulder less than a
+    // wreck, a barrel hard. Handling is never touched, only speed and hull.
     car.speed *= glancing
       ? CRASH_TUNING.glancingSpeedKeep
       : rig
         ? CRASH_TUNING.rigSpeedKeep
-        : boulder
-          ? CRASH_TUNING.boulderSpeedKeep
-          : barrel
-            ? CRASH_TUNING.barrelSpeedKeep
-            : meteor
-              ? CRASH_TUNING.meteorSpeedKeep
-              : beam
-                ? CRASH_TUNING.beamSpeedKeep
-                : CRASH_TUNING.frontalSpeedKeep;
+        : barrier
+          ? CRASH_TUNING.barrierSpeedKeep
+          : bus
+            ? CRASH_TUNING.busSpeedKeep
+            : boulder
+              ? CRASH_TUNING.boulderSpeedKeep
+              : barrel
+                ? CRASH_TUNING.barrelSpeedKeep
+                : meteor
+                  ? CRASH_TUNING.meteorSpeedKeep
+                  : beam
+                    ? CRASH_TUNING.beamSpeedKeep
+                    : CRASH_TUNING.frontalSpeedKeep;
     // Taking a hull hit breaks the streak. Greed has a cost (docs/DESIGN.md).
     state.combo = 0;
     state.comboTicks = 0;
@@ -400,7 +472,8 @@ function explodeBarrel(state: SimState, h: Hazard): void {
  * Bank one zombie kill, rammed or shot. Marks it mowed (so it pays once),
  * climbs the streak, pays scrap scaled by the streak, and emits the kill event
  * the renderer turns into a ragdoll + scrap ping. The ramming speed surge is
- * applied by `resolveMows` only, never by a ranged shot.
+ * applied by `resolveMows` only, never by a ranged shot. A brute pays its
+ * `BRUTE_TUNING.scrapBonus` on top, so clearing one is a real greed reward.
  */
 function payKill(state: SimState, z: Zombie): void {
   z.mowed = true;
@@ -408,8 +481,29 @@ function payKill(state: SimState, z: Zombie): void {
   state.comboTicks = ECONOMY_TUNING.comboWindowTicks;
   state.zombiesMowed += 1;
   const streakBonus = Math.min(state.combo - 1, ECONOMY_TUNING.comboScrapCap);
-  state.scrap += ECONOMY_TUNING.mowScrapBase + streakBonus * ECONOMY_TUNING.mowScrapStep;
+  const bruteBonus = z.brute ? BRUTE_TUNING.scrapBonus : 0;
+  state.scrap += ECONOMY_TUNING.mowScrapBase + streakBonus * ECONOMY_TUNING.mowScrapStep + bruteBonus;
   state.events.push({ type: 'zombieMowed', lane: z.lane, combo: state.combo, x: z.x });
+}
+
+/**
+ * Apply one gun hit to a target. A normal zombie dies outright; a brute is chipped
+ * by `damage` (the weapon's killsPerShot) and only pays out (`payKill`) once its
+ * `hp` is spent. Returns true when the target died this hit, so the shot loop can
+ * advance to the next target. A brute that merely takes a chip still absorbed the
+ * hit, so the loop stops there for this slot.
+ */
+function damageZombie(state: SimState, z: Zombie, damage: number): boolean {
+  if (!z.brute) {
+    payKill(state, z);
+    return true;
+  }
+  z.hp = (z.hp ?? BRUTE_TUNING.hp) - damage;
+  if (z.hp <= 0) {
+    payKill(state, z);
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -504,7 +598,11 @@ export function resolveShots(state: SimState, intent: Intent): void {
     }
   }
 
-  // Drop up to `killsPerShot` zombies, nearest first, within range and column.
+  // Spend `killsPerShot` points of damage, nearest first, within range and column.
+  // A normal zombie costs one point (one kill); a brute soaks several before it
+  // drops, so a strong cannon can fell one in a single shot while a weak one chips
+  // it over several. Each point re-scans for the current nearest, so once a brute
+  // drops the remaining points spill onto the crowd behind it.
   for (let k = 0; k < w.killsPerShot; k += 1) {
     let target: Zombie | null = null;
     let nearest = Infinity;
@@ -519,7 +617,7 @@ export function resolveShots(state: SimState, intent: Intent): void {
       }
     }
     if (!target) break;
-    payKill(state, target);
+    damageZombie(state, target, 1);
   }
 }
 
@@ -529,6 +627,11 @@ export function resolveShots(state: SimState, intent: Intent): void {
  * climbing per kill (docs/DESIGN.md → Pillar 2). A jump sails clean over them,
  * trading the scrap for the air. `topSpeed` bounds how far a streak can push the
  * car past cruising. Each zombie pays once.
+ *
+ * A brute is the exception: ramming one is a crash, not a free mow. It costs hull
+ * and momentum (`CRASH_TUNING.brute*`), breaks the streak, and only then is the
+ * brute plowed (you do bulldoze through it). Shooting or dodging it is the smart
+ * play; the crash is the price of ramming it.
  */
 export function resolveMows(state: SimState, topSpeed: number): void {
   const car = state.car;
@@ -543,6 +646,24 @@ export function resolveMows(state: SimState, topSpeed: number): void {
       state.distance - CAR_LENGTH <= z.forward + ZOMBIE_HALF_LENGTH;
     if (!forwardOverlap) continue;
     if (Math.abs(car.lateralX - z.x) >= CAR_HALF_WIDTH + reach) continue;
+
+    if (z.brute) {
+      // Ramming a brute is a crash: a hull hit and a frenazo before you plow it.
+      const impact = car.speed;
+      state.events.push({ type: 'crashed', impact, lane: z.lane });
+      applyCrash(car, impact, false, state.events, state.loadout.damageMul * CRASH_TUNING.bruteDamageMul);
+      car.speed *= CRASH_TUNING.bruteSpeedKeep;
+      // The hull hit breaks the streak before the kill banks a fresh one.
+      state.combo = 0;
+      state.comboTicks = 0;
+      payKill(state, z);
+      if (car.health <= 0 && !state.dead) {
+        state.dead = true;
+        state.deathCause = 'brute';
+        state.events.push({ type: 'died' });
+      }
+      continue;
+    }
 
     payKill(state, z);
 

@@ -210,6 +210,47 @@ export const palette = {
   meteorShadow: 0xd83a1e, // the warning shadow on the target lane
   meteorCrater: 0x140f0c, // scorched ground after impact
 
+  // Lethal walls share a language: a heavy, solid mass plus a RED danger marking
+  // (red = death, distinct from the amber "caution" of barrels and rig chevrons),
+  // so a glance reads "you cannot pass this, dodge it" — the silhouette carries it,
+  // the colour confirms it (docs/DESIGN.md → readability: lethal looks lethal).
+
+  // Concrete barrier — a Jersey median wall dragged across the lane. Solid
+  // weathered concrete with white hazard bands and red chevrons, tall enough to
+  // read as an impassable wall.
+  barrierConcrete: 0x938b7e,
+  barrierConcreteDark: 0x4e4a43, // shadowed base, scuffed corners
+  barrierStripe: 0xd9d2c4, // painted white hazard bands
+  barrierGrime: 0x5c5043, // road grime / rust streaks down the face
+  barrierDanger: 0xe6361b, // red danger chevrons — the lethal read
+
+  // Crashed bus — the longest wall: a long dead coach across the lane. A faded,
+  // dark ochre body (clearly a dead bus, never toy-bright), dead glass, rust, and
+  // red hazard chevrons on the rear so it reads lethal, not survivable.
+  busBody: 0xb0852c,
+  busDark: 0x281f16, // underframe, bumpers, window frames
+  busGlass: 0x33403f, // dead shattered glass
+  busRust: 0x6f4a24, // rust eating the panels
+  busRail: 0x141008, // the black rub rail along the flank
+  busDanger: 0xe6361b, // red hazard chevrons on the rear
+
+  // Spike strip — a lethal bed of steel teeth on the road. A dark base rail with
+  // red do-not-cross paint and bright steel teeth, so it reads as "shred zone, jump
+  // it" rather than a survivable bump (docs/DESIGN.md → readability: lethal trap).
+  spikesBar: 0x2a2622, // the dark base rail bolted to the asphalt
+  spikesTeeth: 0xb9bcc4, // steel spike teeth catching the key light
+  spikesDanger: 0xe6361b, // red warning paint on the base
+
+  // Collapse ramp — rubble from a fallen building piled into a launch ramp. Read as
+  // a route, not a threat: cool, dusty concrete and broken roadway, never warm. A
+  // single yellow chevron on the lip points up the ramp so a glance reads "drive up
+  // me" rather than "wall" (docs/DESIGN.md → readability: decoration never warm, the
+  // cue carries the verb).
+  rampConcrete: 0x8c887e, // the broken slabs of the ramp face
+  rampConcreteDark: 0x4b463f, // shadowed undersides and the rubble base
+  rampRebar: 0x6a5140, // bent reinforcing bar and torn roadbed poking through
+  rampChevron: 0xe6c044, // the painted "up" chevron on the ramp lip
+
   // Zombies — mowable fodder. A sickly, desaturated flesh tone that is neither
   // the warm of a real threat nor the cool of a pickup; the hunched, reaching
   // silhouette carries the recognition (docs/DESIGN.md → readability rules).
@@ -218,6 +259,14 @@ export const palette = {
   zombieRag: 0x40463c,
   zombieShirt: 0x6d5a4a,
   zombieBone: 0xb7b09a, // pale exposed bits — desaturated, never warm
+
+  // Brute zombie — a heavy, swollen body that is a real threat, not free fodder.
+  // Warmer and darker than the sickly fodder flesh (warm = threat) with raw red
+  // wounds, so it reads apart from a normal shambler in a crowd at a glance.
+  bruteFlesh: 0x95764a,
+  bruteFleshDark: 0x5c4830,
+  bruteRag: 0x3a342a,
+  bruteScar: 0xa33a26, // raw warm wounds / scar tissue
 
   // Scrap reads cool — the cyan ping is the reward for a clean mow, legible even
   // with sound off (docs/DESIGN.md → Juice as information).

@@ -142,10 +142,14 @@ function resolveCell(
       break;
     }
     case 'rig':
+    case 'barrier':
+    case 'bus':
     case 'boulder':
     case 'barrel':
+    case 'spikes':
     case 'meteor':
     case 'gap':
+    case 'ramp':
       spawns.push({ kind: cell.role, lane, z });
       break;
     case 'crackgap':
@@ -173,6 +177,11 @@ function resolveCell(
     }
     case 'horde':
       addZombieCluster(spawns, lane, rng, z, nextInt(rng, clusterMin, clusterMax + 1));
+      break;
+    case 'brute':
+      // A single heavy zombie: a damaging obstacle, not free fodder. Ram it for a
+      // hull hit, or shoot/dodge it (the crash math lives in the sim).
+      spawns.push({ kind: 'zombie', lane, z, phase: nextFloat(rng), brute: true });
       break;
     case 'loot':
       // The greedy lane's payout: a full crowd (still inside the act's bounds).

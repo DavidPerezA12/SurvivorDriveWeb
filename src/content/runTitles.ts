@@ -17,32 +17,42 @@ import { makeRng, nextInt, hash2, type Rng } from '../sim/rng';
 
 /**
  * What landed the fatal blow, as the death card understands it. These mirror the
- * on-road blockers (`HazardKind`) — `wreck`, `rig`, `boulder`, `barrel`, the
- * sliding `drifter` — plus `attrition`, a defensive fallback for a hull that gave
- * out with no single blow on record. Death is always attributable (docs/DESIGN.md
- * → death must read as a player's decision), so there is no "random" cause.
+ * on-road blockers (`HazardKind`) — the survivable `wreck`/`boulder`/`barrel`/
+ * `drifter`, the lethal walls `rig`/`barrier`/`bus`/`meteor`, the ground traps
+ * `gap`/`spikes`/`beam`, and the `brute` zombie you rammed instead of shooting —
+ * plus `attrition`, a defensive fallback for a hull that gave out with no single
+ * blow on record. Death is always attributable (docs/DESIGN.md → death must read
+ * as a player's decision), so there is no "random" cause.
  */
 export type DeathCause =
   | 'wreck'
   | 'rig'
+  | 'barrier'
+  | 'bus'
   | 'boulder'
   | 'barrel'
+  | 'spikes'
   | 'drifter'
   | 'meteor'
   | 'beam'
   | 'gap'
+  | 'brute'
   | 'attrition';
 
 /** Every cause, in a stable order — used to key the RNG and to drive tests. */
 export const DEATH_CAUSES: readonly DeathCause[] = [
   'wreck',
   'rig',
+  'barrier',
+  'bus',
   'boulder',
   'barrel',
+  'spikes',
   'drifter',
   'meteor',
   'beam',
   'gap',
+  'brute',
   'attrition',
 ];
 
@@ -166,6 +176,20 @@ const TEMPLATES: Record<DeathCause, readonly string[]> = {
     'Lost an Argument with a {adj} Trailer',
     'Out-Hauled {finale}',
   ],
+  barrier: [
+    '{verb} by {adj} Concrete',
+    'Met an Immovable {adj} Wall',
+    'Repossessed by the {adj} Median',
+    '{verb} Flat Against a Barrier',
+    'Should Have Changed Lanes {finale}',
+  ],
+  bus: [
+    'T-Boned a {adj} School Bus',
+    '{verb} by Public Transit',
+    'Out-Massed by Forty Feet of Bus',
+    'Missed the Stop {finale}',
+    'Folded Into a {adj} Coach',
+  ],
   boulder: [
     'Flattened by {adj} Geology',
     'Crushed under {adj} Rubble',
@@ -201,12 +225,26 @@ const TEMPLATES: Record<DeathCause, readonly string[]> = {
     'Carved Up by {invader}',
     'Stood in the {adj} Beam',
   ],
+  spikes: [
+    'Shredded on a {adj} Spike Strip',
+    'Four Flats {finale}',
+    'Should Have Jumped the Spikes',
+    'Deflated by {adj} Caltrops',
+    'Ran the Strip {finale}',
+  ],
   gap: [
     'Found the Hole in the {adj} Plan',
     'Drove Into a Gap That Wins',
     'Should Have Jumped {finale}',
     'Swallowed by the {adj} Road',
     'Off the Edge {finale}',
+  ],
+  brute: [
+    'Bulldozed a {adj} Brute',
+    '{verb} by the Fat One',
+    'Should Have Shot It {finale}',
+    'Out-Massed by {horde}',
+    'Rammed One Too Many {finale}',
   ],
   attrition: [
     'Hull Gave Out {finale}',

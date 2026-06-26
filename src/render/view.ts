@@ -199,6 +199,12 @@ export class GameView {
       case 'jumped':
         this.stage.camera.punchFov(5);
         break;
+      case 'ramped':
+        // Vaulting the collapse rubble: a wider FOV for the air and a kick of dust
+        // off the debris, but no shake — riding the ramp is a stunt, not a hit.
+        this.stage.camera.punchFov(7);
+        this.groundFx.burst(0.7, event.x);
+        break;
       case 'landed': {
         // Bigger landings squash harder, kick up more dust, and shake a touch
         // more (all clamped).

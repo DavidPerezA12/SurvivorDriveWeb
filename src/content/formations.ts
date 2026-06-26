@@ -22,17 +22,22 @@
 
 /** The semantic role a formation cell plays; the sim maps it to a concrete spawn. */
 export type FormationRole =
-  | 'wreck' // steerable blocker
-  | 'rig' // un-jumpable wall, lane-change only
-  | 'boulder' // jump-clears, small ram
+  | 'wreck' // steerable blocker (survivable)
+  | 'rig' // un-jumpable wall, lane-change only (lethal)
+  | 'barrier' // concrete wall, lane-change only (lethal)
+  | 'bus' // long crashed bus, a wall along the lane (lethal)
+  | 'boulder' // jump-clears, small ram (survivable)
   | 'barrel' // shoot to clear (and the crowd around it)
+  | 'spikes' // a spike strip on the road; jump it or change lane (lethal trap)
   | 'drifter' // slides one lane over as it nears
   | 'beam' // a UFO beam strip that sweeps across the flanking lanes
   | 'meteor' // falls onto its lane, then lethal
   | 'gap' // hole in the road; jump it or change lane
   | 'crackgap' // a quake gap: a telegraph crack that tears open into a lethal hole
+  | 'ramp' // collapsed-building rubble piled into a ramp; drive it to vault the debris
   | 'horde' // a mowable/shootable crowd (scrap)
   | 'loot' // a fat crowd: the greedy lane's payout
+  | 'brute' // a heavy zombie: ram it for a hull hit, or shoot/dodge it
   | 'ammo'
   | 'health'
   | 'lift'; // jump-charge refill
@@ -269,6 +274,116 @@ export const FORMATIONS: readonly Formation[] = [
     cells: [
       { off: -1, z: 0.08, role: 'lift', bonus: true },
       { off: 2, z: 0.5, role: 'beam', toOff: 1 },
+    ],
+  },
+  // Collapse ramp: a tower has come down across the road. It walls off one flank
+  // (the toppled structure, lethal) while its rubble on the other piles into a
+  // launch ramp. Mow the dead caught in the wreckage for scrap, then ride the ramp
+  // to vault the debris pile beyond it. The new line goes over the collapse; the
+  // safe lane runs clear past it (docs/DESIGN.md → Pillar 1: events open a line
+  // while closing others). Rust onward, where the first scripted collapse lands.
+  {
+    id: 'collapse-ramp',
+    hardness: 0.46,
+    acts: [0, 2, 3, 3, 2, 2],
+    cells: [
+      { off: 1, z: 0.06, role: 'ammo' },
+      { off: 1, z: 0.28, role: 'horde' },
+      { off: -1, z: 0.5, role: 'rig' },
+      { off: 1, z: 0.58, role: 'ramp' },
+      { off: 1, z: 0.85, role: 'boulder' },
+    ],
+  },
+  // Horde surge: the dead flood the road. A dense crowd packs every flanking lane,
+  // so the only clean line is the safe lane (thread the gap), and mowing through is
+  // a huge scrap payout gated by the brutes anchoring the wave (ram one and you eat
+  // the crash) and the ammo it costs to carve a lane. A barrel sits in the wave to
+  // pop for a swath. Floods all three non-safe lanes regardless of where the safe
+  // line wanders: the loot offsets span both sides, and the off-road/safe ones drop
+  // (docs/DESIGN.md → roster: Horde surge, a mass threat; plow or thread the gap).
+  // Swarm signature, where the dead first flood the lanes.
+  {
+    id: 'horde-surge',
+    hardness: 0.62,
+    acts: [0, 0, 4, 3, 3, 4],
+    cells: [
+      { off: -1, z: 0.04, role: 'ammo' },
+      { off: 1, z: 0.04, role: 'ammo', bonus: true },
+      // The teeth: brutes at the front of two flooded lanes, so a blind plow bites.
+      { off: -1, z: 0.34, role: 'brute' },
+      { off: 1, z: 0.36, role: 'brute' },
+      // The wave: a full crowd on every flanking lane, both sides, so whichever
+      // three are on-road and non-safe all flood and only the safe lane stays clear.
+      { off: -3, z: 0.5, role: 'loot' },
+      { off: -2, z: 0.5, role: 'loot' },
+      { off: -1, z: 0.52, role: 'loot' },
+      { off: 1, z: 0.52, role: 'loot' },
+      { off: 2, z: 0.5, role: 'loot' },
+      { off: 3, z: 0.5, role: 'loot' },
+      // A barrel buried in one flooded lane: shoot it to blow a hole in the wave.
+      { off: 2, z: 0.64, role: 'barrel' },
+    ],
+  },
+  // Bus block: a crashed bus walls off a flanking lane (lethal, no jumping it), a
+  // wreck to flick around on the other side, ammo to bank. Teaches "that long one
+  // is a wall, go around it" in the early streets.
+  {
+    id: 'bus-block',
+    hardness: 0.4,
+    acts: [3, 5, 4, 2, 1, 1],
+    cells: [
+      { off: 1, z: 0.5, role: 'bus' },
+      { off: -1, z: 0.45, role: 'wreck' },
+      { off: -1, z: 0.1, role: 'ammo', bonus: true },
+    ],
+  },
+  // Brute line: heavy zombies anchored on the flanking lanes with ammo up front.
+  // Shoot them down for fat scrap, dodge them, or eat a crash bulldozing through.
+  {
+    id: 'brute-line',
+    hardness: 0.55,
+    acts: [0, 2, 4, 3, 3, 3],
+    cells: [
+      { off: -1, z: 0.06, role: 'ammo' },
+      { off: 1, z: 0.45, role: 'brute' },
+      { off: -1, z: 0.62, role: 'brute' },
+    ],
+  },
+  // Brute in the crowd: a horde to plow with a brute planted in it. Mow the fodder,
+  // but the brute bites if you ram it, so shoot it as you come. Ammo set before.
+  {
+    id: 'brute-horde',
+    hardness: 0.5,
+    acts: [0, 2, 5, 4, 3, 3],
+    cells: [
+      { off: 1, z: 0.06, role: 'ammo' },
+      { off: 1, z: 0.4, role: 'horde' },
+      { off: 1, z: 0.62, role: 'brute' },
+    ],
+  },
+  // Spike greed: a spike strip on a flanking lane, a lift charge before it and the
+  // scrap beyond — jumping it is the greedy line. The safe lane never has spikes.
+  {
+    id: 'spike-greed',
+    hardness: 0.6,
+    acts: [0, 1, 2, 3, 3, 3],
+    cells: [
+      { off: 1, z: 0.06, role: 'lift' },
+      { off: 1, z: 0.4, role: 'spikes' },
+      { off: 1, z: 0.82, role: 'loot' },
+    ],
+  },
+  // Roadblock: the road is sealed but for the safe line. Concrete barriers and a
+  // crashed bus across every flanking lane — only the safe lane passes. Reading
+  // which lane is open is the whole beat. A wall of solid mass, no jumping any of it.
+  {
+    id: 'roadblock',
+    hardness: 0.82,
+    acts: [0, 1, 3, 4, 5, 4],
+    cells: [
+      { off: 1, z: 0.5, role: 'barrier' },
+      { off: -1, z: 0.5, role: 'bus' },
+      { off: 2, z: 0.5, role: 'barrier' },
     ],
   },
   // The wall: rigs across every flanking lane. Only the safe line passes. Reading

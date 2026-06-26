@@ -228,6 +228,12 @@ tier. Upgrades render on the car, so the build is legible at a glance.
   at full speed at the spawn horizon.
 - Threats warm (red/orange), pickups cool (cyan/green/glow), decoration
   desaturated. Fodder (zombies) is a sickly desaturated flesh tone, its own read.
+- **Lethal reads as lethal.** A blocker that ends the run on contact must look like
+  a wall you cannot pass: tall, solid mass, clearly above jump height, marked with
+  red danger paint. A blocker you only bump and survive stays low and warm. The
+  player must know which is which from the silhouette alone, before learning it by
+  dying. Lethal ground traps (a hole, a spike strip, a beam) read the same way on
+  the road surface: do not be on them.
 - Static hazards telegraph at least 1.2 s before contact at max speed; set-piece
   events at least 2 s.
 - Spectacle lives in the background and sky; the road surface stays legible. If a
@@ -238,23 +244,32 @@ tier. Upgrades render on the car, so the build is legible at a glance.
 | Object | Role | Counterplay |
 | --- | --- | --- |
 | Zombie (lone/cluster) | Fodder; mowing pays scrap | Drive through them, on purpose |
+| Brute zombie | Heavy fodder that bites back | Shoot it down or dodge it; ramming it is a crash |
 | Horde surge | Mass threat | Plow (hull/ammo cost) or thread the gap |
-| Abandoned car | Lane blocker | Steer, or ram with cowcatcher |
+| Abandoned car | Survivable lane blocker | Steer, jump, or ram for a hull hit |
 | Toppled big rig | Lethal wall, too tall to jump | Steer only; never on the safe lane |
+| Concrete barrier | Lethal wall | Steer only; the safe lane is always open |
+| Crashed bus | Long lethal wall | Steer only; reads as a wall along the lane |
 | Boulder / rubble | Low obstacle; makes the jump load-bearing | Jump, or steer; ramming costs hull |
 | Light barricade | Soft blocker | Shoot, ram, or steer |
-| Heavy barricade | Hard wall | Steer only |
 | Explosive barrel | Trap and tool | Shoot to detonate (clears lanes, chains); ramming is a big hit; a jump clears it |
+| Spike strip | Lethal ground trap | Jump it or change lane; on it grounded ends the run |
 | Sky meteor | Falling killer | Change lanes; the descending rock is the telegraph |
 | Drifting wreck | Moving lane-crosser | Read its telegraphed drift, then steer clear |
 | Road crack / gap | Gap in the surface | Jump, or be in another lane; falling in ends the run |
-| Collapsed section | Wide gap (M3) | Jump, or detour to a standing lane |
+| Collapsed section | Wide gap | Jump, or detour to a standing lane |
+| Collapse ramp | Rubble route over the debris | Drive onto it to vault the wreckage; a free launch, no charge |
 | Scrap / lift / ammo / health | Pickups | Grab; clustered off the safe lane |
 
+Lethal walls (rig, barrier, bus, landed meteor) all share the same read: a tall
+solid mass you steer around, never jump. Survivable blockers (wreck, boulder,
+barrel) stay low and only cost hull. The brute is the one piece of fodder that is
+also an obstacle: ram it and you take the crash, so the gun or a dodge is the play.
+
 **Counterplay-verb coverage.** Every control verb must be required by at least one
-object or it is decoration. Steer is forced by the rig; ram and shoot by fodder and
-barriers; jump by the boulder and gap. A new object that only repeats an existing
-counterplay is filler.
+object or it is decoration. Steer is forced by the lethal walls; ram and shoot by
+fodder and the brute; jump by the boulder, gap, and spikes. A new object that only
+repeats an existing counterplay is filler.
 
 **Divergences from the inspiration.** We do not copy: (1) timed power-ups / shield
 bubbles (they mute the greed pillar); our model is permanent upgrades plus resource

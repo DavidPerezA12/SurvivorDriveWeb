@@ -189,6 +189,45 @@ export const CRASH_TUNING = {
    */
   beamDamageMul: 2.7,
   beamSpeedKeep: 0.3,
+
+  /**
+   * The concrete barrier is a lethal wall like the rig: a solid mass that reads as
+   * "you cannot pass this" at a glance (docs/DESIGN.md → readability: lethal looks
+   * lethal). Scaled so a square hit at speed empties the hull outright, and it
+   * stops the car dead. The only out is a lane change.
+   */
+  barrierDamageMul: 3,
+  barrierSpeedKeep: 0.16,
+
+  /**
+   * The crashed bus is the longest lethal wall: a square hit at speed empties the
+   * hull like the barrier, and it stops the car dead. Its length is what makes it
+   * read as a wall across the lane (docs/DESIGN.md → roster).
+   */
+  busDamageMul: 3,
+  busSpeedKeep: 0.16,
+
+  /**
+   * Ramming a brute zombie is a real crash, not a free mow: the heavy body costs
+   * hull and momentum (scaled below a wreck, since you do plow through it) and
+   * breaks the streak. Shooting it from range or dodging it is the smart play; the
+   * crash is the price of bulldozing it (docs/DESIGN.md → roster).
+   */
+  bruteDamageMul: 0.9,
+  bruteSpeedKeep: 0.55,
+} as const;
+
+/**
+ * The brute zombie (docs/DESIGN.md → roster). A heavy, slow shambler that is a
+ * damaging obstacle rather than free fodder: it absorbs several gun hits before it
+ * drops, and ramming it costs hull (the crash math lives in `CRASH_TUNING.brute*`).
+ * It pays extra scrap to reward clearing it, so it is a greed target, not a wall.
+ */
+export const BRUTE_TUNING = {
+  /** Gun hits a brute absorbs before it drops (chipped by the weapon's killsPerShot). */
+  hp: 4,
+  /** Extra scrap a brute pays on top of the streak-scaled mow payout. */
+  scrapBonus: 6,
 } as const;
 
 /**
@@ -269,6 +308,20 @@ export const BEAM_TUNING = {
   startGap: 150,
   /** Gap (m) by which the sweep has finished and the strip holds its target lane. */
   endGap: 30,
+} as const;
+
+/**
+ * The building-collapse ramp (docs/DESIGN.md → Pillar 1: the road is the boss). A
+ * tower falls across the road and its rubble forms a ramp; the new line goes over
+ * it. Driving onto the ramp grounded launches the car into a free arc, sailing it
+ * over the debris pile beyond to the loot on the far side. The launch spends no
+ * jump charge, costs no hull, and keeps momentum, so it reads purely as a stunt,
+ * never a crash. The impulse is above a hand jump's, so the vault clearly carries
+ * the car over the rubble. An airborne car is already over it and is not relaunched.
+ */
+export const RAMP_TUNING = {
+  /** Launch velocity (m/s) the ramp throws the car up at; above a hand jump's. */
+  launchImpulse: 9,
 } as const;
 
 /**
