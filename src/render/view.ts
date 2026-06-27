@@ -60,6 +60,8 @@ export class GameView {
   private readonly elevation: Elevation;
   private car: THREE.Group;
   private chassisId: ChassisId = 'survivor';
+  /** The garage COLOR override baked into the body, or `undefined` for factory. */
+  private paintColor: number | undefined = undefined;
   /** The merged bolt-on mesh for the current garage loadout, parented to the car. */
   private upgradeMesh: THREE.Mesh | null = null;
   /** The merged hull-wear overlay, parented to the car; swapped on hull thresholds. */
@@ -127,6 +129,22 @@ export class GameView {
   setChassis(id: ChassisId): void {
     if (id === this.chassisId && this.car) return;
     this.chassisId = id;
+    this.rebuildCar();
+  }
+
+  /**
+   * Repaint the hero car for the garage COLOR tab (`undefined` = factory). Like
+   * `setChassis`, this is a run-start swap, never per frame, and the caller
+   * re-dresses upgrades with `setLoadout` right after.
+   */
+  setPaint(bodyColor: number | undefined): void {
+    if (bodyColor === this.paintColor && this.car) return;
+    this.paintColor = bodyColor;
+    this.rebuildCar();
+  }
+
+  /** Dispose and rebuild the car body for the current chassis + paint. */
+  private rebuildCar(): void {
     this.stage.scene.remove(this.car);
     this.car.traverse((o) => {
       if (o instanceof THREE.Mesh) o.geometry.dispose();
@@ -134,7 +152,7 @@ export class GameView {
     this.upgradeMesh = null;
     this.damageMesh = null;
     this.damageTier = 0;
-    this.car = createChassis(id);
+    this.car = createChassis(this.chassisId, this.paintColor);
     this.stage.scene.add(this.car);
   }
 

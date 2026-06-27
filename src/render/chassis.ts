@@ -281,9 +281,9 @@ function addWheels(
  * twin exhaust stacks, a winch bull-bar, a junk-laden bed, mirrors, a snorkel and
  * a whip antenna.
  */
-function buildRig(): THREE.Group {
+function buildRig(bodyColor?: number): THREE.Group {
   const B = palette;
-  const body = B.rigChassisBody;
+  const body = bodyColor ?? B.rigChassisBody;
   const dark = B.rigChassisDark;
   const bed = B.rigChassisBed;
   const rust = B.rigChassisRust;
@@ -423,9 +423,9 @@ function buildRig(): THREE.Group {
  * slit, round roof vents, a side ladder, a tube push-bar ram, mirrors and a side
  * exhaust.
  */
-function buildHauler(): THREE.Group {
+function buildHauler(bodyColor?: number): THREE.Group {
   const B = palette;
-  const body = B.haulerBody;
+  const body = bodyColor ?? B.haulerBody;
   const dark = B.haulerDark;
   const plate = B.haulerPlate;
   const stripe = B.haulerStripe;
@@ -542,9 +542,9 @@ function buildHauler(): THREE.Group {
  * with round velocity stacks and curved header pipes, visible coilover springs, a
  * round light bar and big knobby tyres.
  */
-function buildBuggy(): THREE.Group {
+function buildBuggy(bodyColor?: number): THREE.Group {
   const B = palette;
-  const frame = B.buggyFrame;
+  const frame = bodyColor ?? B.buggyFrame;
   const dframe = B.buggyFrameDark;
   const tub = B.buggyTub;
   const engine = B.buggyEngine;
@@ -646,9 +646,9 @@ function buildBuggy(): THREE.Group {
  * wheels, twin racing stripes, a hood vent, round side mirrors, a tall ducktail
  * wing, side exhausts and round dual tailpipes under a full-width tail bar.
  */
-function buildCoupe(): THREE.Group {
+function buildCoupe(bodyColor?: number): THREE.Group {
   const B = palette;
-  const body = B.coupeBody;
+  const body = bodyColor ?? B.coupeBody;
   const dark = B.coupeDark;
   const stripe = B.coupeStripe;
   const accent = B.coupeAccent;
@@ -745,20 +745,24 @@ function buildCoupe(): THREE.Group {
   return assemble(parts, lights, 0.4 - 0.36);
 }
 
-/** Build the model for a chassis. Survivor reuses the authored hero car. */
-export function createChassis(id: ChassisId): THREE.Group {
+/**
+ * Build the model for a chassis. Survivor reuses the authored hero car. An
+ * optional `bodyColor` repaints the body shell (the garage COLOR tab); omit it to
+ * keep the chassis its authored factory color.
+ */
+export function createChassis(id: ChassisId, bodyColor?: number): THREE.Group {
   switch (id) {
     case 'rig':
-      return buildRig();
+      return buildRig(bodyColor);
     case 'hauler':
-      return buildHauler();
+      return buildHauler(bodyColor);
     case 'buggy':
-      return buildBuggy();
+      return buildBuggy(bodyColor);
     case 'coupe':
-      return buildCoupe();
+      return buildCoupe(bodyColor);
     case 'survivor':
     default:
-      return createCar();
+      return createCar(bodyColor);
   }
 }
 

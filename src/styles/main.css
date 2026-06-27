@@ -109,9 +109,256 @@ button {
 }
 
 .sdw-garage__tabs,
-.sdw-garage__rack {
+.sdw-garage__cards {
   scrollbar-width: thin;
   scrollbar-color: rgba(232, 154, 58, 0.65) rgba(12, 10, 8, 0.5);
+}
+
+/* ------------------------------------------------------------------ *
+ * Garage skin — a gritty apocalypse workshop. The structural / layout
+ * styles stay inline in src/ui/garage.ts; everything tactile (texture,
+ * depth, hover, glow, animation) lives here where pseudo-elements and
+ * states are available.
+ * ------------------------------------------------------------------ */
+.sdw-garage {
+  background:
+    radial-gradient(125% 75% at 50% 22%, rgba(94, 110, 128, 0.38), transparent 60%),
+    radial-gradient(150% 120% at 50% 40%, #242a32 0%, #14171c 56%, #080a0d 100%);
+}
+
+/* Faint CRT scanlines + a cool baked wash over the whole panel. */
+.sdw-garage::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.16) 0 1px, transparent 1px 3px),
+    radial-gradient(140% 60% at 50% 0%, rgba(150, 180, 212, 0.06), transparent 55%);
+  opacity: 0.6;
+}
+
+/* Edge vignette so the worklight pool reads as the bright centre of a dark shop. */
+.sdw-garage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 200px 36px rgba(0, 0, 0, 0.62);
+}
+
+.sdw-garage > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Hazard-tape rule slung under the top bar. */
+.sdw-garage__top {
+  position: relative;
+}
+
+.sdw-garage__top::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -7px;
+  height: 3px;
+  border-radius: 2px;
+  opacity: 0.55;
+  background: repeating-linear-gradient(45deg, rgba(232, 169, 58, 0.95) 0 9px, rgba(18, 14, 10, 0.95) 9px 18px);
+}
+
+/* Riveted, beveled gunmetal plates (CAR INFO, RUN, SCRAP). */
+.sdw-garage-plate {
+  position: relative;
+  background:
+    linear-gradient(160deg, #545d68 0%, #353b43 48%, #23272d 100%) !important;
+  border: 1px solid #717b88 !important;
+  border-top-color: #9aa4b2 !important;
+  border-bottom-color: #21252b !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.4),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.2),
+    0 6px 18px rgba(0, 0, 0, 0.55) !important;
+}
+
+.sdw-garage-plate::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(circle 1.6px at 8px 8px, rgba(0, 0, 0, 0.55) 45%, transparent 50%),
+    radial-gradient(circle 1.6px at calc(100% - 8px) 8px, rgba(0, 0, 0, 0.55) 45%, transparent 50%),
+    radial-gradient(circle 1.6px at 8px calc(100% - 8px), rgba(0, 0, 0, 0.55) 45%, transparent 50%),
+    radial-gradient(circle 1.6px at calc(100% - 8px) calc(100% - 8px), rgba(0, 0, 0, 0.55) 45%, transparent 50%);
+}
+
+/* Green LCD readouts with a slow flicker. */
+.sdw-garage__lcd {
+  animation: sdw-lcd-flicker 5s steps(40) infinite;
+}
+
+@keyframes sdw-lcd-flicker {
+  0%, 96%, 100% { opacity: 1; }
+  97% { opacity: 0.82; }
+  98% { opacity: 1; }
+  99% { opacity: 0.9; }
+}
+
+/* Segmented stat meters (CAR INFO). */
+.sdw-garage__bar {
+  position: relative;
+}
+
+.sdw-garage__bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(90deg, transparent 0 9px, rgba(7, 6, 5, 0.85) 9px 11px);
+}
+
+.sdw-garage__bar-fill {
+  box-shadow: 0 0 9px rgba(125, 216, 106, 0.55);
+}
+
+/* The DRIVE / PLAY AGAIN button: tactile press + worklight glow. */
+.sdw-garage__drive {
+  transition: transform 0.12s ease, box-shadow 0.16s ease, filter 0.12s ease;
+}
+
+.sdw-garage__drive:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 8px 20px rgba(0, 0, 0, 0.6),
+    0 0 22px rgba(232, 154, 58, 0.45) !important;
+}
+
+.sdw-garage__drive:active {
+  transform: translateY(1px);
+}
+
+/* Tabs. */
+.sdw-garage__tabs > button {
+  transition: filter 0.12s ease, transform 0.1s ease;
+}
+
+.sdw-garage__tabs > button:hover {
+  filter: brightness(1.16);
+}
+
+/* Rack cards (upgrades, chassis, paint) share one beveled-metal language. */
+.sdw-garage-card,
+.sdw-garage-chassis-card,
+.sdw-garage-paint-card {
+  border: 1px solid #5d656f;
+  border-top-color: #939dab;
+  border-bottom-color: #22262b;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.38),
+    0 3px 10px rgba(0, 0, 0, 0.55);
+  transition: transform 0.12s ease, box-shadow 0.15s ease, border-color 0.15s ease, filter 0.12s ease;
+}
+
+/* LCD level badge on an upgrade tile (the inspiration's "1/3" readout). */
+.sdw-garage-card__badge {
+  font: 800 11px/1 ui-monospace, Menlo, monospace;
+  letter-spacing: 0.5px;
+  color: #7dd86a;
+  padding: 2px 6px;
+  background: linear-gradient(180deg, #0a0f08, #050803);
+  border: 1px solid #000;
+  border-radius: 3px;
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* LCD cost plate at the foot of an upgrade tile, with its coin marker. */
+.sdw-garage-card__cost {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  padding: 4px 6px;
+  background: linear-gradient(180deg, #0a0f08, #050803);
+  border: 1px solid #000;
+  border-radius: 4px;
+  box-shadow: inset 0 0 7px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* The little brass coin that marks a scrap number. */
+.sdw-garage-coin {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffe89a, #e0a93a 58%, #9c6f1e);
+  border: 1px solid #6b4a12;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 0 5px rgba(224, 169, 58, 0.4);
+}
+
+.sdw-garage-card:hover,
+.sdw-garage-chassis-card:hover,
+.sdw-garage-paint-card:hover {
+  transform: translateY(-3px);
+  filter: brightness(1.1);
+  border-color: #e89a3a;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 9px 20px rgba(0, 0, 0, 0.6),
+    0 0 16px rgba(232, 154, 58, 0.35);
+}
+
+/* Affordable / selected state. */
+.sdw-garage-card.is-active,
+.sdw-garage-chassis-card.is-active,
+.sdw-garage-paint-card.is-active {
+  border-color: #e89a3a;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 4px 12px rgba(0, 0, 0, 0.55),
+    0 0 14px rgba(232, 154, 58, 0.4);
+}
+
+/* A maxed upgrade reads "done" in green. */
+.sdw-garage-card.is-max {
+  border-color: rgba(143, 191, 106, 0.6);
+}
+
+/* An affordable upgrade breathes so the eye finds the next buy. */
+.sdw-garage-card.is-active {
+  animation: sdw-card-pulse 1.7s ease-in-out infinite;
+}
+
+@keyframes sdw-card-pulse {
+  0%, 100% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.12),
+      0 4px 12px rgba(0, 0, 0, 0.55),
+      0 0 9px rgba(232, 154, 58, 0.3);
+  }
+  50% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.12),
+      0 4px 12px rgba(0, 0, 0, 0.55),
+      0 0 22px rgba(232, 154, 58, 0.62);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sdw-garage__lcd,
+  .sdw-garage-card.is-active {
+    animation: none;
+  }
 }
 
 @media (hover: none), (pointer: coarse), (max-width: 760px) {
@@ -246,18 +493,24 @@ button {
   }
 
   .sdw-garage__rack {
-    width: 100%;
-    min-height: 96px !important;
-    justify-content: flex-start !important;
-    overflow-x: auto;
+    width: 100% !important;
     padding: 10px !important;
+  }
+
+  /* On a phone the cards scroll sideways in one row instead of wrapping. */
+  .sdw-garage__cards {
+    flex-wrap: nowrap !important;
+    justify-content: flex-start !important;
+    min-height: 96px !important;
+    overflow-x: auto;
     scroll-snap-type: x proximity;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-x;
   }
 
   .sdw-garage-card,
-  .sdw-garage-chassis-card {
+  .sdw-garage-chassis-card,
+  .sdw-garage-paint-card {
     flex: 0 0 auto;
     scroll-snap-align: start;
   }

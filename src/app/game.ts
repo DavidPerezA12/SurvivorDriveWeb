@@ -9,6 +9,7 @@ import { SaveStore } from './save';
 import { qualityPixelCap, reducedMotion, type Settings } from './settings';
 import { isGlobalUpgrade, upgradeDef, upgradePrereq, type UpgradeId } from '../content/upgrades';
 import { runLoadout, type ChassisId } from '../content/chassis';
+import { paintBody, type PaintId } from '../content/paint';
 import { runTitle } from '../content/runTitles';
 
 /** Beyond this many catch-up ticks in one frame, pause rather than spiral. */
@@ -53,6 +54,8 @@ export class Game {
   private garageMode: 'wreck' | 'pause' = 'wreck';
   /** The chassis selected in the garage's CAR tab (shown in the preview). */
   private selectedChassis: ChassisId = 'survivor';
+  /** The paint selected in the garage's COLOR tab (shown in the preview). */
+  private selectedPaint: PaintId = 'factory';
   /** The just-ended run's result, frozen for the garage to display across buys. */
   private lastRun = { distance: 0, zombiesMowed: 0, runScrap: 0, title: '' };
 
@@ -71,6 +74,7 @@ export class Game {
     this.seed = seed;
     this.save = new SaveStore();
     this.selectedChassis = this.save.chassis;
+    this.selectedPaint = this.save.paint;
     // A returning player starts in their chosen car, already wearing what they bought.
     this.state = createSim(seed, runLoadout(this.selectedChassis, this.effectiveOwned()));
     this.view = new GameView(seed);
@@ -89,6 +93,7 @@ export class Game {
     this.garage = new Garage({
       onBuy: (id) => this.buyUpgrade(id),
       onSelectChassis: (id) => this.selectChassis(id),
+      onSelectPaint: (id) => this.selectPaint(id),
       onClose: () => (this.garageMode === 'wreck' ? this.driveAgain() : this.exitGarageToGame()),
     });
     // The 3D car preview lives in the garage panel — built once, spun only while open.
@@ -182,6 +187,7 @@ export class Game {
    */
   private reset(): void {
     this.selectedChassis = this.save.chassis;
+    this.selectedPaint = this.save.paint;
     this.state = createSim(this.seed, runLoadout(this.selectedChassis, this.effectiveOwned()));
     this.accumulator = 0;
     this.wreckHandled = false;
@@ -200,9 +206,10 @@ export class Game {
     ]);
   }
 
-  /** Re-dress the driven car for the selected chassis and its owned upgrades. */
+  /** Re-dress the driven car for the selected chassis, paint, and owned upgrades. */
   private dressCar(): void {
     this.view.setChassis(this.selectedChassis);
+    this.view.setPaint(paintBody(this.selectedPaint) ?? undefined);
     this.view.setLoadout(this.effectiveOwned());
   }
 
@@ -240,6 +247,7 @@ export class Game {
     this.garage.show(this.garageView());
     this.resizeGaragePreview();
     this.carPreview.setChassis(this.selectedChassis);
+    this.carPreview.setPaint(paintBody(this.selectedPaint) ?? undefined);
     this.carPreview.setLoadout(this.effectiveOwned());
     this.carPreview.start();
   }
@@ -257,6 +265,14 @@ export class Game {
     this.save.setChassis(id);
     this.carPreview.setChassis(id);
     this.carPreview.setLoadout(this.effectiveOwned());
+    this.garage.show(this.garageView());
+  }
+
+  /** Pick the paint in the COLOR tab; persists and repaints the live preview. */
+  private selectPaint(id: PaintId): void {
+    this.selectedPaint = id;
+    this.save.setPaint(id);
+    this.carPreview.setPaint(paintBody(id) ?? undefined);
     this.garage.show(this.garageView());
   }
 
@@ -278,6 +294,7 @@ export class Game {
       wallet: this.save.wallet,
       owned: this.effectiveOwned(),
       chassis: this.selectedChassis,
+      paint: this.selectedPaint,
     };
   }
 

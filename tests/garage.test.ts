@@ -40,8 +40,20 @@ describe('garage persistence', () => {
     const fresh = loadSave(memoryStore());
     expect(fresh.wallet).toBe(0);
     expect(fresh.chassis).toBe('survivor');
+    expect(fresh.paint).toBe('factory');
     expect(fresh.globalUpgrades).toEqual([]);
     expect(fresh.chassisUpgrades).toEqual({});
+  });
+
+  it('round-trips the paint job and falls back to factory for an unknown id', () => {
+    const store = memoryStore();
+    const a = new SaveStore(store);
+    a.setPaint('toxic');
+    a.flush();
+    expect(new SaveStore(store).paint).toBe('toxic');
+
+    store.map.set('sdw.save.v1', JSON.stringify({ paint: 'chartreuse-sparkle' }));
+    expect(loadSave(store).paint).toBe('factory');
   });
 
   it('routes a per-chassis buy to its car and a global buy to every car', () => {

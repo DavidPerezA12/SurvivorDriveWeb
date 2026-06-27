@@ -1,6 +1,7 @@
 import { DEFAULT_SETTINGS, normalizeSettings, type Settings } from './settings';
 import { UPGRADES, isGlobalUpgrade, type UpgradeId } from '../content/upgrades';
 import { CHASSIS, type ChassisId } from '../content/chassis';
+import { PAINTS, type PaintId } from '../content/paint';
 
 /**
  * Versioned localStorage persistence (docs/ARCHITECTURE.md → Persistence). The
@@ -26,6 +27,8 @@ export interface SaveData {
   wallet: number;
   /** The chassis currently selected to drive. */
   chassis: ChassisId;
+  /** The paint job applied to the driven car (cosmetic only). */
+  paint: PaintId;
   /** Owned global upgrades (jump charges, the gun), applied on every chassis. */
   globalUpgrades: UpgradeId[];
   /** Owned per-chassis upgrades, keyed by chassis id (armor, tires, jump, magnet). */
@@ -34,6 +37,7 @@ export interface SaveData {
 
 const UPGRADE_IDS: ReadonlySet<UpgradeId> = new Set(UPGRADES.map((u) => u.id));
 const CHASSIS_IDS: ReadonlySet<ChassisId> = new Set(CHASSIS.map((c) => c.id));
+const PAINT_IDS: ReadonlySet<PaintId> = new Set(PAINTS.map((p) => p.id));
 
 function freshSave(): SaveData {
   return {
@@ -41,6 +45,7 @@ function freshSave(): SaveData {
     settings: { ...DEFAULT_SETTINGS },
     wallet: 0,
     chassis: 'survivor',
+    paint: 'factory',
     globalUpgrades: [],
     chassisUpgrades: {},
   };
@@ -52,6 +57,10 @@ function normalizeWallet(raw: unknown): number {
 
 function normalizeChassis(raw: unknown): ChassisId {
   return typeof raw === 'string' && CHASSIS_IDS.has(raw as ChassisId) ? (raw as ChassisId) : 'survivor';
+}
+
+function normalizePaint(raw: unknown): PaintId {
+  return typeof raw === 'string' && PAINT_IDS.has(raw as PaintId) ? (raw as PaintId) : 'factory';
 }
 
 /** Keep only known upgrade ids, optionally filtered by scope, de-duplicated. */
@@ -113,6 +122,7 @@ export function loadSave(store: KeyValueStore | null): SaveData {
       settings: normalizeSettings(parsed.settings),
       wallet: normalizeWallet(parsed.wallet),
       chassis: normalizeChassis(parsed.chassis),
+      paint: normalizePaint(parsed.paint),
       globalUpgrades,
       chassisUpgrades,
     };
@@ -148,6 +158,11 @@ export class SaveStore {
     return this.data.chassis;
   }
 
+  /** The paint job applied to the driven car. */
+  get paint(): PaintId {
+    return this.data.paint;
+  }
+
   /** The owned global upgrades (a fresh copy). */
   globalUpgrades(): UpgradeId[] {
     return [...this.data.globalUpgrades];
@@ -172,6 +187,12 @@ export class SaveStore {
   /** Select the chassis to drive. */
   setChassis(id: ChassisId): void {
     this.data = { ...this.data, chassis: id };
+    this.schedule();
+  }
+
+  /** Set the paint job applied to the driven car. */
+  setPaint(id: PaintId): void {
+    this.data = { ...this.data, paint: id };
     this.schedule();
   }
 

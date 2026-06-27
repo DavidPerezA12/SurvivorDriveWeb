@@ -30,6 +30,7 @@ export class CarPreview {
   private car: THREE.Group;
   private upgradeMesh: THREE.Mesh | null = null;
   private chassisId: ChassisId = 'survivor';
+  private paintColor: number | undefined = undefined;
   private owned: ReadonlySet<UpgradeId> = new Set();
   private readonly reduced: boolean;
 
@@ -57,12 +58,12 @@ export class CarPreview {
     // Flat-shaded Lambert bodies need a light; a warm key plus a cool fill keeps
     // the low-poly forms legible without flattening them. A warm worklight pools
     // on the car so it reads as parked under a garage lamp.
-    const hemi = new THREE.HemisphereLight(0xc8b294, 0x1a140e, 0.8);
-    const key = new THREE.DirectionalLight(0xfff0d8, 1.2);
+    const hemi = new THREE.HemisphereLight(0xb4c0d0, 0x161a22, 1.0);
+    const key = new THREE.DirectionalLight(0xf4f2ec, 1.45);
     key.position.set(4, 6, 4);
-    const rim = new THREE.DirectionalLight(0x9fb8d0, 0.45);
+    const rim = new THREE.DirectionalLight(0x9fb8d0, 0.6);
     rim.position.set(-5, 3, -3);
-    const lamp = new THREE.PointLight(0xffd9a0, 0.9, 16, 1.6);
+    const lamp = new THREE.PointLight(0xffe0b0, 0.85, 16, 1.6);
     lamp.position.set(0, 4.2, 1.5);
     this.scene.add(hemi, key, rim, lamp);
 
@@ -86,15 +87,15 @@ export class CarPreview {
   private buildRoom(): void {
     const structure = [
       // Worn concrete slab, with a lighter worklight pool baked under the car.
-      box(26, 0.2, 22, 0x2a2520, 0.25).translate(0, -0.1, -4),
-      box(9, 0.04, 8, 0x37302a, 0.18).translate(0, 0.01, 0.4),
+      box(26, 0.2, 22, 0x33383f, 0.25).translate(0, -0.1, -4),
+      box(9, 0.04, 8, 0x424852, 0.18).translate(0, 0.01, 0.4),
       // Back wall + a darker base course, a beam accent up high for depth.
-      box(22, 8, 0.4, 0x39322a, 0.5).translate(0, 3.4, -7),
-      box(22, 1.0, 0.5, 0x2c2620, 0.5).translate(0, 0.5, -6.95),
-      box(22, 0.3, 0.6, 0x46403a, 0.4).translate(0, 5.4, -6.8),
+      box(22, 8, 0.4, 0x3c424b, 0.5).translate(0, 3.4, -7),
+      box(22, 1.0, 0.5, 0x2a2f36, 0.5).translate(0, 0.5, -6.95),
+      box(22, 0.3, 0.6, 0x515a66, 0.4).translate(0, 5.4, -6.8),
       // Side walls receding toward the camera.
-      box(0.4, 8, 22, 0x2c2620, 0.55).translate(-10, 3.4, -4),
-      box(0.4, 8, 22, 0x2c2620, 0.55).translate(10, 3.4, -4),
+      box(0.4, 8, 22, 0x2c313a, 0.55).translate(-10, 3.4, -4),
+      box(0.4, 8, 22, 0x2c313a, 0.55).translate(10, 3.4, -4),
     ];
     const room = mergeGeometries(structure, false);
     for (const p of structure) p.dispose();
@@ -137,10 +138,22 @@ export class CarPreview {
   setChassis(id: ChassisId): void {
     if (id === this.chassisId) return;
     this.chassisId = id;
+    this.rebuildCar();
+  }
+
+  /** Repaint the previewed body for the COLOR tab (`undefined` = factory). */
+  setPaint(bodyColor: number | undefined): void {
+    if (bodyColor === this.paintColor) return;
+    this.paintColor = bodyColor;
+    this.rebuildCar();
+  }
+
+  /** Rebuild the previewed body for the current chassis + paint, re-dressing upgrades. */
+  private rebuildCar(): void {
     this.turntable.remove(this.car);
     disposeGroup(this.car);
     this.upgradeMesh = null; // disposed with the old car
-    this.car = createChassis(id);
+    this.car = createChassis(this.chassisId, this.paintColor);
     this.turntable.add(this.car);
     this.dressCar();
   }

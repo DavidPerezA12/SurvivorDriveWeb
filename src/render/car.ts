@@ -282,7 +282,7 @@ function extrudeBody(
  * the group) is unaffected. M2 damage states and upgrade parts hang off here
  * (docs/DESIGN.md → Object craft).
  */
-export function createCar(): THREE.Group {
+export function createCar(bodyColor?: number): THREE.Group {
   const group = new THREE.Group();
   group.name = 'car';
 
@@ -290,6 +290,9 @@ export function createCar(): THREE.Group {
   const axleY = wheelRadius;
   const floorY = axleY + 0.14;
   const B = palette;
+  // The body shell color, repaintable by the garage COLOR tab (`bodyColor`); the
+  // dark trim and sill stay their authored values so the paint reads as a job.
+  const carBody = bodyColor ?? B.carBody;
   const body: THREE.BufferGeometry[] = [];
   const lights: THREE.BufferGeometry[] = [];
 
@@ -315,7 +318,7 @@ export function createCar(): THREE.Group {
   lower.quadraticCurveTo(1.42, 0.74, 1.7, 0.3); // front wheel arch
   lower.lineTo(1.84, 0.3);
   lower.lineTo(2.0, 0.34);
-  body.push(extrudeBody(lower, 1.78, B.carBody, 0.34));
+  body.push(extrudeBody(lower, 1.78, carBody, 0.34));
   // Dark rocker sill tucked under the doors.
   body.push(part(1.72, 0.12, 2.5, B.carTrim, 0, floorY - 0.08, -0.1));
 
@@ -330,11 +333,11 @@ export function createCar(): THREE.Group {
   body.push(extrudeBody(cabin, 1.48, B.carGlass, 0.3, 1.16, 0.82));
 
   // Painted roof cap over the glasshouse + slim body-colour pillars (A, B, C).
-  body.push(crown(1.18, 0.1, 1.46, 1.0, 1.28, B.carBody, -0.02, 0, 1.5, -0.42));
+  body.push(crown(1.18, 0.1, 1.46, 1.0, 1.28, carBody, -0.02, 0, 1.5, -0.42));
   for (const s of [-1, 1] as const) {
-    body.push(tilted(0.07, 0.62, 0.09, B.carBody, -0.66, s * 0.61, 1.26, 0.46)); // A-pillar
-    body.push(part(0.06, 0.5, 0.09, B.carBody, s * 0.64, 1.22, -0.42)); // B-pillar
-    body.push(tilted(0.07, 0.58, 0.09, B.carBody, 0.62, s * 0.6, 1.22, -1.18)); // C-pillar
+    body.push(tilted(0.07, 0.62, 0.09, carBody, -0.66, s * 0.61, 1.26, 0.46)); // A-pillar
+    body.push(part(0.06, 0.5, 0.09, carBody, s * 0.64, 1.22, -0.42)); // B-pillar
+    body.push(tilted(0.07, 0.58, 0.09, carBody, 0.62, s * 0.6, 1.22, -1.18)); // C-pillar
   }
   // Recessed dark tail panel the lights sit proud of, over a body-color valance
   // so the tail reads as part of the car.
