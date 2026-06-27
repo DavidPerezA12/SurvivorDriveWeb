@@ -110,3 +110,37 @@ describe('boulder', () => {
     expect(state.car.health).toBeLessThan(1);
   });
 });
+
+describe('a jump clears by height, not a global flag', () => {
+  /** Drop one ground-class hazard squarely on the car at a given car height. */
+  function hitAtHeight(kind: 'boulder' | 'wreck' | 'barrel', height: number): boolean {
+    const state = createSim(1);
+    state.hazards.push({ kind, lane: 2, x: laneCenterX(2), forward: 6, hit: false });
+    state.distance = 6;
+    state.car.speed = 40;
+    state.car.height = height;
+    resolveCollisions(state);
+    return state.hazards[0].hit;
+  }
+
+  it('a low hop clears the low boulder but bellies into the taller wreck and drum', () => {
+    // ~0.7 m up: over the boulder (clear 0.6), still short of the wreck (0.9) and
+    // the standing drum (0.95). This is the bug the height model fixes — you no
+    // longer fly through a tall object on a shallow hop.
+    expect(hitAtHeight('boulder', 0.7)).toBe(false);
+    expect(hitAtHeight('wreck', 0.7)).toBe(true);
+    expect(hitAtHeight('barrel', 0.7)).toBe(true);
+  });
+
+  it('the top of the arc clears all three', () => {
+    expect(hitAtHeight('boulder', 1.0)).toBe(false);
+    expect(hitAtHeight('wreck', 1.0)).toBe(false);
+    expect(hitAtHeight('barrel', 1.0)).toBe(false);
+  });
+
+  it('grounded, every one of them hits', () => {
+    expect(hitAtHeight('boulder', 0)).toBe(true);
+    expect(hitAtHeight('wreck', 0)).toBe(true);
+    expect(hitAtHeight('barrel', 0)).toBe(true);
+  });
+});

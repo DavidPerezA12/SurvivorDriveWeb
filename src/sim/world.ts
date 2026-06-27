@@ -144,6 +144,7 @@ function resolveCell(
     case 'rig':
     case 'barrier':
     case 'bus':
+    case 'barricade':
     case 'boulder':
     case 'barrel':
     case 'spikes':
@@ -187,6 +188,15 @@ function resolveCell(
       // The greedy lane's payout: a full crowd (still inside the act's bounds).
       addZombieCluster(spawns, lane, rng, z, clusterMax);
       break;
+    case 'scrap': {
+      // A salvage cache: the greedy lane's payout with no fight, just a grab. A bonus
+      // cache thins out deep in as the economy tightens (like the other pickups); an
+      // essential one always lands when on-road. The draw order mirrors the pickup
+      // case so the RNG stream stays identical regardless of the branch taken.
+      if (cell.bonus && nextFloat(rng) > pickupScale) break;
+      spawns.push({ kind: 'scrap', lane, z, phase: nextFloat(rng) });
+      break;
+    }
     case 'ammo':
     case 'health':
     case 'lift': {

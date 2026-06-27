@@ -61,12 +61,17 @@ function wreckGeometry(): THREE.BufferGeometry {
   const geo = mergeGeometries(parts, false);
   for (const part of parts) part.dispose();
   if (!geo) throw new Error('Failed to merge wreck geometry');
+  // Crush the husk down to a low, jumpable wreck (~0.9 m): a sedan stalled and
+  // flattened, not a full-height car. The footprint top now matches the sim's
+  // `WRECK_CLEAR`, so a hop that clears it on screen clears it in the sim too
+  // (src/sim/collision.ts → clearance heights).
+  geo.scale(1, 0.66, 1);
   return geo;
 }
 
 /**
  * A second wrecked vehicle, used so static wrecks are not all the same sedan.
- * The van reads as a low cab plus a tall cargo body.
+ * The van reads as a low cab plus a crushed cargo body.
  */
 function wreckVanGeometry(): THREE.BufferGeometry {
   const p = palette;
@@ -99,6 +104,56 @@ function wreckVanGeometry(): THREE.BufferGeometry {
   const geo = mergeGeometries(parts, false);
   for (const part of parts) part.dispose();
   if (!geo) throw new Error('Failed to merge van geometry');
+  // Crush the van to the same low, jumpable wreck height (~0.9 m) so its footprint
+  // top matches the sim's `WRECK_CLEAR` and a hop reads true (the tall cargo body is
+  // now a caved-in roof, not a wall you fly through).
+  geo.scale(1, 0.58, 1);
+  return geo;
+}
+
+/**
+ * A third wrecked vehicle so a stretch of traffic is not all sedans and vans: a
+ * crashed pickup truck — a forward cab and a low open flatbed behind. Crushed to the
+ * same low jumpable height as the others. One merged geometry, instanced.
+ */
+function wreckTruckGeometry(): THREE.BufferGeometry {
+  const p = palette;
+  const tb = (w: number, h: number, d: number, c: number, rx: number, x: number, y: number, z: number, ao = 0.45) =>
+    paint(new THREE.BoxGeometry(w, h, d).rotateX(rx).translate(x, y, z), c, ao);
+  const parts = [
+    box(1.74, 0.3, 3.7, p.wreckDark, 0.45).translate(0, 0.3, 0), // chassis sill
+    // Forward cab: body, raked windscreen, flat roof, the player-facing mass.
+    box(1.7, 0.62, 1.3, p.wreckBody, 0.5).translate(0, 0.64, 0.95),
+    tb(1.5, 0.52, 0.12, p.wreckGlass, -0.5, 0, 1.06, 1.42, 0.3),
+    box(1.5, 0.16, 1.1, p.wreckCabin, 0.5).translate(0, 1.18, 0.86), // roof (crushed later)
+    box(0.1, 0.4, 1.0, p.wreckGlass, 0.3).translate(-0.73, 1.0, 0.86), // side glass
+    box(0.12, 0.34, 0.5, p.wreckScorch, 0.3).translate(0.73, 0.98, 0.9), // smashed-in side
+    // Sloped hood + grille + bumper + dead headlights up front.
+    tb(1.7, 0.18, 0.96, p.wreckBody, 0.12, 0, 0.78, 1.92, 0.45),
+    box(1.2, 0.24, 0.14, p.carGrille, 0.3).translate(0, 0.6, 2.34),
+    tb(1.86, 0.2, 0.3, p.wreckDark, 0.28, 0, 0.46, 2.46, 0.4),
+    box(0.3, 0.14, 0.1, p.wreckGlass, 0.2).translate(-0.6, 0.62, 2.42),
+    box(0.3, 0.14, 0.1, p.wreckScorch, 0.2).translate(0.6, 0.62, 2.42),
+    // The open flatbed behind the cab: floor, side walls, bulkhead, a dropped tailgate.
+    box(1.74, 0.16, 2.0, p.wreckDark, 0.45).translate(0, 0.5, -1.2),
+    box(0.14, 0.36, 2.0, p.wreckBody, 0.5).translate(-0.8, 0.66, -1.2),
+    box(0.14, 0.36, 2.0, p.wreckBody, 0.5).translate(0.8, 0.66, -1.2),
+    box(1.6, 0.36, 0.14, p.wreckBody, 0.5).translate(0, 0.66, -0.25), // bulkhead behind cab
+    tb(1.6, 0.34, 0.12, p.wreckRust, -0.6, 0, 0.5, -2.18, 0.5), // tailgate hung open
+    // Rust eating the flanks + a scorch across the hood.
+    box(0.16, 0.4, 0.9, p.wreckRust, 0.5).translate(-0.9, 0.6, 0.5),
+    box(0.5, 0.05, 0.5, p.wreckScorch, 0.2).translate(0.3, 0.88, 1.0),
+    // Wheels — rear-right blown flat.
+    wheel(0.36, 0.28, p.wreckDark).translate(-0.85, 0.32, 1.4),
+    wheel(0.36, 0.28, p.wreckDark).translate(0.85, 0.32, 1.4),
+    wheel(0.36, 0.28, p.wreckDark).translate(-0.85, 0.32, -1.45),
+    paint(new THREE.BoxGeometry(0.6, 0.26, 0.7).translate(0.85, 0.19, -1.45), p.wreckDark, 0.4),
+  ];
+  const geo = mergeGeometries(parts, false);
+  for (const part of parts) part.dispose();
+  if (!geo) throw new Error('Failed to merge truck geometry');
+  // Crush to the same low, jumpable wreck height as the sedan/van.
+  geo.scale(1, 0.68, 1);
   return geo;
 }
 
@@ -212,6 +267,36 @@ function busGeometry(): THREE.BufferGeometry {
   const geo = mergeGeometries(parts, false);
   for (const part of parts) part.dispose();
   if (!geo) throw new Error('Failed to merge bus geometry');
+  return geo;
+}
+
+/**
+ * A light road barricade, the soft blocker (docs/DESIGN.md → roster: shoot, ram, or
+ * steer). A striped trestle plank on splayed A-frame legs: caution yellow over a
+ * dark frame so it reads as roadworks, warm but plainly slighter than a lethal wall,
+ * so a glance says "I can just go through this." Low enough to clear with a hop too.
+ * One merged geometry, instanced.
+ */
+function barricadeGeometry(): THREE.BufferGeometry {
+  const p = palette;
+  const parts = [
+    // The striped plank across the lane.
+    box(2.2, 0.32, 0.12, p.barricadeStripe, 0.3).translate(0, 0.58, 0),
+    // Dark hazard stripes angled across the plank.
+    box(0.2, 0.34, 0.14, p.barricadeStripeDark, 0.2).rotateZ(0.5).translate(-0.72, 0.58, 0.01),
+    box(0.2, 0.34, 0.14, p.barricadeStripeDark, 0.2).rotateZ(0.5).translate(0, 0.58, 0.01),
+    box(0.2, 0.34, 0.14, p.barricadeStripeDark, 0.2).rotateZ(0.5).translate(0.72, 0.58, 0.01),
+    // A thin lower rail tying the legs together.
+    box(2.0, 0.08, 0.08, p.barricadeFrame, 0.4).translate(0, 0.32, 0),
+    // Splayed A-frame legs at each end.
+    paint(new THREE.BoxGeometry(0.1, 0.74, 0.1).rotateX(0.32).translate(-0.96, 0.36, 0.16), p.barricadeLeg, 0.4),
+    paint(new THREE.BoxGeometry(0.1, 0.74, 0.1).rotateX(-0.32).translate(-0.96, 0.36, -0.16), p.barricadeLeg, 0.4),
+    paint(new THREE.BoxGeometry(0.1, 0.74, 0.1).rotateX(0.32).translate(0.96, 0.36, 0.16), p.barricadeLeg, 0.4),
+    paint(new THREE.BoxGeometry(0.1, 0.74, 0.1).rotateX(-0.32).translate(0.96, 0.36, -0.16), p.barricadeLeg, 0.4),
+  ];
+  const geo = mergeGeometries(parts, false);
+  for (const part of parts) part.dispose();
+  if (!geo) throw new Error('Failed to merge barricade geometry');
   return geo;
 }
 
@@ -422,9 +507,11 @@ function rampGeometry(): THREE.BufferGeometry {
 export class HazardField {
   private readonly wreckMesh: THREE.InstancedMesh;
   private readonly wreckVanMesh: THREE.InstancedMesh;
+  private readonly wreckTruckMesh: THREE.InstancedMesh;
   private readonly rigMesh: THREE.InstancedMesh;
   private readonly barrierMesh: THREE.InstancedMesh;
   private readonly busMesh: THREE.InstancedMesh;
+  private readonly barricadeMesh: THREE.InstancedMesh;
   private readonly boulderMesh: THREE.InstancedMesh;
   private readonly barrelMesh: THREE.InstancedMesh;
   private readonly spikesMesh: THREE.InstancedMesh;
@@ -446,9 +533,11 @@ export class HazardField {
   constructor(scene: THREE.Scene) {
     this.wreckMesh = new THREE.InstancedMesh(wreckGeometry(), propMaterial, MAX_INSTANCES);
     this.wreckVanMesh = new THREE.InstancedMesh(wreckVanGeometry(), propMaterial, MAX_INSTANCES);
+    this.wreckTruckMesh = new THREE.InstancedMesh(wreckTruckGeometry(), propMaterial, MAX_INSTANCES);
     this.rigMesh = new THREE.InstancedMesh(rigGeometry(), propMaterial, MAX_INSTANCES);
     this.barrierMesh = new THREE.InstancedMesh(barrierGeometry(), propMaterial, MAX_INSTANCES);
     this.busMesh = new THREE.InstancedMesh(busGeometry(), propMaterial, MAX_INSTANCES);
+    this.barricadeMesh = new THREE.InstancedMesh(barricadeGeometry(), propMaterial, MAX_INSTANCES);
     this.boulderMesh = new THREE.InstancedMesh(boulderGeometry(), propMaterial, MAX_INSTANCES);
     this.barrelMesh = new THREE.InstancedMesh(barrelGeometry(), propMaterial, MAX_INSTANCES);
     this.spikesMesh = new THREE.InstancedMesh(spikesGeometry(), propMaterial, MAX_INSTANCES);
@@ -464,9 +553,11 @@ export class HazardField {
     for (const mesh of [
       this.wreckMesh,
       this.wreckVanMesh,
+      this.wreckTruckMesh,
       this.rigMesh,
       this.barrierMesh,
       this.busMesh,
+      this.barricadeMesh,
       this.boulderMesh,
       this.barrelMesh,
       this.spikesMesh,
@@ -485,9 +576,11 @@ export class HazardField {
   update(state: ReadonlyState, elevation: Elevation): void {
     let wrecks = 0;
     let vans = 0;
+    let trucks = 0;
     let rigs = 0;
     let barriers = 0;
     let buses = 0;
+    let barricades = 0;
     let boulders = 0;
     let barrels = 0;
     let spikes = 0;
@@ -496,8 +589,12 @@ export class HazardField {
     let beams = 0;
     let ramps = 0;
     for (const h of state.hazards) {
-      // A detonated barrel or a shot-apart car is gone from the world.
-      if ((h.kind === 'barrel' || h.kind === 'wreck' || h.kind === 'drifter') && h.hit) continue;
+      // A detonated barrel, a shot-apart car, or a popped barricade is gone.
+      if (
+        (h.kind === 'barrel' || h.kind === 'wreck' || h.kind === 'drifter' || h.kind === 'barricade') &&
+        h.hit
+      )
+        continue;
       // Meteors are drawn by MeteorField (falling rock → crater); skip here so
       // they aren't also drawn as a wrecked car by the default branch below.
       if (h.kind === 'meteor') continue;
@@ -512,6 +609,9 @@ export class HazardField {
       } else if (h.kind === 'bus') {
         mesh = this.busMesh;
         count = buses;
+      } else if (h.kind === 'barricade') {
+        mesh = this.barricadeMesh;
+        count = barricades;
       } else if (h.kind === 'boulder') {
         mesh = this.boulderMesh;
         count = boulders;
@@ -534,12 +634,16 @@ export class HazardField {
       } else if (h.kind === 'ramp') {
         mesh = this.rampMesh;
         count = ramps;
-      } else if (h.kind === 'wreck' && this.hv(h.forward, 6) < 0.5) {
-        // Half the static wrecks are the van variant, so a row isn't all one model.
+      } else if (h.kind === 'wreck' && this.hv(h.forward, 6) < 0.34) {
+        // Static wrecks split three ways (van / pickup / sedan) so a row of traffic
+        // isn't all one model.
         mesh = this.wreckVanMesh;
         count = vans;
+      } else if (h.kind === 'wreck' && this.hv(h.forward, 6) < 0.67) {
+        mesh = this.wreckTruckMesh;
+        count = trucks;
       } else {
-        // The sedan: the other half of wrecks, and every drifter.
+        // The sedan: the last third of wrecks, and every drifter (it yaws into slides).
         mesh = this.wreckMesh;
         count = wrecks;
       }
@@ -573,6 +677,7 @@ export class HazardField {
       if (h.kind === 'rig') rigs += 1;
       else if (h.kind === 'barrier') barriers += 1;
       else if (h.kind === 'bus') buses += 1;
+      else if (h.kind === 'barricade') barricades += 1;
       else if (h.kind === 'boulder') boulders += 1;
       else if (h.kind === 'barrel') barrels += 1;
       else if (h.kind === 'spikes') spikes += 1;
@@ -580,14 +685,17 @@ export class HazardField {
       else if (h.kind === 'gap') gaps += 1;
       else if (h.kind === 'beam') beams += 1;
       else if (h.kind === 'ramp') ramps += 1;
-      else if (h.kind === 'wreck' && this.hv(h.forward, 6) < 0.5) vans += 1;
+      else if (h.kind === 'wreck' && this.hv(h.forward, 6) < 0.34) vans += 1;
+      else if (h.kind === 'wreck' && this.hv(h.forward, 6) < 0.67) trucks += 1;
       else wrecks += 1;
     }
     this.wreckMesh.count = wrecks;
     this.wreckVanMesh.count = vans;
+    this.wreckTruckMesh.count = trucks;
     this.rigMesh.count = rigs;
     this.barrierMesh.count = barriers;
     this.busMesh.count = buses;
+    this.barricadeMesh.count = barricades;
     this.boulderMesh.count = boulders;
     this.barrelMesh.count = barrels;
     this.spikesMesh.count = spikes;
@@ -598,9 +706,11 @@ export class HazardField {
     for (const mesh of [
       this.wreckMesh,
       this.wreckVanMesh,
+      this.wreckTruckMesh,
       this.rigMesh,
       this.barrierMesh,
       this.busMesh,
+      this.barricadeMesh,
       this.boulderMesh,
       this.barrelMesh,
       this.spikesMesh,

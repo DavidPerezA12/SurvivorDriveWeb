@@ -29,6 +29,7 @@ export type DeathCause =
   | 'rig'
   | 'barrier'
   | 'bus'
+  | 'barricade'
   | 'boulder'
   | 'barrel'
   | 'spikes'
@@ -45,6 +46,7 @@ export const DEATH_CAUSES: readonly DeathCause[] = [
   'rig',
   'barrier',
   'bus',
+  'barricade',
   'boulder',
   'barrel',
   'spikes',
@@ -189,6 +191,13 @@ const TEMPLATES: Record<DeathCause, readonly string[]> = {
     'Out-Massed by Forty Feet of Bus',
     'Missed the Stop {finale}',
     'Folded Into a {adj} Coach',
+  ],
+  barricade: [
+    'Undone by a {adj} Sawhorse',
+    'Beaten by a Plank and Two Legs',
+    'Should Have Just Driven Through It',
+    '{verb} by Road Works',
+    'Stopped by a {adj} Trestle {finale}',
   ],
   boulder: [
     'Flattened by {adj} Geology',

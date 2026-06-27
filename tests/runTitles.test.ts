@@ -84,6 +84,7 @@ describe('runTitle', () => {
       'rig',
       'barrier',
       'bus',
+      'barricade',
       'boulder',
       'barrel',
       'spikes',

@@ -215,6 +215,16 @@ export const CRASH_TUNING = {
    */
   bruteDamageMul: 0.9,
   bruteSpeedKeep: 0.55,
+
+  /**
+   * The light barricade is a soft blocker (docs/DESIGN.md → roster: shoot, ram, or
+   * steer). Barging through it barely dents the hull and barely scrubs speed — the
+   * whole point is that it gives way, unlike a wreck. Its scaled-down cost is what
+   * makes "just drive through the flimsy one" a real, distinct read from the wreck
+   * you steer around. The gun also pops it (a single hit; `WEAPON_TUNING.barricadeHp`).
+   */
+  barricadeDamageMul: 0.22,
+  barricadeSpeedKeep: 0.9,
 } as const;
 
 /**
@@ -344,14 +354,27 @@ export const WEAPON_TUNING = {
    * dodged (docs/DESIGN.md → the gun clears fodder, the road is still the boss).
    */
   wreckHp: 5,
+  /**
+   * The light barricade's shootable integrity: a single hit pops it apart (it is
+   * flimsy, unlike a car), so a held trigger clears a row of them cheaply. The
+   * barricade still blocks the shot like a car, so it shields fodder behind it until
+   * popped (docs/DESIGN.md → roster: shoot, ram, or steer).
+   */
+  barricadeHp: 1,
 } as const;
 
-/** What the on-road repair/ammo pickups restore (docs/DESIGN.md → roster). */
+/** What the on-road repair/ammo/scrap pickups restore (docs/DESIGN.md → roster). */
 export const PICKUP_TUNING = {
   /** Hull fraction (0..1) a health pickup restores. */
   healthRestore: 0.25,
   /** Ammo a single box refills. */
   ammoRestore: 30,
+  /**
+   * Scrap a salvage cache pays on pickup. A pure greed grab (no fight), so it is
+   * worth a short mow streak — enough that detouring to the risky lane for it is a
+   * real economic choice, never as rich as actually plowing a loot crowd.
+   */
+  scrapValue: 18,
 } as const;
 
 /** Lateral world-space X of a lane center. Lane 0 is leftmost, centered on 0. */

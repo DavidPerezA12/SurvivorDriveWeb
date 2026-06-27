@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { FORMATIONS, formationWeight, type Formation } from '../src/content/formations';
 import { ACT_SPAWNS } from '../src/content/acts';
+import { BARREL_TUNING, CHUNK_LENGTH } from '../src/content/tuning';
 
 /**
  * Formations are the authored challenge the road lays down (docs/DESIGN.md →
@@ -66,6 +67,29 @@ describe('formation library', () => {
         // way through its lane to whatever is past it.
         const lootBeyondGap = f.cells.some((c) => c.role === 'loot');
         if (lootBeyondGap) expect(has(f, 'lift')).toBe(true);
+      }
+    }
+  });
+
+  it('a row of barrels on one lane sits within chain range, so the gallery chains', () => {
+    // A formation that lays several drums down one lane (the barrel gallery) only
+    // reads if popping one chains the rest (docs/DESIGN.md → roster: barrels chain).
+    // Each drum must be within `chainForward` of its nearest same-lane neighbour.
+    for (const f of FORMATIONS) {
+      const byLane = new Map<number, number[]>();
+      for (const c of f.cells) {
+        if (c.role !== 'barrel') continue;
+        const z = c.z * CHUNK_LENGTH;
+        const list = byLane.get(c.off) ?? [];
+        list.push(z);
+        byLane.set(c.off, list);
+      }
+      for (const zs of byLane.values()) {
+        if (zs.length < 2) continue;
+        zs.sort((a, b) => a - b);
+        for (let i = 1; i < zs.length; i += 1) {
+          expect(zs[i] - zs[i - 1]).toBeLessThanOrEqual(BARREL_TUNING.chainForward);
+        }
       }
     }
   });

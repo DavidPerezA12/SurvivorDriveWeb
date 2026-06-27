@@ -26,6 +26,7 @@ export type FormationRole =
   | 'rig' // un-jumpable wall, lane-change only (lethal)
   | 'barrier' // concrete wall, lane-change only (lethal)
   | 'bus' // long crashed bus, a wall along the lane (lethal)
+  | 'barricade' // flimsy road trestle: shoot it, ram it cheap, or steer (soft)
   | 'boulder' // jump-clears, small ram (survivable)
   | 'barrel' // shoot to clear (and the crowd around it)
   | 'spikes' // a spike strip on the road; jump it or change lane (lethal trap)
@@ -40,7 +41,8 @@ export type FormationRole =
   | 'brute' // a heavy zombie: ram it for a hull hit, or shoot/dodge it
   | 'ammo'
   | 'health'
-  | 'lift'; // jump-charge refill
+  | 'lift' // jump-charge refill
+  | 'scrap'; // a salvage cache: instant scrap, a pure greed grab with no fight
 
 export interface FormationCell {
   /** Lane offset from the safe lane (never 0). Clamped/skipped off-road by the sim. */
@@ -101,6 +103,22 @@ export const FORMATIONS: readonly Formation[] = [
       { off: -1, z: 0.2, role: 'ammo', bonus: true },
     ],
   },
+  // Roadworks: a string of flimsy road barricades across the flanking lanes. The new
+  // read is that you can barge straight through them (a tiny tap, barely a scratch) or
+  // pop them with the gun, unlike the wreck you must steer around. Teaches "the slight
+  // ones give way" in the early streets; a scrap cache out on the far lane rewards
+  // holding a line through instead of bailing to safety.
+  {
+    id: 'roadworks',
+    hardness: 0.22,
+    acts: [3, 4, 3, 2, 1, 1],
+    cells: [
+      { off: 1, z: 0.3, role: 'barricade' },
+      { off: -1, z: 0.45, role: 'barricade' },
+      { off: 1, z: 0.62, role: 'barricade' },
+      { off: 2, z: 0.8, role: 'scrap', bonus: true },
+    ],
+  },
   // Corridor horde: a crowd parked on one lane with ammo set just before it, so the
   // greedy play (mow/shoot the lane for scrap) is fair if you came in loaded.
   {
@@ -110,7 +128,7 @@ export const FORMATIONS: readonly Formation[] = [
     cells: [
       { off: 1, z: 0.06, role: 'ammo' },
       { off: 1, z: 0.42, role: 'horde' },
-      { off: -1, z: 0.7, role: 'wreck', bonus: false },
+      { off: -1, z: 0.7, role: 'wreck' },
     ],
   },
   // Rubble hop: a low mound on a flanking lane to jump (or eat a small crash),
@@ -122,7 +140,7 @@ export const FORMATIONS: readonly Formation[] = [
     cells: [
       { off: -1, z: 0.12, role: 'lift' },
       { off: 1, z: 0.45, role: 'boulder' },
-      { off: 2, z: 0.7, role: 'wreck', bonus: false },
+      { off: 2, z: 0.7, role: 'wreck' },
     ],
   },
   // Traffic jam: the city's stalled cars clumped across the lanes in a readable
@@ -150,6 +168,39 @@ export const FORMATIONS: readonly Formation[] = [
       { off: 1, z: 0.22, role: 'wreck' },
       { off: -1, z: 0.62, role: 'wreck' },
       { off: 2, z: 0.85, role: 'ammo', bonus: true },
+    ],
+  },
+  // Barrel gallery: a row of drums down one greedy lane with a crowd packed behind
+  // the last one. Shoot the near drum and the blast chains down the whole row
+  // (`detonateBarrel` chains within `BARREL_TUNING.chainForward`), the final blast
+  // blowing a hole in the wave for a big payout (docs/DESIGN.md → roster: the gun's
+  // area tool, barrels chain). Eat one instead and the chain still goes off in your
+  // face. Ammo up front so popping it is a fair play. The richest gun beat.
+  {
+    id: 'barrel-gallery',
+    hardness: 0.54,
+    acts: [0, 1, 4, 3, 2, 3],
+    cells: [
+      { off: 1, z: 0.05, role: 'ammo' },
+      { off: 1, z: 0.3, role: 'barrel' },
+      { off: 1, z: 0.42, role: 'barrel' },
+      { off: 1, z: 0.54, role: 'barrel' },
+      { off: 1, z: 0.64, role: 'horde' },
+    ],
+  },
+  // Hard slalom: the late-act answer to the early slalom. Lethal walls staggered
+  // left, right, then far instead of survivable wrecks — the safe line still threads
+  // it, but clip one and the run ends, so reading the weave at speed is the whole
+  // beat. Health waits past the pinch for holding the line. No jumping any of it.
+  {
+    id: 'hard-slalom',
+    hardness: 0.72,
+    acts: [0, 0, 1, 3, 4, 4],
+    cells: [
+      { off: 1, z: 0.22, role: 'barrier' },
+      { off: -1, z: 0.5, role: 'rig' },
+      { off: 2, z: 0.78, role: 'bus' },
+      { off: -1, z: 0.95, role: 'health', bonus: true },
     ],
   },
   // Barrel + crowd: shoot the drum to clear the lane (big scrap), ammo set ahead so
@@ -199,6 +250,21 @@ export const FORMATIONS: readonly Formation[] = [
       { off: 1, z: 0.45, role: 'barrel' },
       { off: 2, z: 0.4, role: 'loot' },
       { off: 2, z: 0.82, role: 'health', bonus: true },
+    ],
+  },
+  // Salvage cache: a fat scrap payout out on the greedy far lane, gated by a flimsy
+  // barricade you shoot or barge through to reach it, with a wreck on the near lane to
+  // make the line awkward. The richest no-fight grab, but you leave the safe line and
+  // commit to the far lane to bank it (docs/DESIGN.md → Pillar 3: greed is the slider).
+  {
+    id: 'salvage',
+    hardness: 0.4,
+    acts: [2, 3, 3, 3, 2, 2],
+    cells: [
+      { off: -1, z: 0.3, role: 'wreck' },
+      { off: 1, z: 0.45, role: 'barricade' },
+      { off: 2, z: 0.62, role: 'scrap' },
+      { off: 2, z: 0.86, role: 'scrap', bonus: true },
     ],
   },
   // Jump greed: a lift charge, then a gap to clear, then the scrap beyond it. Pure

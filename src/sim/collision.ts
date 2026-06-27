@@ -22,9 +22,14 @@ import {
 } from '../content/tuning';
 import { weaponStats } from '../content/weapons';
 
-// Collision footprint, in meters (lane-space × world-forward). Height is only a
-// jump flag. A car above the clearance sails over ground-class hazards
-// (docs/ARCHITECTURE.md → Collision).
+// Collision footprint, in meters (lane-space × world-forward). Unlike the flat
+// `tall` walls (which are never jumpable), a ground-class hazard now carries its own
+// clearance height — the top of its collidable mass. A jump clears it only while the
+// car's underside (`car.height`) is actually above that, so whether a hop clears
+// depends on how high the car is at the overlap moment, not a single global flag: you
+// can sail a low mound and still belly-flop into a taller drum at the same hop
+// (docs/ARCHITECTURE.md → Collision). These heights are kept in step with the render
+// meshes in `src/render/hazards.ts` (low survivable chatarra, not full-height cars).
 const CAR_HALF_WIDTH = 0.95;
 const CAR_LENGTH = 4;
 const HAZARD_HALF_WIDTH = 1.0;
@@ -42,6 +47,10 @@ const BUS_HALF_LENGTH = 4.6;
 // A spike strip is a thin band across the lane: lane-wide, shallow front-to-back.
 const SPIKES_HALF_WIDTH = 1.3;
 const SPIKES_HALF_LENGTH = 0.9;
+// A light barricade is a lane-wide but very shallow trestle: it reads across the
+// lane like a wall but is soft, so you can barge through it. Shallow front-to-back.
+const BARRICADE_HALF_WIDTH = 1.15;
+const BARRICADE_HALF_LENGTH = 0.5;
 // A boulder is a compact rubble mound, narrower and shorter than a wreck, so it
 // leaves a little more room to thread, but it is still squarely in the lane.
 const BOULDER_HALF_WIDTH = 0.85;
@@ -72,7 +81,21 @@ const ZOMBIE_HALF_LENGTH = 0.55;
 // so a clean pass down the lane reliably scoops it.
 const PICKUP_HALF_WIDTH = 0.9;
 const PICKUP_HALF_LENGTH = 0.9;
+// Height (m) above which the car is "in the air" for mowing/pickups: a jump trades
+// the scrap and refills on the ground for the air, regardless of what it clears.
 const JUMP_CLEARANCE = 0.7;
+// Per-hazard clearance heights (m): the top of each ground-class hazard's collidable
+// mass. The car's underside must be at least this high to sail over it. The jump arc
+// peaks at ~1.11 m (`CAR_TUNING.jumpImpulse`/`gravity`), so the boulder and the low
+// traps clear comfortably while a drum sits right at the ceiling of a hop — shoot it
+// instead. Kept in step with the render mesh heights in `src/render/hazards.ts`.
+const WRECK_CLEAR = 0.9; // crushed sedan/van husk, and the drifting wreck
+const BARRICADE_CLEAR = 0.65; // a low trestle: jumpable, or just barge through it
+const BOULDER_CLEAR = 0.6; // low rubble mound, the teaching jump
+const BARREL_CLEAR = 0.95; // a standing drum, the hardest thing to hop
+const SPIKES_CLEAR = 0.35; // a flat strip on the deck
+const GAP_CLEAR = 0.5; // a hole: just be clearly off the ground
+const BEAM_CLEAR = 0.45; // a thin light strip across the lane
 const PRUNE_BEHIND = 14;
 
 /**
@@ -100,8 +123,13 @@ export function materializeSpawns(state: SimState): void {
           brute: spawn.brute ? true : undefined,
           hp: spawn.brute ? BRUTE_TUNING.hp : undefined,
         });
-      } else if (spawn.kind === 'jump' || spawn.kind === 'health' || spawn.kind === 'ammo') {
-        // The three on-ground collectibles.
+      } else if (
+        spawn.kind === 'jump' ||
+        spawn.kind === 'health' ||
+        spawn.kind === 'ammo' ||
+        spawn.kind === 'scrap'
+      ) {
+        // The on-ground collectibles (lift / health / ammo / scrap cache).
         state.pickups.push({
           kind: spawn.kind,
           lane: spawn.lane,
@@ -147,10 +175,11 @@ export function materializeSpawns(state: SimState): void {
           landed: false,
         });
       } else {
-        // wreck | rig | barrier | bus | boulder | barrel | spikes | gap | ramp —
-        // the static road objects. A gap flagged `opening` is a quake crack:
+        // wreck | rig | barrier | bus | barricade | boulder | barrel | spikes | gap |
+        // ramp — the static road objects. A gap flagged `opening` is a quake crack:
         // harmless until `updateQuakes` opens it. A ramp is the lone non-damaging
-        // one (it launches the car; `resolveCollisions`).
+        // one (it launches the car; `resolveCollisions`). A wreck and a barricade
+        // carry shootable `hp` (a barricade pops in one hit).
         state.hazards.push({
           kind: spawn.kind,
           lane: spawn.lane,
@@ -158,7 +187,12 @@ export function materializeSpawns(state: SimState): void {
           forward: base + spawn.z,
           hit: false,
           open: spawn.kind === 'gap' && spawn.opening ? false : undefined,
-          hp: spawn.kind === 'wreck' ? WEAPON_TUNING.wreckHp : undefined,
+          hp:
+            spawn.kind === 'wreck'
+              ? WEAPON_TUNING.wreckHp
+              : spawn.kind === 'barricade'
+                ? WEAPON_TUNING.barricadeHp
+                : undefined,
         });
       }
     }
@@ -285,6 +319,7 @@ export function resolveCollisions(state: SimState): void {
     const rig = h.kind === 'rig';
     const barrier = h.kind === 'barrier';
     const bus = h.kind === 'bus';
+    const barricade = h.kind === 'barricade';
     const boulder = h.kind === 'boulder';
     const barrel = h.kind === 'barrel';
     const meteor = h.kind === 'meteor';
@@ -305,38 +340,42 @@ export function resolveCollisions(state: SimState): void {
         ? BARRIER_HALF_WIDTH
         : bus
           ? BUS_HALF_WIDTH
-          : boulder
-            ? BOULDER_HALF_WIDTH
-            : barrel
-              ? BARREL_HALF_WIDTH
-              : meteor
-                ? METEOR_HALF_WIDTH
-                : gap
-                  ? GAP_HALF_WIDTH
-                  : spikes
-                    ? SPIKES_HALF_WIDTH
-                    : beam
-                      ? BEAM_HALF_WIDTH
-                      : HAZARD_HALF_WIDTH;
+          : barricade
+            ? BARRICADE_HALF_WIDTH
+            : boulder
+              ? BOULDER_HALF_WIDTH
+              : barrel
+                ? BARREL_HALF_WIDTH
+                : meteor
+                  ? METEOR_HALF_WIDTH
+                  : gap
+                    ? GAP_HALF_WIDTH
+                    : spikes
+                      ? SPIKES_HALF_WIDTH
+                      : beam
+                        ? BEAM_HALF_WIDTH
+                        : HAZARD_HALF_WIDTH;
     const halfLength = rig
       ? RIG_HALF_LENGTH
       : barrier
         ? BARRIER_HALF_LENGTH
         : bus
           ? BUS_HALF_LENGTH
-          : boulder
-            ? BOULDER_HALF_LENGTH
-            : barrel
-              ? BARREL_HALF_LENGTH
-              : meteor
-                ? METEOR_HALF_LENGTH
-                : gap
-                  ? GAP_HALF_LENGTH
-                  : spikes
-                    ? SPIKES_HALF_LENGTH
-                    : beam
-                      ? BEAM_HALF_LENGTH
-                      : HAZARD_HALF_LENGTH;
+          : barricade
+            ? BARRICADE_HALF_LENGTH
+            : boulder
+              ? BOULDER_HALF_LENGTH
+              : barrel
+                ? BARREL_HALF_LENGTH
+                : meteor
+                  ? METEOR_HALF_LENGTH
+                  : gap
+                    ? GAP_HALF_LENGTH
+                    : spikes
+                      ? SPIKES_HALF_LENGTH
+                      : beam
+                        ? BEAM_HALF_LENGTH
+                        : HAZARD_HALF_LENGTH;
 
     // Forward overlap: car spans [distance - CAR_LENGTH, distance].
     const forwardOverlap =
@@ -346,11 +385,25 @@ export function resolveCollisions(state: SimState): void {
     const dx = Math.abs(car.lateralX - h.x);
     if (dx >= CAR_HALF_WIDTH + halfWidth) continue;
 
-    // A jump clears every ground-class hazard (wreck, boulder, barrel, gap, spikes,
-    // beam), but the lethal walls (rig, barrier, bus, landed meteor) are too
-    // tall/solid to clear, so the only out is a lane change (docs/DESIGN.md →
-    // telegraphed, dodgeable, safe lane open).
-    if (!tall && car.height > JUMP_CLEARANCE) continue;
+    // A jump clears a ground-class hazard only while the car is actually above its
+    // clearance height, so a low mound is an easy hop and a standing drum needs the
+    // top of the arc. The lethal walls (rig, barrier, bus, landed meteor) are too
+    // tall/solid to clear at any height, so the only out is a lane change
+    // (docs/DESIGN.md → telegraphed, dodgeable, safe lane open).
+    const clearHeight = barricade
+      ? BARRICADE_CLEAR
+      : boulder
+        ? BOULDER_CLEAR
+        : barrel
+          ? BARREL_CLEAR
+          : spikes
+            ? SPIKES_CLEAR
+            : gap
+              ? GAP_CLEAR
+              : beam
+                ? BEAM_CLEAR
+                : WRECK_CLEAR; // wreck + drifter
+    if (!tall && car.height >= clearHeight) continue;
 
     h.hit = true;
 
@@ -384,15 +437,17 @@ export function resolveCollisions(state: SimState): void {
         ? CRASH_TUNING.barrierDamageMul
         : bus
           ? CRASH_TUNING.busDamageMul
-          : boulder
-            ? CRASH_TUNING.boulderDamageMul
-            : barrel
-              ? CRASH_TUNING.barrelDamageMul
-              : meteor
-                ? CRASH_TUNING.meteorDamageMul
-                : beam
-                  ? CRASH_TUNING.beamDamageMul
-                  : 1;
+          : barricade
+            ? CRASH_TUNING.barricadeDamageMul
+            : boulder
+              ? CRASH_TUNING.boulderDamageMul
+              : barrel
+                ? CRASH_TUNING.barrelDamageMul
+                : meteor
+                  ? CRASH_TUNING.meteorDamageMul
+                  : beam
+                    ? CRASH_TUNING.beamDamageMul
+                    : 1;
     applyCrash(car, impact, glancing, state.events, state.loadout.damageMul * hazardMul);
     // The frenazo: a square hit bites momentum, a clip less so; a square wall hit
     // (rig, barrier, bus, meteor) stops the car near-dead, a boulder less than a
@@ -405,15 +460,17 @@ export function resolveCollisions(state: SimState): void {
           ? CRASH_TUNING.barrierSpeedKeep
           : bus
             ? CRASH_TUNING.busSpeedKeep
-            : boulder
-              ? CRASH_TUNING.boulderSpeedKeep
-              : barrel
-                ? CRASH_TUNING.barrelSpeedKeep
-                : meteor
-                  ? CRASH_TUNING.meteorSpeedKeep
-                  : beam
-                    ? CRASH_TUNING.beamSpeedKeep
-                    : CRASH_TUNING.frontalSpeedKeep;
+            : barricade
+              ? CRASH_TUNING.barricadeSpeedKeep
+              : boulder
+                ? CRASH_TUNING.boulderSpeedKeep
+                : barrel
+                  ? CRASH_TUNING.barrelSpeedKeep
+                  : meteor
+                    ? CRASH_TUNING.meteorSpeedKeep
+                    : beam
+                      ? CRASH_TUNING.beamSpeedKeep
+                      : CRASH_TUNING.frontalSpeedKeep;
     // Taking a hull hit breaks the streak. Greed has a cost (docs/DESIGN.md).
     state.combo = 0;
     state.comboTicks = 0;
@@ -563,14 +620,15 @@ export function resolveShots(state: SimState, intent: Intent): void {
     }
   }
 
-  // A car (wreck or drifting wreck) in the column is shot apart by the gun: a shot
-  // chips its integrity by `killsPerShot`, and at 0 it blows up. The car blocks the
-  // shot, so one nearer than the nearest zombie eats this shot (the zombies behind
-  // it are spared this round). The bigger the cannon, the fewer shots a car takes.
+  // A car (wreck or drifting wreck) or a flimsy barricade in the column is shot
+  // apart by the gun: a shot chips its integrity by `killsPerShot`, and at 0 it
+  // breaks. It blocks the shot, so one nearer than the nearest zombie eats this shot
+  // (the zombies behind it are spared this round). The bigger the cannon, the fewer
+  // shots a car takes; a barricade pops in one (`WEAPON_TUNING.barricadeHp`).
   let wreck: Hazard | null = null;
   let wreckAhead = Infinity;
   for (const h of state.hazards) {
-    if ((h.kind !== 'wreck' && h.kind !== 'drifter') || h.hit) continue;
+    if ((h.kind !== 'wreck' && h.kind !== 'drifter' && h.kind !== 'barricade') || h.hit) continue;
     const ahead = h.forward - state.distance;
     if (ahead <= 0 || ahead > w.range) continue;
     if (Math.abs(h.x - car.lateralX) > halfWidth) continue;
@@ -702,6 +760,9 @@ export function resolvePickups(state: SimState): void {
       car.jumpCharges = Math.min(car.jumpCharges + 1, jumpCap);
     } else if (p.kind === 'health') {
       car.health = Math.min(car.health + PICKUP_TUNING.healthRestore, CAR_TUNING.maxHealth);
+    } else if (p.kind === 'scrap') {
+      // A salvage cache: a pure greed grab, no fight. Banks scrap on the spot.
+      state.scrap += PICKUP_TUNING.scrapValue;
     } else {
       const cap = weaponStats(state.loadout.weaponLevel).maxAmmo;
       car.ammo = Math.min(car.ammo + PICKUP_TUNING.ammoRestore, cap);

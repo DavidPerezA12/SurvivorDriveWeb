@@ -272,6 +272,21 @@ export const palette = {
   // with sound off (docs/DESIGN.md → Juice as information).
   scrapPing: 0x8fe6cf,
 
+  // Scrap pickup — a loose salvage cache you scoop for instant scrap (greed with no
+  // fight). Cool cyan to match the scrap-ping reward read, with a tarnished metal
+  // base so it reads as a heap of parts, not a glowing token.
+  scrapToken: 0x8fe6cf,
+  scrapTokenDark: 0x3f8f80,
+  scrapBase: 0x2a3a38,
+
+  // Light barricade — a flimsy road trestle (soft blocker: shoot, ram cheap, or
+  // steer). Caution yellow over a dark frame, the universal "barricade" read, warm
+  // but plainly slighter than a lethal wall so it never reads as one you must dodge.
+  barricadeStripe: 0xe0b020,
+  barricadeStripeDark: 0x6e5410,
+  barricadeFrame: 0x2a2018,
+  barricadeLeg: 0x3a2c1e,
+
   // Lift pickup — a jump-charge refill. Cool by the readability rule (pickups
   // cool, threats warm), but a distinct electric blue so it never reads as scrap.
   // The upward chevron silhouette says "up / jump" on its own.

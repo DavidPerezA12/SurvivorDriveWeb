@@ -63,6 +63,7 @@ export type SpawnKind =
   | 'rig'
   | 'barrier'
   | 'bus'
+  | 'barricade'
   | 'boulder'
   | 'barrel'
   | 'spikes'
@@ -74,7 +75,8 @@ export type SpawnKind =
   | 'zombie'
   | 'jump'
   | 'health'
-  | 'ammo';
+  | 'ammo'
+  | 'scrap';
 
 /**
  * The objects spawned with a plain `{lane, z}` shape (everything but the
@@ -88,6 +90,7 @@ export type StaticHazardKind =
   | 'rig'
   | 'barrier'
   | 'bus'
+  | 'barricade'
   | 'boulder'
   | 'barrel'
   | 'spikes'
@@ -113,8 +116,12 @@ export type StaticHazardKind =
  */
 export type HazardKind = StaticHazardKind | 'drifter' | 'beam';
 
-/** The three on-ground collectible kinds, shared by `Spawn` and `Pickup`. */
-export type PickupKind = 'jump' | 'health' | 'ammo';
+/**
+ * The on-ground collectible kinds, shared by `Spawn` and `Pickup`: a `jump` lift
+ * charge, a `health` repair, an `ammo` box, and a `scrap` salvage cache (instant
+ * scrap, a pure greed grab with no fight). All spawn off the safe lane.
+ */
+export type PickupKind = 'jump' | 'health' | 'ammo' | 'scrap';
 
 export type Spawn =
   | {

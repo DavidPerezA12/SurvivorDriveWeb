@@ -73,6 +73,28 @@ function ammoGeometry(): THREE.BufferGeometry {
   return merge(parts, 'ammo');
 }
 
+/**
+ * A scrap cache — a loose salvage heap you scoop for instant scrap (docs/DESIGN.md →
+ * roster: a pure greed grab, no fight). A cluster of plates and bolts on a base pad,
+ * cool cyan to match the scrap-ping reward read so it reads as "money on the road,"
+ * distinct from the lift-blue, health-green, and ammo-amber refills.
+ */
+function scrapGeometry(): THREE.BufferGeometry {
+  const tok = palette.scrapToken;
+  const dark = palette.scrapTokenDark;
+  const baseCol = palette.scrapBase;
+  const parts = [
+    box(0.78, 0.08, 0.78, baseCol, 0.6).translate(0, 0.05, 0),
+    // A tumbled heap of salvage: a few angled plates and a couple of bolts.
+    box(0.5, 0.26, 0.46, dark, 0.5).rotateY(0.5).translate(-0.06, 0.2, 0.04),
+    box(0.42, 0.2, 0.4, tok, 0.4).rotateY(-0.7).rotateZ(0.2).translate(0.16, 0.34, -0.05),
+    box(0.3, 0.16, 0.3, dark, 0.45).rotateY(0.3).translate(-0.18, 0.42, -0.1),
+    box(0.12, 0.22, 0.12, tok, 0.35).rotateZ(0.3).translate(0.22, 0.5, 0.18),
+    box(0.1, 0.16, 0.1, tok, 0.35).rotateZ(-0.4).translate(-0.24, 0.46, 0.2),
+  ];
+  return merge(parts, 'scrap');
+}
+
 function merge(parts: THREE.BufferGeometry[], name: string): THREE.BufferGeometry {
   const geo = mergeGeometries(parts, false);
   for (const p of parts) p.dispose();
@@ -130,6 +152,7 @@ export class PickupField {
   private readonly lift: KindLayer;
   private readonly health: KindLayer;
   private readonly ammo: KindLayer;
+  private readonly scrap: KindLayer;
   private readonly sparks: ParticlePool;
   private clock = 0;
 
@@ -137,6 +160,7 @@ export class PickupField {
     this.lift = new KindLayer(scene, liftGeometry());
     this.health = new KindLayer(scene, healthGeometry());
     this.ammo = new KindLayer(scene, ammoGeometry());
+    this.scrap = new KindLayer(scene, scrapGeometry());
 
     // A cool upward puff when anything is gathered — the "you got it" read,
     // legible with sound off.
@@ -153,15 +177,24 @@ export class PickupField {
     this.lift.begin();
     this.health.begin();
     this.ammo.begin();
+    this.scrap.begin();
     for (const p of state.pickups) {
       if (p.taken) continue;
       const z = state.distance - p.forward;
-      const layer = p.kind === 'jump' ? this.lift : p.kind === 'health' ? this.health : this.ammo;
+      const layer =
+        p.kind === 'jump'
+          ? this.lift
+          : p.kind === 'health'
+            ? this.health
+            : p.kind === 'scrap'
+              ? this.scrap
+              : this.ammo;
       layer.place(p.x, z, this.clock, p.phase, elevation.yAt(p.forward, state.distance));
     }
     this.lift.commit();
     this.health.commit();
     this.ammo.commit();
+    this.scrap.commit();
     this.sparks.update(state.distance, dt);
   }
 

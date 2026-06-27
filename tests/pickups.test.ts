@@ -109,3 +109,29 @@ describe('health and ammo pickups', () => {
     expect(s.events.some((e) => e.type === 'pickupCollected' && e.kind === 'ammo')).toBe(true);
   });
 });
+
+describe('scrap caches', () => {
+  it('a scrap cache banks scrap on the spot — a grab, no fight', () => {
+    const s = createSim(1);
+    s.car.lateralX = laneCenterX(2);
+    s.distance = 10;
+    const before = s.scrap;
+    s.pickups.push({ kind: 'scrap', lane: 2, x: laneCenterX(2), forward: 8, phase: 0, taken: false });
+    resolvePickups(s);
+    expect(s.scrap).toBe(before + PICKUP_TUNING.scrapValue);
+    expect(s.pickups[0].taken).toBe(true);
+    expect(s.events.some((e) => e.type === 'pickupCollected' && e.kind === 'scrap')).toBe(true);
+  });
+
+  it('cannot be scooped mid-jump, like every refill', () => {
+    const s = createSim(1);
+    s.car.lateralX = laneCenterX(2);
+    s.distance = 10;
+    s.car.height = 1.0; // airborne
+    const before = s.scrap;
+    s.pickups.push({ kind: 'scrap', lane: 2, x: laneCenterX(2), forward: 8, phase: 0, taken: false });
+    resolvePickups(s);
+    expect(s.pickups[0].taken).toBe(false);
+    expect(s.scrap).toBe(before);
+  });
+});
