@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { ReadonlyState } from '../sim';
-import { box, propMaterial } from './materials';
+import { box, paint, propMaterial } from './materials';
 import { palette } from './palette';
 import { ParticlePool, prefersReducedMotion } from './mowFx';
 import type { Elevation } from './elevation';
@@ -9,6 +9,9 @@ import type { Elevation } from './elevation';
 // Headroom for every pickup of one kind live within the lookahead window at once.
 // Instanced, so unused slots cost nothing; only `count` draw.
 const MAX_INSTANCES = 24;
+// Coins come in trails (several per formation), so several trails can be live at
+// once — give that one kind a roomier pool.
+const MAX_COINS = 96;
 const TWO_PI = Math.PI * 2;
 
 /**
@@ -22,9 +25,18 @@ function liftGeometry(): THREE.BufferGeometry {
   const baseCol = palette.liftBase;
 
   // One upward chevron "^" centered on (0, y): two leaning arms meeting at top.
-  const chevron = (y: number, span: number, thick: number, color: number): THREE.BufferGeometry[] => [
-    box(thick, span, thick, color, 0.5).rotateZ(0.7).translate(-span * 0.28, y, 0),
-    box(thick, span, thick, color, 0.5).rotateZ(-0.7).translate(span * 0.28, y, 0),
+  const chevron = (
+    y: number,
+    span: number,
+    thick: number,
+    color: number,
+  ): THREE.BufferGeometry[] => [
+    box(thick, span, thick, color, 0.5)
+      .rotateZ(0.7)
+      .translate(-span * 0.28, y, 0),
+    box(thick, span, thick, color, 0.5)
+      .rotateZ(-0.7)
+      .translate(span * 0.28, y, 0),
   ];
 
   const parts = [
@@ -95,6 +107,31 @@ function scrapGeometry(): THREE.BufferGeometry {
   return merge(parts, 'scrap');
 }
 
+/**
+ * A coin — one nugget of a money trail (docs/DESIGN.md → Pillar 3: the risky lane
+ * pays). An upright struck disc: an octagonal low-poly coin standing on its edge so
+ * the slow Y-spin reads as a coin flip glinting down the lane, with a proud center
+ * face. Cool cyan-mint like the scrap reward, smaller than every other pickup so a
+ * trail of them reads as loose change, not refills.
+ */
+function coinGeometry(): THREE.BufferGeometry {
+  // A cylinder stands on Y by default; tip it onto its edge so the round faces look
+  // forward (±Z) and the place()-spin around Y flips it like a tumbling coin.
+  const disc = paint(
+    new THREE.CylinderGeometry(0.34, 0.34, 0.09, 8),
+    palette.coinToken,
+    0.35,
+  ).rotateX(Math.PI / 2);
+  // A smaller raised face on each side: the struck-coin detail.
+  const faceFront = paint(new THREE.CylinderGeometry(0.2, 0.2, 0.04, 8), palette.coinTokenDark, 0.4)
+    .rotateX(Math.PI / 2)
+    .translate(0, 0, 0.06);
+  const faceBack = paint(new THREE.CylinderGeometry(0.2, 0.2, 0.04, 8), palette.coinTokenDark, 0.4)
+    .rotateX(Math.PI / 2)
+    .translate(0, 0, -0.06);
+  return merge([disc, faceFront, faceBack], 'coin');
+}
+
 function merge(parts: THREE.BufferGeometry[], name: string): THREE.BufferGeometry {
   const geo = mergeGeometries(parts, false);
   for (const p of parts) p.dispose();
@@ -112,8 +149,12 @@ class KindLayer {
   private readonly dummy = new THREE.Object3D();
   private count = 0;
 
-  constructor(scene: THREE.Scene, geo: THREE.BufferGeometry) {
-    this.mesh = new THREE.InstancedMesh(geo, propMaterial, MAX_INSTANCES);
+  constructor(
+    scene: THREE.Scene,
+    geo: THREE.BufferGeometry,
+    private readonly max = MAX_INSTANCES,
+  ) {
+    this.mesh = new THREE.InstancedMesh(geo, propMaterial, max);
     this.mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     this.mesh.frustumCulled = false;
     this.mesh.count = 0;
@@ -125,7 +166,7 @@ class KindLayer {
   }
 
   place(x: number, z: number, clock: number, phase: number, baseY: number): void {
-    if (this.count >= MAX_INSTANCES) return;
+    if (this.count >= this.max) return;
     const bob = Math.sin(clock * 2 + phase * TWO_PI) * 0.12;
     this.dummy.position.set(x, baseY + 0.55 + bob, z);
     this.dummy.rotation.set(0, clock * 1.4 + phase * TWO_PI, 0);
@@ -153,6 +194,7 @@ export class PickupField {
   private readonly health: KindLayer;
   private readonly ammo: KindLayer;
   private readonly scrap: KindLayer;
+  private readonly coin: KindLayer;
   private readonly sparks: ParticlePool;
   private clock = 0;
 
@@ -161,13 +203,24 @@ export class PickupField {
     this.health = new KindLayer(scene, healthGeometry());
     this.ammo = new KindLayer(scene, ammoGeometry());
     this.scrap = new KindLayer(scene, scrapGeometry());
+    this.coin = new KindLayer(scene, coinGeometry(), MAX_COINS);
 
     // A cool upward puff when anything is gathered — the "you got it" read,
     // legible with sound off.
     this.sparks = new ParticlePool(
       scene,
       box(0.16, 0.16, 0.16, palette.liftToken, 0.25),
-      { count: 48, perBurst: 6, life: 0.5, gravity: 10, vyMin: 4, vyMax: 7, spread: 3, spin: 10, scale: 1 },
+      {
+        count: 48,
+        perBurst: 6,
+        life: 0.5,
+        gravity: 10,
+        vyMin: 4,
+        vyMax: 7,
+        spread: 3,
+        spin: 10,
+        scale: 1,
+      },
       prefersReducedMotion(),
     );
   }
@@ -178,6 +231,7 @@ export class PickupField {
     this.health.begin();
     this.ammo.begin();
     this.scrap.begin();
+    this.coin.begin();
     for (const p of state.pickups) {
       if (p.taken) continue;
       const z = state.distance - p.forward;
@@ -188,18 +242,25 @@ export class PickupField {
             ? this.health
             : p.kind === 'scrap'
               ? this.scrap
-              : this.ammo;
+              : p.kind === 'coin'
+                ? this.coin
+                : this.ammo;
       layer.place(p.x, z, this.clock, p.phase, elevation.yAt(p.forward, state.distance));
     }
     this.lift.commit();
     this.health.commit();
     this.ammo.commit();
     this.scrap.commit();
+    this.coin.commit();
     this.sparks.update(state.distance, dt);
   }
 
   /** Fire the cool collect burst for a pickup gathered at lateral `x`, world `forward`. */
   collect(x: number, forward: number): void {
     this.sparks.spawn(x, forward);
+  }
+
+  setReducedMotion(reduced: boolean): void {
+    this.sparks.setReducedMotion(reduced);
   }
 }

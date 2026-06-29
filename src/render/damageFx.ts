@@ -24,6 +24,10 @@ export class DamageSmoke {
     );
   }
 
+  setReducedMotion(reduced: boolean): void {
+    this.smoke.setReducedMotion(reduced);
+  }
+
   /**
    * `intensity` is 0..1 (0 = healthy, 1 = near-dead). At full intensity puffs come
    * thick and fast; below it they thin out; at zero the trail stops. `distance` is

@@ -1,11 +1,16 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import type { Hazard, ReadonlyState } from '../sim';
+import type { Hazard, HazardKind, ReadonlyState } from '../sim';
 import { box, paint, propMaterial, silhouetteMaterial, wheel } from './materials';
 import { palette } from './palette';
 import type { Elevation } from './elevation';
 
 const MAX_INSTANCES = 48;
+
+/** Crater-family hazards rendered by their own meteor, T-Rex, or mecha field. */
+export function usesDedicatedCraterField(kind: HazardKind): boolean {
+  return kind === 'meteor' || kind === 'stomp' || kind === 'shell';
+}
 
 /**
  * A wrecked car blocking a lane. The warm body and orange stripe stay dominant
@@ -15,8 +20,17 @@ const MAX_INSTANCES = 48;
 function wreckGeometry(): THREE.BufferGeometry {
   const p = palette;
   // The crumpled nose and hazard stripe face the oncoming player.
-  const tb = (w: number, h: number, d: number, c: number, rx: number, x: number, y: number, z: number, ao = 0.45) =>
-    paint(new THREE.BoxGeometry(w, h, d).rotateX(rx).translate(x, y, z), c, ao);
+  const tb = (
+    w: number,
+    h: number,
+    d: number,
+    c: number,
+    rx: number,
+    x: number,
+    y: number,
+    z: number,
+    ao = 0.45,
+  ) => paint(new THREE.BoxGeometry(w, h, d).rotateX(rx).translate(x, y, z), c, ao);
   const parts = [
     // Dark sill the warm body sits on, plus haunches flared over the wheels.
     box(1.72, 0.3, 3.4, p.wreckDark, 0.45).translate(0, 0.3, 0),
@@ -46,7 +60,11 @@ function wreckGeometry(): THREE.BufferGeometry {
     box(0.36, 0.14, 0.1, p.carTaillightDim, 0.2).translate(-0.6, 0.7, -1.78),
     box(0.36, 0.14, 0.1, p.carTaillightDim, 0.2).translate(0.6, 0.7, -1.78),
     // A door hung open on the left flank.
-    paint(new THREE.BoxGeometry(0.12, 0.56, 1.1).rotateY(-0.5).translate(1.02, 0.62, 0.05), p.wreckBody, 0.45),
+    paint(
+      new THREE.BoxGeometry(0.12, 0.56, 1.1).rotateY(-0.5).translate(1.02, 0.62, 0.05),
+      p.wreckBody,
+      0.45,
+    ),
     // Rust eating panels + scorch + a sprung hood corner.
     box(0.16, 0.4, 0.9, p.wreckRust, 0.5).translate(-0.95, 0.6, 0.2),
     box(0.5, 0.3, 0.6, p.wreckRust, 0.5).translate(0.7, 0.78, 0.5),
@@ -75,8 +93,17 @@ function wreckGeometry(): THREE.BufferGeometry {
  */
 function wreckVanGeometry(): THREE.BufferGeometry {
   const p = palette;
-  const tb = (w: number, h: number, d: number, c: number, rx: number, x: number, y: number, z: number, ao = 0.45) =>
-    paint(new THREE.BoxGeometry(w, h, d).rotateX(rx).translate(x, y, z), c, ao);
+  const tb = (
+    w: number,
+    h: number,
+    d: number,
+    c: number,
+    rx: number,
+    x: number,
+    y: number,
+    z: number,
+    ao = 0.45,
+  ) => paint(new THREE.BoxGeometry(w, h, d).rotateX(rx).translate(x, y, z), c, ao);
   const parts = [
     box(1.72, 0.3, 3.5, p.wreckDark, 0.45).translate(0, 0.3, 0), // sill
     // Tall cargo box (set back) — the van's signature mass.
@@ -118,8 +145,17 @@ function wreckVanGeometry(): THREE.BufferGeometry {
  */
 function wreckTruckGeometry(): THREE.BufferGeometry {
   const p = palette;
-  const tb = (w: number, h: number, d: number, c: number, rx: number, x: number, y: number, z: number, ao = 0.45) =>
-    paint(new THREE.BoxGeometry(w, h, d).rotateX(rx).translate(x, y, z), c, ao);
+  const tb = (
+    w: number,
+    h: number,
+    d: number,
+    c: number,
+    rx: number,
+    x: number,
+    y: number,
+    z: number,
+    ao = 0.45,
+  ) => paint(new THREE.BoxGeometry(w, h, d).rotateX(rx).translate(x, y, z), c, ao);
   const parts = [
     box(1.74, 0.3, 3.7, p.wreckDark, 0.45).translate(0, 0.3, 0), // chassis sill
     // Forward cab: body, raked windscreen, flat roof, the player-facing mass.
@@ -218,7 +254,11 @@ function barrierGeometry(): THREE.BufferGeometry {
     // Grime streaks down the face + a spalled top corner for craft.
     box(0.26, 1.3, 0.06, p.barrierGrime, 0.5).translate(-0.95, 1.0, 0.45),
     box(0.2, 1.1, 0.06, p.barrierGrime, 0.5).translate(0.8, 1.0, 0.45),
-    paint(new THREE.BoxGeometry(0.45, 0.4, 0.5).rotateY(0.4).translate(1.2, 1.85, 0.1), p.barrierConcreteDark, 0.55),
+    paint(
+      new THREE.BoxGeometry(0.45, 0.4, 0.5).rotateY(0.4).translate(1.2, 1.85, 0.1),
+      p.barrierConcreteDark,
+      0.55,
+    ),
     // A chunk of broken rubble spilled at the foot, breaking the clean slab.
     box(0.5, 0.34, 0.5, p.barrierConcreteDark, 0.5).rotateY(0.6).translate(-1.25, 0.18, 0.7),
   ];
@@ -289,10 +329,26 @@ function barricadeGeometry(): THREE.BufferGeometry {
     // A thin lower rail tying the legs together.
     box(2.0, 0.08, 0.08, p.barricadeFrame, 0.4).translate(0, 0.32, 0),
     // Splayed A-frame legs at each end.
-    paint(new THREE.BoxGeometry(0.1, 0.74, 0.1).rotateX(0.32).translate(-0.96, 0.36, 0.16), p.barricadeLeg, 0.4),
-    paint(new THREE.BoxGeometry(0.1, 0.74, 0.1).rotateX(-0.32).translate(-0.96, 0.36, -0.16), p.barricadeLeg, 0.4),
-    paint(new THREE.BoxGeometry(0.1, 0.74, 0.1).rotateX(0.32).translate(0.96, 0.36, 0.16), p.barricadeLeg, 0.4),
-    paint(new THREE.BoxGeometry(0.1, 0.74, 0.1).rotateX(-0.32).translate(0.96, 0.36, -0.16), p.barricadeLeg, 0.4),
+    paint(
+      new THREE.BoxGeometry(0.1, 0.74, 0.1).rotateX(0.32).translate(-0.96, 0.36, 0.16),
+      p.barricadeLeg,
+      0.4,
+    ),
+    paint(
+      new THREE.BoxGeometry(0.1, 0.74, 0.1).rotateX(-0.32).translate(-0.96, 0.36, -0.16),
+      p.barricadeLeg,
+      0.4,
+    ),
+    paint(
+      new THREE.BoxGeometry(0.1, 0.74, 0.1).rotateX(0.32).translate(0.96, 0.36, 0.16),
+      p.barricadeLeg,
+      0.4,
+    ),
+    paint(
+      new THREE.BoxGeometry(0.1, 0.74, 0.1).rotateX(-0.32).translate(0.96, 0.36, -0.16),
+      p.barricadeLeg,
+      0.4,
+    ),
   ];
   const geo = mergeGeometries(parts, false);
   for (const part of parts) part.dispose();
@@ -311,11 +367,17 @@ function boulderGeometry(): THREE.BufferGeometry {
     // Main mass: a big angular block, tilted off-axis so no face is square-on.
     box(1.7, 0.92, 1.55, p.boulderBody, 0.5).rotateY(0.4).rotateZ(0.12).translate(0, 0.4, 0),
     // A second lobe giving the mound its two-peak, broken silhouette.
-    box(1.15, 0.74, 1.2, p.boulderLight, 0.45).rotateY(-0.5).rotateZ(-0.12).translate(0.55, 0.33, 0.3),
+    box(1.15, 0.74, 1.2, p.boulderLight, 0.45)
+      .rotateY(-0.5)
+      .rotateZ(-0.12)
+      .translate(0.55, 0.33, 0.3),
     // Shadowed crevice block wedged into the back.
     box(0.95, 0.62, 0.9, p.boulderDark, 0.55).rotateY(0.9).translate(-0.5, 0.3, -0.45),
     // Top cap chunk — the high point you read first at the horizon.
-    box(0.82, 0.52, 0.72, p.boulderLight, 0.4).rotateY(0.3).rotateZ(0.22).translate(0.08, 0.74, -0.08),
+    box(0.82, 0.52, 0.72, p.boulderLight, 0.4)
+      .rotateY(0.3)
+      .rotateZ(0.22)
+      .translate(0.08, 0.74, -0.08),
     // Spilled rubble around the base, breaking the box outline into rock.
     box(0.5, 0.32, 0.5, p.boulderDark, 0.5).rotateY(0.6).translate(-0.92, 0.16, 0.7),
     box(0.42, 0.26, 0.44, p.boulderBody, 0.45).rotateY(1.1).translate(0.96, 0.13, -0.68),
@@ -352,6 +414,34 @@ function barrelGeometry(): THREE.BufferGeometry {
   const geo = mergeGeometries(parts, false);
   for (const part of parts) part.dispose();
   if (!geo) throw new Error('Failed to merge barrel geometry');
+  return geo;
+}
+
+/**
+ * A toxic barrel: a drum that ruptures into a lingering gas cloud (docs/DESIGN.md →
+ * roster). Same drum silhouette as the explosive barrel, but a murky green body with
+ * an acid yellow-green hazard band (the band is the gas colour) and a trefoil-ish
+ * vent on the lid, so it reads as the toxic variant, not the red blast drum. One
+ * merged geometry, instanced.
+ */
+function toxBarrelGeometry(): THREE.BufferGeometry {
+  const p = palette;
+  const drum = (r: number, h: number, color: number, ao: number): THREE.BufferGeometry =>
+    paint(new THREE.CylinderGeometry(r, r, h, 12), color, ao);
+  const parts = [
+    drum(0.5, 1.12, p.drumToxBody, 0.45).translate(0, 0.58, 0),
+    drum(0.53, 0.12, p.drumToxDark, 0.4).translate(0, 1.04, 0),
+    drum(0.53, 0.12, p.drumToxDark, 0.4).translate(0, 0.12, 0),
+    // Two acid hazard bands — the toxic warning, the gas colour.
+    drum(0.54, 0.16, p.drumToxBand, 0.2).translate(0, 0.78, 0),
+    drum(0.54, 0.16, p.drumToxBand, 0.2).translate(0, 0.4, 0),
+    // Worn lid with a raised vent cap (where the gas vents on rupture).
+    drum(0.46, 0.06, p.drumLid, 0.3).translate(0, 1.16, 0),
+    drum(0.14, 0.12, p.drumToxBand, 0.3).translate(0, 1.24, 0),
+  ];
+  const geo = mergeGeometries(parts, false);
+  for (const part of parts) part.dispose();
+  if (!geo) throw new Error('Failed to merge toxic barrel geometry');
   return geo;
 }
 
@@ -469,8 +559,17 @@ function beamGeometry(): THREE.BufferGeometry {
 function rampGeometry(): THREE.BufferGeometry {
   const p = palette;
   // A slab tilted up toward the far (-z) end: the climbing face the car rides up.
-  const ramped = (w: number, h: number, d: number, c: number, a: number, x: number, y: number, z: number, ao = 0.5) =>
-    paint(new THREE.BoxGeometry(w, h, d).rotateX(a).translate(x, y, z), c, ao);
+  const ramped = (
+    w: number,
+    h: number,
+    d: number,
+    c: number,
+    a: number,
+    x: number,
+    y: number,
+    z: number,
+    ao = 0.5,
+  ) => paint(new THREE.BoxGeometry(w, h, d).rotateX(a).translate(x, y, z), c, ao);
   const parts = [
     // The rubble base the ramp is heaped on: a low dark mass filling under the slope.
     box(2.5, 0.7, 3.2, p.rampConcreteDark, 0.55).translate(0, 0.35, -0.6),
@@ -480,17 +579,49 @@ function rampGeometry(): THREE.BufferGeometry {
     ramped(2.3, 0.32, 1.8, p.rampConcrete, 0.3, 0.08, 0.92, -0.7),
     ramped(2.1, 0.3, 1.5, p.rampConcreteDark, 0.33, -0.1, 1.22, -1.9),
     // Torn roadbed and bent rebar poking out of the pile (craft + the wreckage read).
-    paint(new THREE.BoxGeometry(0.1, 0.5, 0.1).rotateZ(0.4).translate(-0.7, 1.2, -1.6), p.rampRebar, 0.4),
-    paint(new THREE.BoxGeometry(0.1, 0.42, 0.1).rotateZ(-0.5).translate(0.55, 1.12, -1.1), p.rampRebar, 0.4),
-    paint(new THREE.BoxGeometry(0.1, 0.45, 0.1).rotateX(0.6).translate(0.9, 0.95, -0.2), p.rampRebar, 0.4),
+    paint(
+      new THREE.BoxGeometry(0.1, 0.5, 0.1).rotateZ(0.4).translate(-0.7, 1.2, -1.6),
+      p.rampRebar,
+      0.4,
+    ),
+    paint(
+      new THREE.BoxGeometry(0.1, 0.42, 0.1).rotateZ(-0.5).translate(0.55, 1.12, -1.1),
+      p.rampRebar,
+      0.4,
+    ),
+    paint(
+      new THREE.BoxGeometry(0.1, 0.45, 0.1).rotateX(0.6).translate(0.9, 0.95, -0.2),
+      p.rampRebar,
+      0.4,
+    ),
     // Spilled chunks at the foot, breaking the slab outline into rubble.
-    paint(new THREE.BoxGeometry(0.55, 0.4, 0.55).rotateY(0.5).translate(-1.0, 0.2, 2.0), p.rampConcreteDark, 0.5),
-    paint(new THREE.BoxGeometry(0.46, 0.32, 0.46).rotateY(1.0).translate(0.95, 0.16, 2.1), p.rampConcrete, 0.5),
-    paint(new THREE.BoxGeometry(0.4, 0.28, 0.4).rotateY(0.3).translate(0.25, 0.14, 2.4), p.rampConcreteDark, 0.45),
+    paint(
+      new THREE.BoxGeometry(0.55, 0.4, 0.55).rotateY(0.5).translate(-1.0, 0.2, 2.0),
+      p.rampConcreteDark,
+      0.5,
+    ),
+    paint(
+      new THREE.BoxGeometry(0.46, 0.32, 0.46).rotateY(1.0).translate(0.95, 0.16, 2.1),
+      p.rampConcrete,
+      0.5,
+    ),
+    paint(
+      new THREE.BoxGeometry(0.4, 0.28, 0.4).rotateY(0.3).translate(0.25, 0.14, 2.4),
+      p.rampConcreteDark,
+      0.45,
+    ),
     // The yellow "up" chevron on the near lip — two angled bars meeting up-ramp, the
     // verb cue the player reads at the spawn horizon.
-    paint(new THREE.BoxGeometry(0.78, 0.07, 0.2).rotateY(0.6).translate(-0.32, 0.42, 1.55), p.rampChevron, 0.15),
-    paint(new THREE.BoxGeometry(0.78, 0.07, 0.2).rotateY(-0.6).translate(0.32, 0.42, 1.55), p.rampChevron, 0.15),
+    paint(
+      new THREE.BoxGeometry(0.78, 0.07, 0.2).rotateY(0.6).translate(-0.32, 0.42, 1.55),
+      p.rampChevron,
+      0.15,
+    ),
+    paint(
+      new THREE.BoxGeometry(0.78, 0.07, 0.2).rotateY(-0.6).translate(0.32, 0.42, 1.55),
+      p.rampChevron,
+      0.15,
+    ),
   ];
   const geo = mergeGeometries(parts, false);
   for (const part of parts) part.dispose();
@@ -514,6 +645,7 @@ export class HazardField {
   private readonly barricadeMesh: THREE.InstancedMesh;
   private readonly boulderMesh: THREE.InstancedMesh;
   private readonly barrelMesh: THREE.InstancedMesh;
+  private readonly toxBarrelMesh: THREE.InstancedMesh;
   private readonly spikesMesh: THREE.InstancedMesh;
   private readonly gapMesh: THREE.InstancedMesh;
   private readonly crackMesh: THREE.InstancedMesh;
@@ -525,7 +657,8 @@ export class HazardField {
 
   /** Stable pseudo-random in [0,1), keyed on world-forward and salt. */
   private hv(key: number, salt: number): number {
-    let h = (Math.imul((Math.floor(key * 16) | 0) + 1, 374761393) ^ Math.imul(salt, 668265263)) >>> 0;
+    let h =
+      (Math.imul((Math.floor(key * 16) | 0) + 1, 374761393) ^ Math.imul(salt, 668265263)) >>> 0;
     h = Math.imul(h ^ (h >>> 13), 1274126177);
     return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
   }
@@ -533,19 +666,28 @@ export class HazardField {
   constructor(scene: THREE.Scene) {
     this.wreckMesh = new THREE.InstancedMesh(wreckGeometry(), propMaterial, MAX_INSTANCES);
     this.wreckVanMesh = new THREE.InstancedMesh(wreckVanGeometry(), propMaterial, MAX_INSTANCES);
-    this.wreckTruckMesh = new THREE.InstancedMesh(wreckTruckGeometry(), propMaterial, MAX_INSTANCES);
+    this.wreckTruckMesh = new THREE.InstancedMesh(
+      wreckTruckGeometry(),
+      propMaterial,
+      MAX_INSTANCES,
+    );
     this.rigMesh = new THREE.InstancedMesh(rigGeometry(), propMaterial, MAX_INSTANCES);
     this.barrierMesh = new THREE.InstancedMesh(barrierGeometry(), propMaterial, MAX_INSTANCES);
     this.busMesh = new THREE.InstancedMesh(busGeometry(), propMaterial, MAX_INSTANCES);
     this.barricadeMesh = new THREE.InstancedMesh(barricadeGeometry(), propMaterial, MAX_INSTANCES);
     this.boulderMesh = new THREE.InstancedMesh(boulderGeometry(), propMaterial, MAX_INSTANCES);
     this.barrelMesh = new THREE.InstancedMesh(barrelGeometry(), propMaterial, MAX_INSTANCES);
+    this.toxBarrelMesh = new THREE.InstancedMesh(toxBarrelGeometry(), propMaterial, MAX_INSTANCES);
     this.spikesMesh = new THREE.InstancedMesh(spikesGeometry(), propMaterial, MAX_INSTANCES);
     // Unlit material so the void stays black under any act light (a lit dark
     // surface gets washed pale and reads as a slab, not a hole).
     this.gapMesh = new THREE.InstancedMesh(gapGeometry(), silhouetteMaterial, MAX_INSTANCES);
     // The pre-open crack telegraph; unlit so its baked glow reads as hot light.
-    this.crackMesh = new THREE.InstancedMesh(quakeCrackGeometry(), silhouetteMaterial, MAX_INSTANCES);
+    this.crackMesh = new THREE.InstancedMesh(
+      quakeCrackGeometry(),
+      silhouetteMaterial,
+      MAX_INSTANCES,
+    );
     // Unlit so the beam's baked glow reads as hot light against any act lighting.
     this.beamMesh = new THREE.InstancedMesh(beamGeometry(), silhouetteMaterial, MAX_INSTANCES);
     // The collapse ramp: lit like the solid props (it is dusty rubble, not a glow).
@@ -560,6 +702,7 @@ export class HazardField {
       this.barricadeMesh,
       this.boulderMesh,
       this.barrelMesh,
+      this.toxBarrelMesh,
       this.spikesMesh,
       this.gapMesh,
       this.crackMesh,
@@ -583,21 +726,27 @@ export class HazardField {
     let barricades = 0;
     let boulders = 0;
     let barrels = 0;
+    let toxBarrels = 0;
     let spikes = 0;
     let gaps = 0;
     let cracks = 0;
     let beams = 0;
     let ramps = 0;
     for (const h of state.hazards) {
-      // A detonated barrel, a shot-apart car, or a popped barricade is gone.
+      // A detonated barrel, a ruptured toxic drum, a shot-apart car, or a popped
+      // barricade is gone (the toxic drum's cloud is drawn by GasField instead).
       if (
-        (h.kind === 'barrel' || h.kind === 'wreck' || h.kind === 'drifter' || h.kind === 'barricade') &&
+        (h.kind === 'barrel' ||
+          h.kind === 'toxbarrel' ||
+          h.kind === 'wreck' ||
+          h.kind === 'drifter' ||
+          h.kind === 'barricade') &&
         h.hit
       )
         continue;
-      // Meteors are drawn by MeteorField (falling rock → crater); skip here so
-      // they aren't also drawn as a wrecked car by the default branch below.
-      if (h.kind === 'meteor') continue;
+      // Falling boss hazards have dedicated fields. Skip the whole crater family
+      // here so none also falls through to the generic wreck branch below.
+      if (usesDedicatedCraterField(h.kind)) continue;
       let mesh: THREE.InstancedMesh;
       let count: number;
       if (h.kind === 'rig') {
@@ -618,6 +767,9 @@ export class HazardField {
       } else if (h.kind === 'barrel') {
         mesh = this.barrelMesh;
         count = barrels;
+      } else if (h.kind === 'toxbarrel') {
+        mesh = this.toxBarrelMesh;
+        count = toxBarrels;
       } else if (h.kind === 'spikes') {
         mesh = this.spikesMesh;
         count = spikes;
@@ -652,9 +804,18 @@ export class HazardField {
       // clones. Drifters keep their slide yaw; rigs stay square because they are
       // walls. Tint is applied to all but the gap, whose dark pit must stay dark.
       const drifter = h.kind === 'drifter';
-      const shaped = h.kind === 'wreck' || drifter || h.kind === 'boulder' || h.kind === 'barrel';
+      const shaped =
+        h.kind === 'wreck' ||
+        drifter ||
+        h.kind === 'boulder' ||
+        h.kind === 'barrel' ||
+        h.kind === 'toxbarrel';
       const yaw = drifter ? this.driftYaw(h) : shaped ? (this.hv(h.forward, 1) - 0.5) * 0.7 : 0;
-      this.dummy.position.set(h.x, elevation.yAt(h.forward, state.distance), state.distance - h.forward);
+      this.dummy.position.set(
+        h.x,
+        elevation.yAt(h.forward, state.distance),
+        state.distance - h.forward,
+      );
       this.dummy.rotation.set(0, yaw, 0);
       if (shaped) {
         this.dummy.scale.set(
@@ -680,6 +841,7 @@ export class HazardField {
       else if (h.kind === 'barricade') barricades += 1;
       else if (h.kind === 'boulder') boulders += 1;
       else if (h.kind === 'barrel') barrels += 1;
+      else if (h.kind === 'toxbarrel') toxBarrels += 1;
       else if (h.kind === 'spikes') spikes += 1;
       else if (h.kind === 'gap' && h.open === false) cracks += 1;
       else if (h.kind === 'gap') gaps += 1;
@@ -698,6 +860,7 @@ export class HazardField {
     this.barricadeMesh.count = barricades;
     this.boulderMesh.count = boulders;
     this.barrelMesh.count = barrels;
+    this.toxBarrelMesh.count = toxBarrels;
     this.spikesMesh.count = spikes;
     this.gapMesh.count = gaps;
     this.crackMesh.count = cracks;
@@ -713,6 +876,7 @@ export class HazardField {
       this.barricadeMesh,
       this.boulderMesh,
       this.barrelMesh,
+      this.toxBarrelMesh,
       this.spikesMesh,
       this.gapMesh,
       this.crackMesh,

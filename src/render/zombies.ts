@@ -136,17 +136,56 @@ function bruteGeometry(): THREE.BufferGeometry {
 }
 
 /**
- * Renders the sim's live, un-mowed zombies as instanced crowds: one mesh for the
- * fodder shamblers and one for the heavy brutes (a separate draw call so each
- * keeps its own geometry and palette). The sim owns where they are; this maps each
- * zombie's absolute world-forward to screen z and adds a simple idle shamble (a
- * gentle rock and bob, offset per instance by the zombie's deterministic phase) so
- * a standing cluster looks alive, not frozen. No allocation per frame.
+ * A jumper: a lean, coiled leaper that springs onto the hood (docs/DESIGN.md → the
+ * one threat that reaches the safe line). Built crouched and gathered, weight forward
+ * over splayed legs, both arms drawn back ready to grab, with a hot accent on the
+ * taut back. The coiled, low silhouette reads "this one leaps" apart from the upright
+ * shambler and the bulky brute. One merged geometry, its own instanced draw call.
+ */
+function jumperGeometry(): THREE.BufferGeometry {
+  const flesh = palette.jumperFlesh;
+  const dark = palette.jumperFleshDark;
+  const rag = palette.jumperRag;
+  const accent = palette.jumperAccent;
+
+  const parts = [
+    // Gathered, springy legs — deeply bent, knees out, coiled to leap.
+    box(0.2, 0.46, 0.28, rag).rotateX(0.7).translate(-0.2, 0.34, -0.12),
+    box(0.2, 0.46, 0.28, rag).rotateX(0.7).translate(0.2, 0.34, -0.12),
+    box(0.2, 0.4, 0.22, dark).rotateX(-0.6).translate(-0.22, 0.5, 0.14),
+    box(0.2, 0.4, 0.22, dark).rotateX(-0.6).translate(0.22, 0.5, 0.14),
+    // Low torso pitched hard forward over the legs — the pounce stance.
+    box(0.5, 0.6, 0.34, flesh).rotateX(0.85).translate(0, 0.86, 0.2),
+    // A taut, hot-sinew back — the leap telegraph.
+    box(0.4, 0.34, 0.16, accent).rotateX(0.85).translate(0, 1.04, 0.02),
+    // Head thrust forward and low, jaw slung open toward the prey.
+    box(0.28, 0.28, 0.28, flesh).translate(0, 0.92, 0.6),
+    box(0.22, 0.1, 0.18, dark).translate(0, 0.84, 0.7),
+    // Both arms cocked back, clawed hands ready to grab the hood.
+    box(0.15, 0.15, 0.5, flesh).rotateX(0.5).translate(0.34, 0.96, 0.0),
+    box(0.2, 0.1, 0.18, dark).translate(0.36, 0.78, -0.22),
+    box(0.15, 0.15, 0.5, flesh).rotateX(0.5).translate(-0.34, 0.96, 0.0),
+    box(0.2, 0.1, 0.18, dark).translate(-0.36, 0.78, -0.22),
+  ];
+  const geo = mergeGeometries(parts, false);
+  for (const p of parts) p.dispose();
+  if (!geo) throw new Error('Failed to merge jumper geometry');
+  return geo;
+}
+
+/**
+ * Renders the sim's live, un-mowed zombies as instanced crowds: a mesh each for the
+ * two fodder shamblers, the heavy brutes, and the coiled jumpers (separate draw
+ * calls so each keeps its own geometry and palette). The sim owns where they are;
+ * this maps each zombie's absolute world-forward to screen z and adds a simple idle
+ * motion (a gentle rock and bob, offset per instance by the zombie's deterministic
+ * phase) so a standing cluster looks alive, not frozen. No allocation per frame.
  */
 export class ZombieField {
   private readonly mesh: THREE.InstancedMesh;
   private readonly meshB: THREE.InstancedMesh;
   private readonly bruteMesh: THREE.InstancedMesh;
+  private readonly jumperMesh: THREE.InstancedMesh;
   private readonly dummy = new THREE.Object3D();
   private clock = 0;
 
@@ -154,7 +193,8 @@ export class ZombieField {
     this.mesh = new THREE.InstancedMesh(zombieGeometry(), propMaterial, MAX_INSTANCES);
     this.meshB = new THREE.InstancedMesh(zombieGeometryB(), propMaterial, MAX_INSTANCES);
     this.bruteMesh = new THREE.InstancedMesh(bruteGeometry(), propMaterial, MAX_INSTANCES);
-    for (const m of [this.mesh, this.meshB, this.bruteMesh]) {
+    this.jumperMesh = new THREE.InstancedMesh(jumperGeometry(), propMaterial, MAX_INSTANCES);
+    for (const m of [this.mesh, this.meshB, this.bruteMesh, this.jumperMesh]) {
       m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       m.frustumCulled = false;
       m.count = 0;
@@ -167,27 +207,38 @@ export class ZombieField {
     let count = 0;
     let countB = 0;
     let brutes = 0;
+    let jumpers = 0;
     for (const z of state.zombies) {
       if (z.mowed) continue;
       const brute = z.brute === true;
+      const jumper = z.jumper === true;
       // Split the fodder between the two shambler silhouettes by deterministic
       // phase, so a packed crowd is a mixed mob instead of one cloned pose.
-      const variantB = !brute && z.phase >= 0.5;
-      const slot = brute ? brutes : variantB ? countB : count;
+      const variantB = !brute && !jumper && z.phase >= 0.5;
+      const slot = brute ? brutes : jumper ? jumpers : variantB ? countB : count;
       if (slot >= MAX_INSTANCES) continue;
-      // Brutes shamble slower and rock harder, reading as heavy even while idle.
-      const rate = brute ? 3 : 5;
+      // Brutes shamble slow and rock hard; jumpers tense fast (a quick coil-bob).
+      const rate = brute ? 3 : jumper ? 7 : 5;
       const sway = Math.sin(this.clock * rate + z.phase * TWO_PI);
       const groundY = elevation.yAt(z.forward, state.distance);
-      this.dummy.position.set(z.x, groundY + Math.abs(sway) * 0.04, state.distance - z.forward);
-      // Static facing variety from phase, plus a small live rock from the sway.
-      this.dummy.rotation.set(0, (z.phase - 0.5) * 1.6, sway * (brute ? 0.05 : 0.08));
-      // Brutes are bigger and vary less; shamblers keep their wider size jitter.
-      this.dummy.scale.setScalar(brute ? 1.12 + z.phase * 0.12 : 0.92 + z.phase * 0.18);
+      // A jumper bobs in its crouch (a coiling tell); others bob on their feet.
+      const bob = jumper ? Math.abs(sway) * 0.07 : Math.abs(sway) * 0.04;
+      this.dummy.position.set(z.x, groundY + bob, state.distance - z.forward);
+      // Static facing variety from phase, plus a small live rock from the sway. A
+      // jumper mostly faces the road (it is aimed at the car), with only a slight rock.
+      const yaw = jumper ? (z.phase - 0.5) * 0.5 : (z.phase - 0.5) * 1.6;
+      this.dummy.rotation.set(0, yaw, sway * (brute ? 0.05 : jumper ? 0.04 : 0.08));
+      // Brutes big, jumpers lean and a touch smaller, shamblers keep the size jitter.
+      this.dummy.scale.setScalar(
+        brute ? 1.12 + z.phase * 0.12 : jumper ? 0.96 + z.phase * 0.12 : 0.92 + z.phase * 0.18,
+      );
       this.dummy.updateMatrix();
       if (brute) {
         this.bruteMesh.setMatrixAt(brutes, this.dummy.matrix);
         brutes += 1;
+      } else if (jumper) {
+        this.jumperMesh.setMatrixAt(jumpers, this.dummy.matrix);
+        jumpers += 1;
       } else if (variantB) {
         this.meshB.setMatrixAt(countB, this.dummy.matrix);
         countB += 1;
@@ -199,8 +250,10 @@ export class ZombieField {
     this.mesh.count = count;
     this.meshB.count = countB;
     this.bruteMesh.count = brutes;
+    this.jumperMesh.count = jumpers;
     this.mesh.instanceMatrix.needsUpdate = true;
     this.meshB.instanceMatrix.needsUpdate = true;
     this.bruteMesh.instanceMatrix.needsUpdate = true;
+    this.jumperMesh.instanceMatrix.needsUpdate = true;
   }
 }

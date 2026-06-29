@@ -173,7 +173,7 @@ class ArcFx {
   private readonly mid = new THREE.Vector3();
   private readonly to = new THREE.Vector3();
   private readonly arcs: Arc[];
-  private readonly jitter: number;
+  private jitter: number;
   private cursor = 0;
   private live = 0;
 
@@ -195,6 +195,10 @@ class ArcFx {
       color: 0xffffff,
     }));
     scene.add(this.mesh);
+  }
+
+  setReducedMotion(reduced: boolean): void {
+    this.jitter = reduced ? 0.35 : 1;
   }
 
   spawn(x: number, forward: number, y: number, reach: number, width: number, color: number): void {
@@ -278,6 +282,11 @@ export class GunFx {
     );
     this.tracers = new TracerPool(scene, 96);
     this.arcs = new ArcFx(scene, reduced);
+  }
+
+  setReducedMotion(reduced: boolean): void {
+    this.flash.setReducedMotion(reduced);
+    this.arcs.setReducedMotion(reduced);
   }
 
   /**

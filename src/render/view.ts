@@ -13,7 +13,12 @@ import { Guardrail } from './guardrail';
 import { Overpass } from './overpass';
 import { HazardField } from './hazards';
 import { MeteorField } from './meteors';
+import { StompField, TrexSilhouette } from './trex';
+import { ShellField, MechaSilhouette } from './mecha';
+import { MeteorStreaks } from './storm';
 import { ZombieField } from './zombies';
+import { ClingerField } from './clingers';
+import { GasField } from './gas';
 import { PickupField } from './pickups';
 import { MowFx } from './mowFx';
 import { GunFx } from './gunFx';
@@ -23,8 +28,10 @@ import { GroundFx } from './groundFx';
 import { Horizon } from './horizon';
 import { GroundScatter } from './groundscatter';
 import { Dust } from './atmosphere';
+import { SnowFall } from './snowfall';
 import { EnvironmentDirector } from './environment';
 import { Elevation } from './elevation';
+import { biomeStateAt, createBiomeState } from '../content/biomes';
 
 /** The few dynamic scalars the renderer interpolates between sim ticks. */
 export interface RenderSnapshot {
@@ -74,18 +81,28 @@ export class GameView {
   private readonly groundScatter: GroundScatter;
   private readonly horizon: Horizon;
   private readonly dust: Dust;
+  private readonly snow: SnowFall;
   private readonly decor: DecorField;
   private readonly guardrail: Guardrail;
   private readonly overpass: Overpass;
   private readonly hazards: HazardField;
   private readonly meteors: MeteorField;
+  private readonly stomps: StompField;
+  private readonly trex: TrexSilhouette;
+  private readonly shells: ShellField;
+  private readonly mecha: MechaSilhouette;
+  private readonly storm: MeteorStreaks;
   private readonly zombies: ZombieField;
+  private readonly clingers: ClingerField;
+  private readonly gas: GasField;
   private readonly pickups: PickupField;
   private readonly mowFx: MowFx;
   private readonly gunFx: GunFx;
   private readonly explosionFx: ExplosionFx;
   private readonly damageSmoke: DamageSmoke;
   private readonly groundFx: GroundFx;
+  /** Reused biome sample; the render path never allocates geographic state. */
+  private readonly biome = createBiomeState();
 
   /** Landing-squash intensity, decays toward 0. Pure juice (docs/DESIGN.md). */
   private squash = 0;
@@ -100,6 +117,7 @@ export class GameView {
     this.elevation = new Elevation(seed);
     this.horizon = new Horizon(this.stage.scene, seed);
     this.dust = new Dust(this.stage.scene);
+    this.snow = new SnowFall(this.stage.scene);
     this.road = new RoadField(this.stage.scene);
     this.roadWear = new RoadWear(this.stage.scene, seed);
     this.crossStreets = new CrossStreets(this.stage.scene, seed);
@@ -109,7 +127,14 @@ export class GameView {
     this.overpass = new Overpass(this.stage.scene, seed);
     this.hazards = new HazardField(this.stage.scene);
     this.meteors = new MeteorField(this.stage.scene);
+    this.stomps = new StompField(this.stage.scene);
+    this.trex = new TrexSilhouette(this.stage.scene);
+    this.shells = new ShellField(this.stage.scene);
+    this.mecha = new MechaSilhouette(this.stage.scene);
+    this.storm = new MeteorStreaks(this.stage.scene);
     this.zombies = new ZombieField(this.stage.scene);
+    this.clingers = new ClingerField();
+    this.gas = new GasField(this.stage.scene);
     this.pickups = new PickupField(this.stage.scene);
     this.mowFx = new MowFx(this.stage.scene);
     this.gunFx = new GunFx(this.stage.scene);
@@ -118,6 +143,8 @@ export class GameView {
     this.groundFx = new GroundFx(this.stage.scene);
     this.car = createChassis(this.chassisId);
     this.stage.scene.add(this.car);
+    // Jumpers ride the hero car, so the clingers parent onto it (re-attached on swap).
+    this.clingers.attach(this.car);
   }
 
   /**
@@ -145,6 +172,9 @@ export class GameView {
 
   /** Dispose and rebuild the car body for the current chassis + paint. */
   private rebuildCar(): void {
+    // Clingers persist across body swaps. Detach them before traversing the old car,
+    // otherwise its disposal pass also frees the shared hood-passenger geometry.
+    this.clingers.detach();
     this.stage.scene.remove(this.car);
     this.car.traverse((o) => {
       if (o instanceof THREE.Mesh) o.geometry.dispose();
@@ -154,6 +184,8 @@ export class GameView {
     this.damageTier = 0;
     this.car = createChassis(this.chassisId, this.paintColor);
     this.stage.scene.add(this.car);
+    // The car group was rebuilt, so re-parent the hood clingers onto the new one.
+    this.clingers.attach(this.car);
   }
 
   /**
@@ -208,6 +240,17 @@ export class GameView {
   applySettings(reducedMotion: boolean, shake: number, pixelCap: number): void {
     this.stage.camera.setMotion(reducedMotion, shake);
     this.dust.setReducedMotion(reducedMotion);
+    this.snow.setReducedMotion(reducedMotion);
+    this.trex.setReducedMotion(reducedMotion);
+    this.mecha.setReducedMotion(reducedMotion);
+    this.storm.setReducedMotion(reducedMotion);
+    this.clingers.setReducedMotion(reducedMotion);
+    this.gas.setReducedMotion(reducedMotion);
+    this.mowFx.setReducedMotion(reducedMotion);
+    this.gunFx.setReducedMotion(reducedMotion);
+    this.explosionFx.setReducedMotion(reducedMotion);
+    this.damageSmoke.setReducedMotion(reducedMotion);
+    this.pickups.setReducedMotion(reducedMotion);
     this.stage.setPixelCap(pixelCap);
   }
 
@@ -271,6 +314,24 @@ export class GameView {
         // A cool upward puff — smooth, no shake; gathering loot is friendly.
         this.pickups.collect(event.x, this.lastDistance);
         break;
+      case 'jumperLatched':
+        // A body slams onto the hood: a sharp thump of shake and a little squash, so
+        // a latch lands in the hands even before the hull bar starts dropping.
+        this.stage.camera.addTrauma(0.32);
+        this.squash = Math.max(this.squash, 0.18);
+        break;
+      case 'jumperShed':
+        // Passengers thrown clear: ragdoll + blood but no cool scrap shards, because
+        // shaking a jumper off pays nothing. Juice must not lie about the economy.
+        for (let i = 0; i < event.count; i += 1) this.mowFx.shed(this.lastCarX, this.lastDistance);
+        this.stage.camera.addTrauma(0.12);
+        break;
+      case 'gasReleased':
+        // A toxic drum bursts: a low dust pop at the rupture and a small jolt. The
+        // lingering cloud (GasField) carries the rest of the read.
+        this.groundFx.burst(0.5, event.x);
+        this.stage.camera.addTrauma(0.16);
+        break;
       case 'laneChanged':
       case 'died':
         break;
@@ -298,9 +359,11 @@ export class GameView {
     this.squash *= Math.exp(-12 * dt);
     this.car.scale.set(1 + this.squash * 0.6, 1 - this.squash, 1 + this.squash * 0.6);
 
-    this.environment.update(distance, this.elevation);
+    const biome = biomeStateAt(curr.seed, distance, this.biome);
+    this.environment.update(distance, this.elevation, biome.look);
     this.horizon.update(distance, dt, this.elevation);
     this.dust.update(distance, dt);
+    this.snow.update(distance, dt, biome.precip);
     this.road.update(distance, this.elevation);
     this.roadWear.update(distance, this.elevation);
     this.crossStreets.update(distance, this.elevation);
@@ -310,7 +373,14 @@ export class GameView {
     this.overpass.update(distance, this.elevation);
     this.hazards.update(curr, this.elevation);
     this.meteors.update(curr, this.elevation);
+    this.stomps.update(curr, this.elevation);
+    this.trex.update(curr, dt, this.elevation);
+    this.shells.update(curr, this.elevation);
+    this.mecha.update(curr, dt, this.elevation);
+    this.storm.update(curr, dt);
     this.zombies.update(curr, dt, this.elevation);
+    this.clingers.update(curr.car.clinging, dt);
+    this.gas.update(curr, dt, this.elevation);
     this.pickups.update(curr, dt, this.elevation);
     // Hull wear: swap the dent/scorch overlay on threshold crossings, and trail
     // engine smoke that thickens as the hull empties (from ~40% down).

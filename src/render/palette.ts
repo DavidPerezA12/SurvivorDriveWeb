@@ -193,6 +193,16 @@ export const palette = {
   drumBand: 0xf0c020, // hazard-yellow warning band
   drumDark: 0x2a1a13, // rims and shadow
   drumLid: 0x3a281c, // worn lid
+  // The toxic drum — ruptures into a lingering gas cloud, not a fireball. A murky
+  // green body with an acid yellow-green hazard band, so it reads as a different
+  // drum from the red explosive one at the spawn horizon (the band colour is the
+  // gas colour, telegraphing what bursts out). Toxic green is a recognized hazard
+  // read, kept sicklier than the clean cool health-pickup green so they never confuse.
+  drumToxBody: 0x4a6b2e,
+  drumToxBand: 0xaad23a, // acid yellow-green — the toxic warning / gas colour
+  drumToxDark: 0x1c2412, // rims and shadow
+  // The gas cloud itself: a translucent acid haze that denies the lane it sits on.
+  gasCloud: 0x9ed23a,
   // The blast: a near-white core, a warm fireball, and dark smoke — a single
   // legible "danger cleared" read even with sound off (docs/DESIGN.md → Juice).
   blastCore: 0xffe6a6,
@@ -209,6 +219,25 @@ export const palette = {
   meteorCore: 0xff9a3c, // glowing hot leading face (self-lit)
   meteorShadow: 0xd83a1e, // the warning shadow on the target lane
   meteorCrater: 0x140f0c, // scorched ground after impact
+
+  // T-Rex boss (docs/DESIGN.md → spectacle in the background, the road legible). The
+  // foot-slam is the on-road threat: a clawed foot that falls (telegraph) and presses
+  // a lethal footprint into the road. The body looms alongside as the spectacle.
+  trexSkin: 0x5f6e3c, // mottled reptile green-brown
+  trexSkinDark: 0x3c4626, // shadowed scales / the looming silhouette
+  trexBelly: 0x8f9560, // paler underside
+  trexClaw: 0x141008, // near-black claws and talons
+  trexMaw: 0x7a1410, // the red maw and the warm threat read
+  trexEye: 0xffb030, // a hot predator eye (self-lit), reads from the haze
+  footprint: 0x130d08, // the pressed, lethal footprint crater
+
+  // Mecha boss (docs/DESIGN.md → spectacle in the background). A walking war machine
+  // that rakes the road with artillery: cold gunmetal plate, a hot reactor visor and
+  // glowing shell tips (reuses `mechaGlow`). The shell craters its impact lane.
+  mechaSteel: 0x4a525c, // gunmetal plate
+  mechaSteelDark: 0x282d34, // shadowed steel / the looming silhouette
+  mechaShell: 0x5a4733, // the artillery shell casing
+  shellCrater: 0x140d0a, // scorched ground after a shell impact
 
   // Lethal walls share a language: a heavy, solid mass plus a RED danger marking
   // (red = death, distinct from the amber "caution" of barrels and rig chevrons),
@@ -268,9 +297,23 @@ export const palette = {
   bruteRag: 0x3a342a,
   bruteScar: 0xa33a26, // raw warm wounds / scar tissue
 
+  // Jumper zombie — a lean, coiled leaper that springs onto the hood. Warm like the
+  // brute (warm = threat) but paler and more sinewy, with a hot hazard-orange accent
+  // on the taut back/sinews so the "this one leaps" telegraph reads apart from the
+  // shambler and the bulky brute at the spawn horizon.
+  jumperFlesh: 0xa07a52,
+  jumperFleshDark: 0x614328,
+  jumperRag: 0x33291f,
+  jumperAccent: 0xd2622a, // hot coiled sinew — the leap telegraph
+
   // Scrap reads cool — the cyan ping is the reward for a clean mow, legible even
   // with sound off (docs/DESIGN.md → Juice as information).
   scrapPing: 0x8fe6cf,
+
+  // Mow gore — a dark, retro-exaggerated splat that sprays as the car plows fodder
+  // (the inspiration's blood splatter). Deep oxblood red, never the bright lethal
+  // red of a wall, so it reads as "you hit them" spectacle, not a danger cue.
+  bloodSplat: 0x6e120c,
 
   // Scrap pickup — a loose salvage cache you scoop for instant scrap (greed with no
   // fight). Cool cyan to match the scrap-ping reward read, with a tarnished metal
@@ -278,6 +321,13 @@ export const palette = {
   scrapToken: 0x8fe6cf,
   scrapTokenDark: 0x3f8f80,
   scrapBase: 0x2a3a38,
+
+  // Coin — one nugget of a money trail (small scrap, laid in a line down a risky
+  // lane). The same cool cyan-mint as the scrap reward read so a trail reads as
+  // "money on the road," but a bright struck-disc face so a spinning coin glints
+  // apart from the dull salvage heap. Cool, never the warm of a threat.
+  coinToken: 0xa6f0d6,
+  coinTokenDark: 0x4fae96,
 
   // Light barricade — a flimsy road trestle (soft blocker: shoot, ram cheap, or
   // steer). Caution yellow over a dark frame, the universal "barricade" read, warm

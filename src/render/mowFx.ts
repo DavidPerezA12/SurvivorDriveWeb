@@ -40,7 +40,7 @@ export interface PoolConfig {
 export class ParticlePool {
   readonly mesh: THREE.InstancedMesh;
   private readonly cfg: PoolConfig;
-  private readonly reduced: boolean;
+  private reduced: boolean;
   private readonly dummy = new THREE.Object3D();
 
   private readonly fwd: Float32Array;
@@ -54,7 +54,12 @@ export class ParticlePool {
   private readonly age: Float32Array;
   private cursor = 0;
 
-  constructor(scene: THREE.Scene, geometry: THREE.BufferGeometry, cfg: PoolConfig, reduced: boolean) {
+  constructor(
+    scene: THREE.Scene,
+    geometry: THREE.BufferGeometry,
+    cfg: PoolConfig,
+    reduced: boolean,
+  ) {
     this.cfg = cfg;
     this.reduced = reduced;
     this.mesh = new THREE.InstancedMesh(geometry, propMaterial, cfg.count);
@@ -71,6 +76,10 @@ export class ParticlePool {
     this.age = new Float32Array(cfg.count).fill(cfg.life); // all start expired
     this.parkAll();
     scene.add(this.mesh);
+  }
+
+  setReducedMotion(reduced: boolean): void {
+    this.reduced = reduced;
   }
 
   private parkAll(): void {
@@ -158,31 +167,86 @@ function ragdollGeometry(): THREE.BufferGeometry {
 export class MowFx {
   private readonly ragdolls: ParticlePool;
   private readonly shards: ParticlePool;
+  private readonly blood: ParticlePool;
 
   constructor(scene: THREE.Scene) {
     const reduced = prefersReducedMotion();
     this.ragdolls = new ParticlePool(
       scene,
       ragdollGeometry(),
-      { count: 24, perBurst: 1, life: 0.7, gravity: 18, vyMin: 4, vyMax: 6.5, spread: 3, spin: 9, scale: 1 },
+      {
+        count: 24,
+        perBurst: 1,
+        life: 0.7,
+        gravity: 18,
+        vyMin: 4,
+        vyMax: 6.5,
+        spread: 3,
+        spin: 9,
+        scale: 1,
+      },
       reduced,
     );
     this.shards = new ParticlePool(
       scene,
       box(0.17, 0.17, 0.17, palette.scrapPing, 0.25),
-      { count: 64, perBurst: 5, life: 0.5, gravity: 14, vyMin: 5, vyMax: 8, spread: 5, spin: 12, scale: 1 },
+      {
+        count: 64,
+        perBurst: 5,
+        life: 0.5,
+        gravity: 14,
+        vyMin: 5,
+        vyMax: 8,
+        spread: 5,
+        spin: 12,
+        scale: 1,
+      },
+      reduced,
+    );
+    // Blood splatter: a low, fast spray of small dark-red gobs kicked forward and
+    // out as the car plows a body (the inspiration's retro splatter). Smaller and
+    // shorter-lived than the scrap shards so it reads as gore, not loot; the dark
+    // oxblood keeps it clear of the bright lethal-red danger cue.
+    this.blood = new ParticlePool(
+      scene,
+      box(0.13, 0.13, 0.13, palette.bloodSplat, 0.2),
+      {
+        count: 96,
+        perBurst: 7,
+        life: 0.4,
+        gravity: 20,
+        vyMin: 2.5,
+        vyMax: 5,
+        spread: 6,
+        spin: 14,
+        scale: 1,
+      },
       reduced,
     );
   }
 
-  /** Fire the ragdoll + scrap burst for a mow at lateral `x`, world `forward`. */
+  /** Fire the ragdoll + scrap + blood burst for a mow at lateral `x`, world `forward`. */
   burst(x: number, forward: number): void {
     this.ragdolls.spawn(x, forward);
     this.shards.spawn(x, forward);
+    this.blood.spawn(x, forward, 0.3);
+  }
+
+  /** Throw a hood jumper clear without the cool scrap ping (shedding pays nothing). */
+  shed(x: number, forward: number): void {
+    this.ragdolls.spawn(x, forward);
+    this.blood.spawn(x, forward, 0.3);
+  }
+
+  setReducedMotion(reduced: boolean): void {
+    this.ragdolls.setReducedMotion(reduced);
+    this.shards.setReducedMotion(reduced);
+    this.blood.setReducedMotion(reduced);
   }
 
   update(distance: number, dt: number): void {
     this.ragdolls.update(distance, dt);
     this.shards.update(distance, dt);
+    this.blood.update(distance, dt);
   }
 }

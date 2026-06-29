@@ -4,6 +4,7 @@ import { propMaterial } from './materials';
 import { LOOKAHEAD } from '../content/tuning';
 import { actBlendAt, ACTS, type ActMood } from './mood';
 import type { Elevation } from './elevation';
+import { NEUTRAL_LOOK, type BiomeLook } from '../content/biomes';
 
 /**
  * The world the road sits in — a graded sky dome and a wasteland floor — and the
@@ -29,6 +30,12 @@ export class EnvironmentDirector {
   private readonly groundDesert: Float32Array;
   private readonly groundCity: Float32Array;
   private lastCityness = -1;
+  /** Last biome-floor blend (amount + tint) baked in, so it only rebakes when it moves. */
+  private lastBiomeAmount = -1;
+  private lastBiomeGround = -1;
+  /** Last biome tint baked into the visible sky dome. */
+  private lastSkyBiomeAmount = -1;
+  private lastBiomeSky = -1;
 
   private readonly skyColors: THREE.BufferAttribute;
   /** Per-vertex precompute, so a rebake is pure lerps — no trig, no pow. */
@@ -47,6 +54,16 @@ export class EnvironmentDirector {
   private readonly cCloud = new THREE.Color();
   private readonly cBand = new THREE.Color();
   private readonly cVtx = new THREE.Color();
+  // Reused biome-look targets — `setHex` into these, then lerp the scene toward them.
+  private readonly bFog = new THREE.Color();
+  private readonly bSky = new THREE.Color();
+  private readonly bKey = new THREE.Color();
+  private readonly bHemiSky = new THREE.Color();
+  private readonly bHemiGround = new THREE.Color();
+  private readonly bGround = new THREE.Color();
+  /** The act's default fog distances, captured once so biomes scale off them. */
+  private baseFogNear = 0;
+  private baseFogFar = 0;
 
   private lastIndex = -1;
   private lastT = -1;
@@ -92,7 +109,11 @@ export class EnvironmentDirector {
       const cap = 1 - Math.max(0, Math.min(1, (el - 0.55) / 0.45));
       const mask = lift * cap;
       // A few octaves of sine "noise" → soft, patchy cloud masses.
-      let cn = 0.5 + 0.3 * Math.sin(az * 2 + el * 3 + 1.3) + 0.2 * Math.sin(az * 5 - el * 2) + 0.12 * Math.sin(az * 9 + 2.1);
+      let cn =
+        0.5 +
+        0.3 * Math.sin(az * 2 + el * 3 + 1.3) +
+        0.2 * Math.sin(az * 5 - el * 2) +
+        0.12 * Math.sin(az * 9 + 2.1);
       cn = Math.min(1, Math.max(0, cn));
       this.cloud[i] = cn * cn * mask; // squared → gaps between the masses
       // Horizontal aurora ribbons, wobbled by azimuth.
@@ -127,17 +148,30 @@ export class EnvironmentDirector {
     gcol.setUsage(THREE.DynamicDrawUsage);
     this.groundColors = gcol;
     this.groundDesert = (gcol.array as Float32Array).slice();
-    this.groundCity = bakeGroundColors(ground.geometry, palette.groundCityNear, palette.groundCityFar);
+    this.groundCity = bakeGroundColors(
+      ground.geometry,
+      palette.groundCityNear,
+      palette.groundCityFar,
+    );
     scene.add(ground);
 
     // Bake the opening act before the first frame, so nothing flashes — sky and
     // the city floor (the run opens in Act I, full city).
     this.bakeSky(ACTS[0], ACTS[0], 0);
     this.bakeGround(1);
+
+    // Capture the act's default fog distances; biomes scale their sightline off these.
+    const fog = scene.fog as THREE.Fog;
+    this.baseFogNear = fog.near;
+    this.baseFogFar = fog.far;
   }
 
-  /** Re-mood the world for the car's distance. Most frames only update colors. */
-  update(distance: number, elevation: Elevation): void {
+  /**
+   * Re-mood the world for the car's distance. Most frames only update colors.
+   * `look` is the active biome's art direction, blended over the act mood by its
+   * own `amount` (0 = pure act mood, the open road).
+   */
+  update(distance: number, elevation: Elevation, look: BiomeLook = NEUTRAL_LOOK): void {
     // Ride the road's vertical profile so the wasteland floor undulates with the
     // road instead of staying a flat sheet the road floats above on a hill. Each
     // vertex's world-forward is `distance − worldZ`; lift its Y onto the surface
@@ -160,34 +194,79 @@ export class EnvironmentDirector {
     this.hemi.color.lerpColors(a.hemiSky, b.hemiSky, t);
     this.hemi.groundColor.lerpColors(a.hemiGround, b.hemiGround, t);
 
+    // Biome look: blend the active biome's art direction over the act mood
+    // (allocation-free in-place lerps + `setHex` into reused targets). The biome
+    // still carries the act's tone underneath, since `amount` is capped below 1.
+    const amt = Math.min(1, Math.max(0, look.amount));
+    const fog = this.scene.fog as THREE.Fog;
+    if (amt > 0) {
+      fog.color.lerp(this.bFog.setHex(look.fog), amt);
+      (this.scene.background as THREE.Color).lerp(this.bSky.setHex(look.sky), amt);
+      this.key.color.lerp(this.bKey.setHex(look.key), amt);
+      this.hemi.color.lerp(this.bHemiSky.setHex(look.hemiSky), amt);
+      this.hemi.groundColor.lerp(this.bHemiGround.setHex(look.hemiGround), amt);
+    }
+    // Sightline: pull the haze in (tunnel) or push it out (open desert), eased by the
+    // blend amount so it never snaps. Off the base act distances, every frame.
+    fog.near = this.baseFogNear * (1 + (look.fogNearMul - 1) * amt);
+    fog.far = this.baseFogFar * (1 + (look.fogFarMul - 1) * amt);
+
     // The sky's baked vertex colors only change when the blend moves.
-    if (index !== this.lastIndex || Math.abs(t - this.lastT) > 0.004) {
-      this.bakeSky(a, b, t);
+    if (
+      index !== this.lastIndex ||
+      Math.abs(t - this.lastT) > 0.004 ||
+      Math.abs(amt - this.lastSkyBiomeAmount) > 0.004 ||
+      look.sky !== this.lastBiomeSky
+    ) {
+      this.bakeSky(a, b, t, amt, look.sky);
       this.lastIndex = index;
       this.lastT = t;
+      this.lastSkyBiomeAmount = amt;
+      this.lastBiomeSky = look.sky;
     }
 
     // The floor reads as cool concrete inside Act I (Outbreak) and crossfades to
     // warm desert dust across the boundary into Act II (Rust). Full city in the
     // act body, ramping to wasteland over the transition; pure desert thereafter.
     const cityness = index === 0 ? 1 - t : 0;
-    if (Math.abs(cityness - this.lastCityness) > 0.004) {
-      this.bakeGround(cityness);
+    if (
+      Math.abs(cityness - this.lastCityness) > 0.004 ||
+      Math.abs(amt - this.lastBiomeAmount) > 0.004 ||
+      look.ground !== this.lastBiomeGround
+    ) {
+      this.bakeGround(cityness, amt, look.ground);
       this.lastCityness = cityness;
+      this.lastBiomeAmount = amt;
+      this.lastBiomeGround = look.ground;
     }
   }
 
-  /** Crossfade the floor's vertex colors between desert (0) and city (1). */
-  private bakeGround(cityness: number): void {
+  /**
+   * Crossfade the floor's vertex colors between desert (0) and city (1), then blend
+   * the whole floor toward the biome's ground tint by `amount`. Runs only when one of
+   * those inputs moves.
+   */
+  private bakeGround(cityness: number, amount = 0, groundHex = 0x808080): void {
     const arr = this.groundColors.array as Float32Array;
     const d = this.groundDesert;
     const c = this.groundCity;
-    for (let i = 0; i < arr.length; i += 1) arr[i] = d[i] + (c[i] - d[i]) * cityness;
+    this.bGround.setHex(groundHex);
+    const gr = this.bGround.r;
+    const gg = this.bGround.g;
+    const gb = this.bGround.b;
+    for (let i = 0; i < arr.length; i += 3) {
+      const base0 = d[i] + (c[i] - d[i]) * cityness;
+      const base1 = d[i + 1] + (c[i + 1] - d[i + 1]) * cityness;
+      const base2 = d[i + 2] + (c[i + 2] - d[i + 2]) * cityness;
+      arr[i] = base0 + (gr - base0) * amount;
+      arr[i + 1] = base1 + (gg - base1) * amount;
+      arr[i + 2] = base2 + (gb - base2) * amount;
+    }
     this.groundColors.needsUpdate = true;
   }
 
-  /** Rebake the dome's vertex colors for a blended act mood (no allocation). */
-  private bakeSky(a: ActMood, b: ActMood, t: number): void {
+  /** Rebake the dome's vertex colors for the act mood plus biome tint (no allocation). */
+  private bakeSky(a: ActMood, b: ActMood, t: number, biomeAmount = 0, biomeSky = 0x808080): void {
     this.cZenith.lerpColors(a.zenith, b.zenith, t);
     this.cHorizon.lerpColors(a.horizon, b.horizon, t);
     this.cGlow.lerpColors(a.sunGlow, b.sunGlow, t);
@@ -197,6 +276,7 @@ export class EnvironmentDirector {
     const strength = a.sunStrength + (b.sunStrength - a.sunStrength) * t;
     const cloudAmt = a.cloudAmount + (b.cloudAmount - a.cloudAmount) * t;
     const bandAmt = a.bandAmount + (b.bandAmount - a.bandAmount) * t;
+    this.bSky.setHex(biomeSky);
 
     const arr = this.skyColors.array as Float32Array;
     for (let i = 0; i < this.height.length; i += 1) {
@@ -208,6 +288,9 @@ export class EnvironmentDirector {
       this.cVtx.lerp(this.cGlow, this.halo[i] * strength);
       this.cVtx.lerp(this.cCore, this.core[i] * strength);
       this.cVtx.lerp(this.cBand, this.band[i] * bandAmt);
+      // The dome, not `scene.background`, is the visible sky. Tint every vertex here
+      // so snow, tunnel, bridge, and lava actually recolor the overhead world.
+      this.cVtx.lerp(this.bSky, biomeAmount);
       arr[i * 3] = this.cVtx.r;
       arr[i * 3 + 1] = this.cVtx.g;
       arr[i * 3 + 2] = this.cVtx.b;
@@ -240,7 +323,11 @@ function buildGround(): THREE.Mesh {
  * pure function of x,z (which never change — only Y is displaced each frame), so
  * a second palette can be baked once and crossfaded into without recomputing it.
  */
-function bakeGroundColors(geo: THREE.BufferGeometry, nearHex: number, farHex: number): Float32Array {
+function bakeGroundColors(
+  geo: THREE.BufferGeometry,
+  nearHex: number,
+  farHex: number,
+): Float32Array {
   const pos = geo.getAttribute('position');
   const near = new THREE.Color(nearHex);
   const far = new THREE.Color(farHex);
@@ -250,10 +337,7 @@ function bakeGroundColors(geo: THREE.BufferGeometry, nearHex: number, farHex: nu
     const x = pos.getX(i);
     const z = pos.getZ(i);
     // Two octaves of sine "noise" → soft deterministic patches.
-    const n =
-      0.5 +
-      0.3 * Math.sin(x * 0.07 + z * 0.05) +
-      0.2 * Math.sin(x * 0.21 - z * 0.13 + 1.7);
+    const n = 0.5 + 0.3 * Math.sin(x * 0.07 + z * 0.05) + 0.2 * Math.sin(x * 0.21 - z * 0.13 + 1.7);
     c.copy(near).lerp(far, Math.min(Math.max(n, 0), 1) * 0.6 + 0.2);
     colors[i * 3] = c.r;
     colors[i * 3 + 1] = c.g;

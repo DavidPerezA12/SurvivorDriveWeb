@@ -50,6 +50,12 @@ export class ExplosionFx {
     this.smoke.spawn(x, forward);
   }
 
+  setReducedMotion(reduced: boolean): void {
+    this.core.setReducedMotion(reduced);
+    this.fire.setReducedMotion(reduced);
+    this.smoke.setReducedMotion(reduced);
+  }
+
   update(distance: number, dt: number, elevation: Elevation): void {
     // Bursts can fire far ahead (a shot barrel, a meteor) where the road has
     // climbed, so lift the fireball onto the profile.
