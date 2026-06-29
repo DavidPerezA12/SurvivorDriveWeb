@@ -57,10 +57,11 @@ Fixed-timestep simulation with interpolated rendering:
 
 ## World model
 
-The car lives on a **5-lane grid** with a continuous lateral offset. Steering is a
+The car lives on a **3-lane grid** with a continuous lateral offset. One lane is
+the current safe line and the other two carry the pressure. Steering is a
 target-lane state machine with a tunable velocity curve ("snappy but analog").
-Forward motion is one scalar, `distance` (meters); the world streams toward the car
-so world-space `z` never grows unbounded.
+Forward motion is one scalar, `distance` (meters); the world streams toward the
+car so world-space `z` never grows unbounded.
 
 The road is a stream of **chunks** (50 m), generated pull-based from
 `(seed, index, actTable)` as a 250 m lookahead window reaches them; nothing is
@@ -135,9 +136,10 @@ testable. `render/` and `audio/` consume the same timeline via frame events.
 
 ## Collision
 
-- **Swept tests** (the car moves up to ~0.7 m/tick): segment-vs-AABB for blockers
-  and gaps, segment-vs-sphere for pickups and zombies, in 2D (lane-space by
-  distance) with height only as a jump flag.
+- **Swept tests** (the car moves up to ~1.4 m/tick): segment-vs-AABB for blockers
+  and gaps, segment-vs-sphere for pickups and zombies, in lane-space by distance.
+  Ground hazards carry a clearance height, so the car only clears one when its
+  jump arc is physically above it. Lethal walls remain unjumpable.
 - Broadphase is the 2 to 3 chunks overlapping the swept segment; no spatial tree
   (< 100 live colliders).
 - **Fodder is resolved separately from damage** (`resolveMows`/`resolveShots`

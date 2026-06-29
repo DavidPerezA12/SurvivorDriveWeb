@@ -106,7 +106,7 @@ describe('formation library', () => {
     for (const f of FORMATIONS) {
       if (f.acts[0] <= 0) continue;
       for (const c of f.cells) {
-        expect(['meteor', 'beam', 'drifter', 'gap']).not.toContain(c.role);
+        expect(['meteor', 'stomp', 'shell', 'beam', 'drifter', 'gap']).not.toContain(c.role);
       }
     }
   });

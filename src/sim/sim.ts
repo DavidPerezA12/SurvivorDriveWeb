@@ -5,15 +5,19 @@ import {
   materializeSpawns,
   pruneSpawns,
   resolveCollisions,
+  resolveGas,
+  resolveJumpers,
   resolveMows,
   resolvePickups,
   resolveShots,
   updateBeams,
+  updateClingers,
   updateDrifters,
   updateMeteors,
   updateQuakes,
 } from './collision';
 import { BASE_LOADOUT, type Loadout } from '../content/upgrades';
+import { biomeStateAt, createBiomeState } from '../content/biomes';
 
 /**
  * Fixed simulation timestep: 60 Hz. Every tuning value is per-second and scaled
@@ -23,6 +27,11 @@ export const FIXED_DT = 1 / 60;
 
 /** Deceleration (m/s²) of the wreck once the run is over. */
 const DEAD_DECEL = 16;
+
+/** Reused biome sample; sampling the current grip allocates nothing per tick. */
+const BIOME_STATE = createBiomeState();
+/** Reused adapter from biome fields to the car's handling input. */
+const BIOME_HANDLING = { omegaMul: 1, dampingMul: 1 };
 
 /**
  * Create a fresh run from a seed and an optional garage loadout. Same
@@ -39,6 +48,7 @@ export function createSim(seed: number, loadout: Loadout = BASE_LOADOUT): SimSta
     hazards: [],
     zombies: [],
     pickups: [],
+    gas: [],
     nextSpawnChunk: 0,
     scrap: 0,
     zombiesMowed: 0,
@@ -86,7 +96,13 @@ export function step(state: SimState, intent: Intent): SimState {
   // (docs/DESIGN.md → Pillar 2). The only speed cost is the crash frenazo.
   const topSpeed = cruisingSpeed(state.distance);
 
-  stepCar(state.car, intent, topSpeed, FIXED_DT, state.events, state.loadout);
+  // The biome the car is driving through sets its handling: open road is a crisp
+  // wheel, an ice field slides (docs/DESIGN.md → biomes). Pure function of distance,
+  // so the road's grip is as deterministic as its layout.
+  const biome = biomeStateAt(state.seed, state.distance, BIOME_STATE);
+  BIOME_HANDLING.omegaMul = biome.steerOmegaMul;
+  BIOME_HANDLING.dampingMul = biome.steerDampingMul;
+  stepCar(state.car, intent, topSpeed, FIXED_DT, state.events, state.loadout, BIOME_HANDLING);
   state.distance += state.car.speed * FIXED_DT;
 
   // Slide any drifting wrecks toward their target lane before collisions read X.
@@ -98,12 +114,20 @@ export function step(state: SimState, intent: Intent): SimState {
   // Tear open any quake crack the car has reached (turns it lethal this tick).
   updateQuakes(state);
 
-  // Kills first — ramming (a surge) and the gun — then harmless refills, then the
-  // damaging hits (which cut speed and break the streak the kills just built).
+  // Jumpers latch first (a contact a hair before the mow box), so a leaper is taken
+  // as a hood passenger, never mowed for scrap. Then kills — ramming (a surge) and
+  // the gun, which also peels a clinger off — then harmless refills, then the
+  // damaging hits (which cut speed, shake clingers loose, and break the streak the
+  // kills just built). Finally the clinging jumpers drain the hull for the tick.
+  resolveJumpers(state);
   resolveMows(state, topSpeed);
   resolveShots(state, intent);
   resolvePickups(state);
   resolveCollisions(state);
+  updateClingers(state);
+  // Age the toxic gas clouds and drain the hull for any the car is sitting in. After
+  // collisions, so a drum ruptured this tick blooms its cloud before it is ticked.
+  resolveGas(state);
   pruneSpawns(state);
 
   state.tick += 1;

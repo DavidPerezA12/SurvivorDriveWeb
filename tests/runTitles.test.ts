@@ -87,12 +87,16 @@ describe('runTitle', () => {
       'barricade',
       'boulder',
       'barrel',
+      'toxbarrel',
       'spikes',
       'drifter',
       'meteor',
+      'stomp',
+      'shell',
       'beam',
       'gap',
       'brute',
+      'jumper',
       'attrition',
     ];
     expect(causes).toEqual([...DEATH_CAUSES]);

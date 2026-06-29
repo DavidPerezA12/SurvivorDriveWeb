@@ -23,13 +23,13 @@ function driveCollecting(state: SimState, ticks: number): FrameEvent[] {
 describe('explosive barrel', () => {
   it('a shot detonates a barrel in the lane and clears zombies around it', () => {
     const s = createSim(1);
-    const bx = laneCenterX(2);
+    const bx = laneCenterX(1);
     s.car.ammo = 10;
-    s.hazards.push({ kind: 'barrel', lane: 2, x: bx, forward: 40, hit: false });
+    s.hazards.push({ kind: 'barrel', lane: 1, x: bx, forward: 40, hit: false });
     // One zombie in the barrel's lane, one in the lane beside it — both inside the
     // blast box, so the detonation should take both.
-    s.zombies.push({ lane: 2, x: bx, forward: 42, phase: 0, mowed: false });
-    s.zombies.push({ lane: 1, x: laneCenterX(1), forward: 39, phase: 0, mowed: false });
+    s.zombies.push({ lane: 1, x: bx, forward: 42, phase: 0, mowed: false });
+    s.zombies.push({ lane: 0, x: laneCenterX(0), forward: 39, phase: 0, mowed: false });
 
     resolveShots(s, { steer: 0, jump: false, fire: true });
 
@@ -42,8 +42,8 @@ describe('explosive barrel', () => {
   it('detonating one barrel chains to a neighbour', () => {
     const s = createSim(1);
     s.car.ammo = 10;
-    s.hazards.push({ kind: 'barrel', lane: 2, x: laneCenterX(2), forward: 40, hit: false });
-    s.hazards.push({ kind: 'barrel', lane: 1, x: laneCenterX(1), forward: 41, hit: false });
+    s.hazards.push({ kind: 'barrel', lane: 1, x: laneCenterX(1), forward: 40, hit: false });
+    s.hazards.push({ kind: 'barrel', lane: 0, x: laneCenterX(0), forward: 41, hit: false });
 
     resolveShots(s, { steer: 0, jump: false, fire: true });
 
@@ -55,10 +55,10 @@ describe('explosive barrel', () => {
 
   it('does not waste a shot on a far barrel when a zombie is at the bumper', () => {
     const s = createSim(1);
-    const lane = laneCenterX(2);
+    const lane = laneCenterX(1);
     s.car.ammo = 10;
-    s.hazards.push({ kind: 'barrel', lane: 2, x: lane, forward: 50, hit: false });
-    s.zombies.push({ lane: 2, x: lane, forward: 5, phase: 0, mowed: false });
+    s.hazards.push({ kind: 'barrel', lane: 1, x: lane, forward: 50, hit: false });
+    s.zombies.push({ lane: 1, x: lane, forward: 5, phase: 0, mowed: false });
 
     resolveShots(s, { steer: 0, jump: false, fire: true });
 
@@ -69,11 +69,11 @@ describe('explosive barrel', () => {
 
   it('ramming a barrel hits the hull harder than a wreck and detonates it', () => {
     const barrelRun = createSim(1);
-    barrelRun.hazards.push({ kind: 'barrel', lane: 2, x: laneCenterX(2), forward: 6, hit: false });
+    barrelRun.hazards.push({ kind: 'barrel', lane: 1, x: laneCenterX(1), forward: 6, hit: false });
     const events = driveCollecting(barrelRun, 60);
 
     const wreckRun = createSim(1);
-    wreckRun.hazards.push({ kind: 'wreck', lane: 2, x: laneCenterX(2), forward: 6, hit: false });
+    wreckRun.hazards.push({ kind: 'wreck', lane: 1, x: laneCenterX(1), forward: 6, hit: false });
     driveCollecting(wreckRun, 60);
 
     expect(barrelRun.car.health).toBeLessThan(wreckRun.car.health); // the bigger hit
@@ -82,7 +82,7 @@ describe('explosive barrel', () => {
 
   it('a jump sails over a barrel (it is ground-class, unlike the rig)', () => {
     const s = createSim(1);
-    s.hazards.push({ kind: 'barrel', lane: 2, x: laneCenterX(2), forward: 6, hit: false });
+    s.hazards.push({ kind: 'barrel', lane: 1, x: laneCenterX(1), forward: 6, hit: false });
     s.distance = 6;
     s.car.height = 1.2; // airborne above the clearance
     resolveCollisions(s);

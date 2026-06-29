@@ -12,7 +12,7 @@ import { ACT_SPAN_M } from '../src/content/acts';
  */
 
 function gapAhead(forward = 6) {
-  return { kind: 'gap' as const, lane: 2, x: laneCenterX(2), forward, hit: false };
+  return { kind: 'gap' as const, lane: 1, x: laneCenterX(1), forward, hit: false };
 }
 
 describe('road gap', () => {
@@ -56,7 +56,7 @@ describe('road gap', () => {
 
   it('does not threaten a car one lane over', () => {
     const s = createSim(1);
-    s.hazards.push({ kind: 'gap', lane: 3, x: laneCenterX(3), forward: 6, hit: false });
+    s.hazards.push({ kind: 'gap', lane: 0, x: laneCenterX(0), forward: 6, hit: false });
     s.distance = 6;
     s.car.height = 0;
     s.car.speed = 40;

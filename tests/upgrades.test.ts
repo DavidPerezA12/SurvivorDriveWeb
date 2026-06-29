@@ -115,7 +115,7 @@ describe('upgrade effects in the sim', () => {
       step(stock, i === 0 ? intent(1) : NO_INTENT);
       step(sticky, i === 0 ? intent(1) : NO_INTENT);
     }
-    const target = laneCenterX(3);
+    const target = laneCenterX(2);
     // Closer to the new lane centre after the same number of ticks.
     expect(target - sticky.car.lateralX).toBeLessThan(target - stock.car.lateralX);
   });

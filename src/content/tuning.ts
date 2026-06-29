@@ -12,13 +12,14 @@
 /**
  * Number of lanes, including the two shoulders. Lane 0 is the far left.
  *
- * Tuned to 4 (down from the original 5): a narrower road leaves less room to
- * dodge, so clean driving stays tense. This is the global difficulty lever.
- * Everything (sim and render) derives from this constant; nothing hardcodes a
- * lane count, so this is the single knob. An even count means no centre lane:
- * the car starts just right of centre and the road is symmetric about a divider.
+ * Tuned to 3 (down from 4, originally 5): with the safe line always clear, three
+ * lanes means just two threat lanes, so every blocker is a real commitment and
+ * there is almost nowhere to hide a sloppy line. This is the global difficulty
+ * lever. Everything (sim and render) derives from this constant; nothing hardcodes
+ * a lane count, so this is the single knob. An odd count keeps a true centre lane,
+ * where the car starts, with one threat lane to each side.
  */
-export const LANE_COUNT = 4;
+export const LANE_COUNT = 3;
 
 /** Width of a single lane, in meters. */
 export const LANE_WIDTH = 3.2;
@@ -32,7 +33,7 @@ export const LOOKAHEAD = 250;
 /** Car kinematics. Speeds in m/s, acceleration in m/s². */
 export const CAR_TUNING = {
   /** Base cruising speed the car ramps up to at the start of a run. */
-  baseTopSpeed: 50,
+  baseTopSpeed: 52,
   /**
    * The speed ramp is two stages. The first is the M1 feel ramp: a quick climb to
    * a comfortable cruise over the opening stretch, unchanged from how it was tuned
@@ -43,11 +44,11 @@ export const CAR_TUNING = {
    * keeps escalating once the act mix has maxed out. It is capped, so the car is
    * fast but never uncontrollable.
    */
-  earlyGain: 16,
+  earlyGain: 18,
   /** Distance (m) over which the early feel ramp reaches full `earlyGain`. */
-  earlyRampDistance: 2200,
+  earlyRampDistance: 1500,
   /** Extra cruising speed the slow late ramp adds on top, fully gained by `lateRampDistance`. */
-  lateGain: 18,
+  lateGain: 13,
   /** Distance (m), measured from the start, by which the late ramp is fully gained. */
   lateRampDistance: 50000,
   /** Forward acceleration toward the current cruising speed. */
@@ -102,7 +103,7 @@ export const DECOR_TUNING = {
  */
 export const SPAWN_TUNING = {
   /** Chunks at the start of a run with nothing spawned, so the drive eases in. */
-  graceChunks: 2,
+  graceChunks: 1,
   /** Spacing along the lane (m) between zombies in a cluster (act sets the count). */
   clusterSpacing: 2.6,
 } as const;
@@ -241,6 +242,33 @@ export const BRUTE_TUNING = {
 } as const;
 
 /**
+ * The jumper zombie (docs/DESIGN.md → the one threat that reaches the safe line). A
+ * leaper that latches onto the hood and drains the hull while it clings, regardless
+ * of which lane you are in. Counters: shoot it before it leaps, or shake it off with
+ * a crash (ram or scrape). It never touches the controls and pays no scrap; the cost
+ * is purely the hull drain, so it adds pressure without breaking the safe-lane
+ * promise outright. Numbers are first-pass, for the browser feel pass.
+ */
+export const JUMPER_TUNING = {
+  /**
+   * Lateral reach (m) of the leap. Bigger than a lane width (3.2) so a jumper on a
+   * flanking lane can latch onto a car in the adjacent safe lane (the whole point),
+   * but under two lane widths so a jumper two lanes away cannot reach.
+   */
+  leapLateral: 3.7,
+  /** Forward half-length (m) of the leap footprint: it springs a touch before contact. */
+  leapHalfLength: 1.1,
+  /**
+   * Hull fraction drained per tick by one clinger (~0.0025 × 60 ≈ 0.15/s, so one
+   * jumper empties a full bar in ~6.7 s of clinging). Two clingers drain twice as
+   * fast. Slow enough to shake off, fast enough to demand you do.
+   */
+  drainPerTick: 0.0025,
+  /** Most jumpers that can cling at once (extras past this are shrugged off, never latch). */
+  maxClinging: 3,
+} as const;
+
+/**
  * The explosive barrel's blast (docs/DESIGN.md → roster: the gun's area tool). A
  * detonation (shot, rammed, or chained) clears live zombies within a box around
  * the barrel and chains to any other barrel nearby, so a barrel parked by a horde
@@ -256,6 +284,26 @@ export const BARREL_TUNING = {
   chainForward: 9,
   /** Lateral reach that sets off a neighbouring barrel. */
   chainLateral: LANE_WIDTH * 1.5,
+} as const;
+
+/**
+ * The toxic barrel's gas cloud (docs/DESIGN.md → roster: the toxic/radiation drum).
+ * Unlike the explosive barrel (an instant, wide, crowd-clearing chain), the toxic
+ * drum ruptures into a cloud that lingers on its own lane and denies it: drive
+ * through it grounded and it eats the hull, so popping it point-blank or ramming it
+ * poisons the line you are about to take. Shoot it from range and the cloud thins
+ * before you arrive, or jump it (you are above the cloud), or just steer wide. A pure
+ * trap, lane-focused, not the explosive barrel's wide blast. First-pass numbers.
+ */
+export const GAS_TUNING = {
+  /** Ticks the cloud lingers before it clears (~120 / 60 = 2 s). */
+  lifeTicks: 120,
+  /** Hull fraction drained per tick while the car is grounded in the cloud (armor-scaled). */
+  drainPerTick: 0.004,
+  /** Half-width (m) of the cloud's drain box: about one lane, so it denies its lane. */
+  halfWidth: LANE_WIDTH * 0.6,
+  /** Half-length (m) of the cloud's drain box along the road. */
+  halfLength: 2.4,
 } as const;
 
 /**
@@ -375,6 +423,14 @@ export const PICKUP_TUNING = {
    * real economic choice, never as rich as actually plowing a loot crowd.
    */
   scrapValue: 18,
+  /**
+   * Scrap a single coin pays. Small: a coin is one nugget of a trail (`coinTrail`
+   * coins), so a full grabbed trail banks a few coins' worth — the lure that pulls
+   * a greedy line off the safe lane, never as rich as a salvage cache in one stop.
+   */
+  coinValue: 4,
+  /** Coins laid in one money trail (the `coin` formation role lays a line of them). */
+  coinTrail: 6,
 } as const;
 
 /** Lateral world-space X of a lane center. Lane 0 is leftmost, centered on 0. */

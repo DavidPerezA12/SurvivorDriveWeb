@@ -111,7 +111,7 @@ describe('mowing', () => {
 describe('mow streak lifecycle', () => {
   it('lapses after its window with no fresh kills', () => {
     const s = createSim(5);
-    putZombie(s, 2, 8);
+    putZombie(s, 1, 8);
 
     let mowed = false;
     for (let i = 0; i < 120 && !mowed; i += 1) {
@@ -127,8 +127,8 @@ describe('mow streak lifecycle', () => {
 
   it('resets the streak the instant a crash dents the hull', () => {
     const s = createSim(5);
-    putZombie(s, 2, 8); // mowed early, builds a streak
-    s.hazards.push({ kind: 'wreck', lane: 2, x: laneCenterX(2), forward: 30, hit: false });
+    putZombie(s, 1, 8); // mowed early, builds a streak
+    s.hazards.push({ kind: 'wreck', lane: 1, x: laneCenterX(1), forward: 30, hit: false });
 
     let crashedTick = -1;
     for (let i = 0; i < 140; i += 1) {

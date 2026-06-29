@@ -32,8 +32,8 @@ gameplay:
 | --- | --- | --- |
 | Building collapse | A tower falls across the road | Its rubble forms a ramp; the new line goes over it |
 | UFO strafe | A beam sweeps the lanes, telegraphed by a ground glow | Carves a trench: jump it, or be in the safe lane |
-| The Big One | A colossal creature crosses behind the highway | Footfalls crack the road into timed gaps |
-| Horde surge | A zombie wave floods three lanes | Mow through (hull/ammo cost) or thread the gap |
+| The Big One | The sky tears open under a meteor storm | Falling impacts crater alternating lines; read the descent and hold the opening |
+| Horde surge | A zombie wave floods the flanking lanes | Mow through (hull/ammo cost) or thread the gap |
 | Quake split | The road shears lengthwise | One side ramps up, the other crumbles; pick fast |
 
 Rules that keep events fun instead of cheap:
@@ -101,7 +101,7 @@ event, and music layer. Acts give runs shape and deaths an address.
 | II | Rust | Sick orange haze, suburbia | Static hazards, lone zombies, first scripted collapse |
 | III | Swarm | Dust-brown outskirts | Horde surges, barrels, denser ruins |
 | IV | Visitors | Green aurora, downtown canyons | UFO strafes, compound events begin |
-| V | Colossus | Deep red, skyline silhouettes | The Big One walks, quake splits, overlap |
+| V | Colossus | Deep red, skyline silhouettes | The Big One rains down, quake splits, overlap |
 | VI+ | Static | Reality fraying, desaturating | All events, max frequency, leaderboard land |
 
 - Transitions are landmark moments: a sky shift, a Radio line, a music
@@ -271,11 +271,24 @@ object or it is decoration. Steer is forced by the lethal walls; ram and shoot b
 fodder and the brute; jump by the boulder, gap, and spikes. A new object that only
 repeats an existing counterplay is filler.
 
-**Divergences from the inspiration.** We do not copy: (1) timed power-ups / shield
-bubbles (they mute the greed pillar); our model is permanent upgrades plus resource
-pickups. (2) The hood-clinging "jumper" zombie (enemy variety, parked at M4+). (3)
-Biomes and weather that alter handling (they break the "terrain never touches the
-controls" rule). Raiders, mines, weather, and chassis variety are all post-MVP.
+**Relationship to the inspiration.** Three features the project once ruled out are
+now part of the plan, each kept honest rather than copied wholesale:
+
+1. **Timed power-ups, including a shield bubble.** They appear as rare pickups on the
+   risky lines, never on the safe lane, so they enable greed rather than mute it. They
+   are short and earned, a spike on top of the permanent upgrades and resource
+   pickups, never a standing crutch.
+2. **The hood-clinging "jumper" zombie.** A leaper that latches on and drains hull
+   regardless of lane, the one threat that reaches the safe line. It is shaken by
+   ramming, shot off, or scraped against a wall, so it adds pressure without breaking
+   the safe-lane promise outright.
+3. **Biomes that alter handling.** A snow stretch the car slides on, a tunnel that
+   narrows the room to dodge. This is a deliberate, telegraphed exception to "terrain
+   never touches the controls": the change is per biome, consistent within it, and
+   learnable, never a random twitch. Damage still never touches the controls; only the
+   chosen biome does, and the player can read it coming.
+
+Raiders, mines, and chassis variety remain post-MVP.
 
 ## Roadmap
 

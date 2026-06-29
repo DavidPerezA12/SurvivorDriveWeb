@@ -3,8 +3,10 @@ import { applyCrash } from './health';
 import { chunkAt } from './world';
 import {
   BARREL_TUNING,
+  GAS_TUNING,
   BEAM_TUNING,
   BRUTE_TUNING,
+  JUMPER_TUNING,
   CAR_TUNING,
   CHUNK_LENGTH,
   CRASH_TUNING,
@@ -118,18 +120,21 @@ export function materializeSpawns(state: SimState): void {
           forward: base + spawn.z,
           phase: spawn.phase,
           mowed: false,
-          // A brute is a damaging heavy zombie with several hit points; a plain
-          // zombie leaves both unset and dies in one hit, never costing hull.
+          // A brute is a damaging heavy zombie with several hit points; a jumper is a
+          // leaper that latches onto the hood; a plain zombie leaves both unset, dies
+          // in one hit, and never costs hull.
           brute: spawn.brute ? true : undefined,
+          jumper: spawn.jumper ? true : undefined,
           hp: spawn.brute ? BRUTE_TUNING.hp : undefined,
         });
       } else if (
         spawn.kind === 'jump' ||
         spawn.kind === 'health' ||
         spawn.kind === 'ammo' ||
-        spawn.kind === 'scrap'
+        spawn.kind === 'scrap' ||
+        spawn.kind === 'coin'
       ) {
-        // The on-ground collectibles (lift / health / ammo / scrap cache).
+        // The on-ground collectibles (lift / health / ammo / scrap cache / coin).
         state.pickups.push({
           kind: spawn.kind,
           lane: spawn.lane,
@@ -164,10 +169,11 @@ export function materializeSpawns(state: SimState): void {
           beamFromX: fromX,
           beamToX: laneCenterX(spawn.toLane),
         });
-      } else if (spawn.kind === 'meteor') {
-        // A sky meteor: harmless until `updateMeteors` lands it on this lane.
+      } else if (spawn.kind === 'meteor' || spawn.kind === 'stomp' || spawn.kind === 'shell') {
+        // A sky meteor, a T-Rex foot, or a mecha shell: harmless while it falls (just a
+        // telegraph), lethal the moment `updateMeteors` lands it on this lane.
         state.hazards.push({
-          kind: 'meteor',
+          kind: spawn.kind,
           lane: spawn.lane,
           x: laneCenterX(spawn.lane),
           forward: base + spawn.z,
@@ -175,8 +181,8 @@ export function materializeSpawns(state: SimState): void {
           landed: false,
         });
       } else {
-        // wreck | rig | barrier | bus | barricade | boulder | barrel | spikes | gap |
-        // ramp — the static road objects. A gap flagged `opening` is a quake crack:
+        // wreck | rig | barrier | bus | barricade | boulder | barrel | toxbarrel |
+        // spikes | gap | ramp — the static road objects. A gap flagged `opening` is a quake crack:
         // harmless until `updateQuakes` opens it. A ramp is the lone non-damaging
         // one (it launches the car; `resolveCollisions`). A wreck and a barricade
         // carry shootable `hp` (a barricade pops in one hit).
@@ -244,15 +250,16 @@ export function updateBeams(state: SimState): void {
 }
 
 /**
- * Land any falling meteor whose target has come within `impactGap`. While it
- * falls it is harmless (collisions skip it); the tick it lands it latches
+ * Land any falling meteor or T-Rex stomp whose target has come within `impactGap`.
+ * While it falls it is harmless (collisions skip it); the tick it lands it latches
  * `landed`, turning into a lethal, un-jumpable blocker, and emits one `exploded`
- * event so the renderer throws the impact burst. Deterministic (a function of the
+ * event so the renderer throws the impact burst. Both share the fall→land pipeline
+ * (a stomp is a meteor from a dinosaur's foot). Deterministic (a function of the
  * gap) and allocation-free. Runs before collisions so a landing this tick can hit.
  */
 export function updateMeteors(state: SimState): void {
   for (const h of state.hazards) {
-    if (h.kind !== 'meteor' || h.landed || h.hit) continue;
+    if ((h.kind !== 'meteor' && h.kind !== 'stomp' && h.kind !== 'shell') || h.landed || h.hit) continue;
     if (h.forward - state.distance <= METEOR_TUNING.impactGap) {
       h.landed = true;
       state.events.push({ type: 'exploded', x: h.x, forward: h.forward });
@@ -289,8 +296,8 @@ export function resolveCollisions(state: SimState): void {
   const car = state.car;
   for (const h of state.hazards) {
     if (h.hit) continue;
-    // A meteor is harmless until it lands; a falling rock never collides.
-    if (h.kind === 'meteor' && !h.landed) continue;
+    // A meteor, stomp, or shell is harmless until it lands; the falling object never collides.
+    if ((h.kind === 'meteor' || h.kind === 'stomp' || h.kind === 'shell') && !h.landed) continue;
     // A quake gap is harmless while it is still just a telegraph crack.
     if (h.kind === 'gap' && h.open === false) continue;
 
@@ -322,11 +329,20 @@ export function resolveCollisions(state: SimState): void {
     const barricade = h.kind === 'barricade';
     const boulder = h.kind === 'boulder';
     const barrel = h.kind === 'barrel';
-    const meteor = h.kind === 'meteor';
+    // The toxic drum is a survivable, jumpable blocker like the explosive barrel
+    // (same slim footprint and hull cost), but ramming it ruptures a lingering gas
+    // cloud instead of a fireball — and the car then sits in its own poison.
+    const toxbarrel = h.kind === 'toxbarrel';
+    // Both drums share the explosive barrel's footprint, jump-clearance, and hull cost.
+    const barrelLike = barrel || toxbarrel;
+    // A landed T-Rex stomp or a mecha shell behaves exactly like a landed meteor: a
+    // lethal, un-jumpable crater you dodge with a lane change. They share all the crater
+    // geometry and crash math; only the kind (attribution + render) differs.
+    const meteor = h.kind === 'meteor' || h.kind === 'stomp' || h.kind === 'shell';
     const gap = h.kind === 'gap';
     const spikes = h.kind === 'spikes';
     const beam = h.kind === 'beam';
-    // Lethal walls (rig, concrete barrier, crashed bus, landed meteor) are too
+    // Lethal walls (rig, concrete barrier, crashed bus, landed meteor/stomp) are too
     // tall/solid to jump: the only out is a lane change. Everything else is
     // ground-class — a jump clears it (the beam, gap, and spikes included)
     // (docs/DESIGN.md → readability: lethal reads as a wall; jump it or take the lane).
@@ -344,7 +360,7 @@ export function resolveCollisions(state: SimState): void {
             ? BARRICADE_HALF_WIDTH
             : boulder
               ? BOULDER_HALF_WIDTH
-              : barrel
+              : barrelLike
                 ? BARREL_HALF_WIDTH
                 : meteor
                   ? METEOR_HALF_WIDTH
@@ -365,7 +381,7 @@ export function resolveCollisions(state: SimState): void {
             ? BARRICADE_HALF_LENGTH
             : boulder
               ? BOULDER_HALF_LENGTH
-              : barrel
+              : barrelLike
                 ? BARREL_HALF_LENGTH
                 : meteor
                   ? METEOR_HALF_LENGTH
@@ -394,7 +410,7 @@ export function resolveCollisions(state: SimState): void {
       ? BARRICADE_CLEAR
       : boulder
         ? BOULDER_CLEAR
-        : barrel
+        : barrelLike
           ? BARREL_CLEAR
           : spikes
             ? SPIKES_CLEAR
@@ -441,7 +457,7 @@ export function resolveCollisions(state: SimState): void {
             ? CRASH_TUNING.barricadeDamageMul
             : boulder
               ? CRASH_TUNING.boulderDamageMul
-              : barrel
+              : barrelLike
                 ? CRASH_TUNING.barrelDamageMul
                 : meteor
                   ? CRASH_TUNING.meteorDamageMul
@@ -464,7 +480,7 @@ export function resolveCollisions(state: SimState): void {
               ? CRASH_TUNING.barricadeSpeedKeep
               : boulder
                 ? CRASH_TUNING.boulderSpeedKeep
-                : barrel
+                : barrelLike
                   ? CRASH_TUNING.barrelSpeedKeep
                   : meteor
                     ? CRASH_TUNING.meteorSpeedKeep
@@ -474,11 +490,17 @@ export function resolveCollisions(state: SimState): void {
     // Taking a hull hit breaks the streak. Greed has a cost (docs/DESIGN.md).
     state.combo = 0;
     state.comboTicks = 0;
+    // The jolt shakes any clinging jumpers loose: ramming or scraping is the crash
+    // counter to a latch (docs/DESIGN.md → shaken by ramming or scraped on a wall).
+    shedClingers(state, car.clinging);
 
     // Ramming a barrel sets it off: the blast clears the lanes around it (and the
     // kills start a fresh streak), but you still ate the crash above. `h.hit` is
     // already latched, so detonate the core directly.
     if (barrel) explodeBarrel(state, h);
+    // Ramming a toxic drum bursts it: a gas cloud blooms right where you are, so you
+    // drive into your own poison on top of the crash. `h.hit` is already latched.
+    if (toxbarrel) releaseGas(state, h);
 
     if (car.health <= 0 && !state.dead) {
       state.dead = true;
@@ -500,6 +522,73 @@ export function detonateBarrel(state: SimState, h: Hazard): void {
   if (h.hit) return;
   h.hit = true;
   explodeBarrel(state, h);
+}
+
+/**
+ * Rupture a toxic drum the gun has hit: latch it and bloom a gas cloud where it
+ * stood. Mirrors `detonateBarrel`; a ram calls `releaseGas` directly because the
+ * collision already latched `hit`. Idempotent via the `hit` guard.
+ */
+export function detonateToxBarrel(state: SimState, h: Hazard): void {
+  if (h.hit) return;
+  h.hit = true;
+  releaseGas(state, h);
+}
+
+/**
+ * Leave a lingering toxic gas cloud where a toxbarrel ruptured. The cloud sits on
+ * the drum's lane, denying it for `GAS_TUNING.lifeTicks` (`resolveGas`). The `hit`
+ * guard is the caller's job; this only spawns the cloud and fires the render cue.
+ */
+function releaseGas(state: SimState, h: Hazard): void {
+  state.gas.push({
+    lane: h.lane,
+    x: h.x,
+    forward: h.forward,
+    life: GAS_TUNING.lifeTicks,
+    maxLife: GAS_TUNING.lifeTicks,
+  });
+  state.events.push({ type: 'gasReleased', x: h.x, forward: h.forward });
+}
+
+/**
+ * Tick every live gas cloud: age it, drain the hull while the car is grounded inside
+ * it (armor-scaled, no frenazo, never the controls), and drop it when its life runs
+ * out. A jump clears the cloud (you are above it). The drain is silent per-tick (the
+ * hull bar and the green haze carry the read, like the jumper drain); only a death
+ * fires its events, attributed to the `toxbarrel` that left the gas. Allocation-free:
+ * compacts the array in place.
+ */
+export function resolveGas(state: SimState): void {
+  const car = state.car;
+  const grounded = car.height <= JUMP_CLEARANCE;
+  let write = 0;
+  for (let read = 0; read < state.gas.length; read += 1) {
+    const g = state.gas[read];
+    g.life -= 1;
+    if (grounded && !state.dead) {
+      const forwardOverlap =
+        state.distance >= g.forward - GAS_TUNING.halfLength &&
+        state.distance - CAR_LENGTH <= g.forward + GAS_TUNING.halfLength;
+      if (forwardOverlap && Math.abs(car.lateralX - g.x) < CAR_HALF_WIDTH + GAS_TUNING.halfWidth) {
+        const before = car.health;
+        car.health = Math.max(0, before - GAS_TUNING.drainPerTick * state.loadout.damageMul);
+        if (car.health <= 0 && !state.dead) {
+          state.events.push({ type: 'hullDamaged', amount: before, destroyed: true });
+          state.combo = 0;
+          state.comboTicks = 0;
+          state.dead = true;
+          state.deathCause = 'toxbarrel';
+          state.events.push({ type: 'died' });
+        }
+      }
+    }
+    if (g.life > 0) {
+      state.gas[write] = g;
+      write += 1;
+    }
+  }
+  state.gas.length = write;
 }
 
 /**
@@ -584,6 +673,11 @@ export function resolveShots(state: SimState, intent: Intent): void {
   car.ammo = Math.max(0, car.ammo - WEAPON_TUNING.ammoPerShot);
   state.events.push({ type: 'shotFired', x: car.lateralX, level: w.level });
 
+  // Blast one clinging jumper off the hood with this shot (docs/DESIGN.md → shot
+  // off). The shot still does its downrange work below; clearing a passenger is on
+  // top of it, so a held trigger both fights the lane and peels the hood clean.
+  if (car.clinging > 0) shedClingers(state, 1);
+
   // The column the shot covers: the car's lane plus (laneSpread-1)/2 lanes each
   // side. laneSpread 1 = own lane, 3 = ±1, 5 = ±2.
   const halfWidth = WEAPON_TUNING.laneHalfWidth + ((w.laneSpread - 1) / 2) * LANE_WIDTH;
@@ -593,19 +687,19 @@ export function resolveShots(state: SimState, intent: Intent): void {
   // behind it (docs/DESIGN.md → roster: the gun's area tool). The shot is spent
   // on the barrel; the blast does the killing, so we return before the zombie
   // pass. A far barrel never steals a shot from a zombie at the bumper.
-  let barrel: Hazard | null = null;
-  let barrelAhead = Infinity;
+  let drum: Hazard | null = null;
+  let drumAhead = Infinity;
   for (const h of state.hazards) {
-    if (h.kind !== 'barrel' || h.hit) continue;
+    if ((h.kind !== 'barrel' && h.kind !== 'toxbarrel') || h.hit) continue;
     const ahead = h.forward - state.distance;
     if (ahead <= 0 || ahead > w.range) continue;
     if (Math.abs(h.x - car.lateralX) > halfWidth) continue;
-    if (ahead < barrelAhead) {
-      barrelAhead = ahead;
-      barrel = h;
+    if (ahead < drumAhead) {
+      drumAhead = ahead;
+      drum = h;
     }
   }
-  if (barrel) {
+  if (drum) {
     let nearestZombie = Infinity;
     for (const z of state.zombies) {
       if (z.mowed) continue;
@@ -614,8 +708,11 @@ export function resolveShots(state: SimState, intent: Intent): void {
       if (Math.abs(z.x - car.lateralX) > halfWidth) continue;
       if (ahead < nearestZombie) nearestZombie = ahead;
     }
-    if (barrelAhead <= nearestZombie) {
-      detonateBarrel(state, barrel);
+    if (drumAhead <= nearestZombie) {
+      // The explosive drum chain-clears; the toxic drum ruptures into a denial cloud.
+      // Either way the shot is spent on the drum (it blocks the column like a car).
+      if (drum.kind === 'barrel') detonateBarrel(state, drum);
+      else detonateToxBarrel(state, drum);
       return;
     }
   }
@@ -698,6 +795,9 @@ export function resolveMows(state: SimState, topSpeed: number): void {
   const reach = ZOMBIE_HALF_WIDTH * state.loadout.grabRadiusMul;
   for (const z of state.zombies) {
     if (z.mowed) continue;
+    // A jumper is never mowed for scrap: contact latches it onto the hood instead
+    // (`resolveJumpers`, which runs first and has already consumed any in reach).
+    if (z.jumper) continue;
 
     const forwardOverlap =
       state.distance >= z.forward - ZOMBIE_HALF_LENGTH &&
@@ -714,6 +814,8 @@ export function resolveMows(state: SimState, topSpeed: number): void {
       // The hull hit breaks the streak before the kill banks a fresh one.
       state.combo = 0;
       state.comboTicks = 0;
+      // The bone-jarring slam shakes any clinging jumpers loose (ram = a counter).
+      shedClingers(state, car.clinging);
       payKill(state, z);
       if (car.health <= 0 && !state.dead) {
         state.dead = true;
@@ -729,6 +831,68 @@ export function resolveMows(state: SimState, topSpeed: number): void {
     // ever helps you forward (a ranged shot grants no surge).
     const boosted = Math.min(car.speed + MOW_TUNING.speedBoost, topSpeed + MOW_TUNING.overspeedCap);
     car.speed = Math.max(car.speed, boosted);
+  }
+}
+
+/**
+ * Latch any jumper the car reaches onto the hood (docs/DESIGN.md → the one threat
+ * that reaches the safe line). A jumper leaps on contact across a reach wider than a
+ * lane (`JUMPER_TUNING.leapLateral`), so one on a flanking lane can spring onto a car
+ * in the adjacent safe lane — but not from two lanes away. A jump dodges the leap
+ * (the air clears it, like a mow), and the cling cap shrugs off extras. Latching
+ * marks the jumper `mowed` (so it leaps once and prunes like any other) but pays no
+ * scrap; the cost is the hull drain while it clings (`updateClingers`). Runs before
+ * `resolveMows`, so a jumper is consumed as a latch, never mowed for scrap.
+ */
+export function resolveJumpers(state: SimState): void {
+  const car = state.car;
+  // In the air the car hops over the leap; on the ground it is a target.
+  if (car.height > JUMP_CLEARANCE) return;
+  for (const z of state.zombies) {
+    if (z.mowed || !z.jumper) continue;
+    if (car.clinging >= JUMPER_TUNING.maxClinging) break;
+
+    const forwardOverlap =
+      state.distance >= z.forward - JUMPER_TUNING.leapHalfLength &&
+      state.distance - CAR_LENGTH <= z.forward + JUMPER_TUNING.leapHalfLength;
+    if (!forwardOverlap) continue;
+    if (Math.abs(car.lateralX - z.x) > JUMPER_TUNING.leapLateral) continue;
+
+    z.mowed = true; // consumed: it has leapt, so it never mows or shoots again
+    car.clinging += 1;
+    state.zombiesMowed += 1; // it is off the road; counts as cleared for the stat
+    state.events.push({ type: 'jumperLatched', x: z.x });
+  }
+}
+
+/** Shake `count` clinging jumpers off the hood, emitting one shed event if any go. */
+function shedClingers(state: SimState, count: number): void {
+  const shed = Math.min(count, state.car.clinging);
+  if (shed <= 0) return;
+  state.car.clinging -= shed;
+  state.events.push({ type: 'jumperShed', count: shed });
+}
+
+/**
+ * Drain the hull for every jumper clinging to the hood this tick (docs/DESIGN.md →
+ * the latch is felt regardless of lane). Pure resource pressure: it never touches
+ * the controls and the car drives clean. If the drain empties the hull the run ends,
+ * attributed to the `jumper`. Runs after shedding (a shot or crash this tick reduces
+ * the drain) so shaking one off the moment it lands costs nothing.
+ */
+export function updateClingers(state: SimState): void {
+  const car = state.car;
+  if (car.clinging <= 0 || state.dead) return;
+  const before = car.health;
+  car.health = Math.max(0, before - JUMPER_TUNING.drainPerTick * car.clinging);
+  if (car.health <= 0) {
+    state.events.push({ type: 'hullDamaged', amount: before, destroyed: true });
+    car.clinging = 0;
+    state.combo = 0;
+    state.comboTicks = 0;
+    state.dead = true;
+    state.deathCause = 'jumper';
+    state.events.push({ type: 'died' });
   }
 }
 
@@ -763,6 +927,10 @@ export function resolvePickups(state: SimState): void {
     } else if (p.kind === 'scrap') {
       // A salvage cache: a pure greed grab, no fight. Banks scrap on the spot.
       state.scrap += PICKUP_TUNING.scrapValue;
+    } else if (p.kind === 'coin') {
+      // One coin of a money trail: a small scrap nugget. Grab the whole trail by
+      // riding the risky lane it lures you down.
+      state.scrap += PICKUP_TUNING.coinValue;
     } else {
       const cap = weaponStats(state.loadout.weaponLevel).maxAmmo;
       car.ammo = Math.min(car.ammo + PICKUP_TUNING.ammoRestore, cap);
@@ -788,4 +956,7 @@ export function pruneSpawns(state: SimState): void {
   pruneBehind(state.hazards, state.distance);
   pruneBehind(state.zombies, state.distance);
   pruneBehind(state.pickups, state.distance);
+  // Gas clouds also expire by life (`resolveGas`); this drops any that scrolled behind
+  // before their life ran out, so a stale cloud never lingers in the render list.
+  pruneBehind(state.gas, state.distance);
 }

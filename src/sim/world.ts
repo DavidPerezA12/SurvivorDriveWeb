@@ -4,6 +4,7 @@ import {
   CHUNK_LENGTH,
   DECOR_TUNING,
   LANE_COUNT,
+  PICKUP_TUNING,
   SPAWN_TUNING,
   roadHalfWidth,
 } from '../content/tuning';
@@ -22,6 +23,7 @@ import {
   type Formation,
   type FormationCell,
 } from '../content/formations';
+import { biomeAt } from '../content/biomes';
 
 /**
  * Pull-based world generation.
@@ -52,7 +54,7 @@ export function chunkAt(seed: number, index: number): Chunk {
 export function safeLane(seed: number, index: number): number {
   const center = (LANE_COUNT - 1) / 2;
   const phase = (hash2(seed, 0x5afe) / 0x100000000) * Math.PI * 2;
-  // Amplitude `center`, frequency 0.22 → max slope center·0.22 ≈ 0.44 < 0.5, so
+  // Amplitude `center`, frequency 0.22 → max slope center·0.22 ≈ 0.22 < 0.5, so
   // consecutive rounded lanes differ by at most one.
   const f = center + center * Math.sin(0.22 * index + phase);
   return Math.max(0, Math.min(LANE_COUNT - 1, Math.round(f)));
@@ -81,7 +83,10 @@ function generateSpawns(seed: number, index: number, rng: Rng): Spawn[] {
   // first so the RNG sequence past it is unaffected by it being a breather or not.
   if (nextFloat(rng) < openChanceAt(intensity)) return [];
 
-  const formation = pickFormation(act, intensity, rng);
+  // The biome can tilt selection: a broken bridge or lava field is mostly holes to
+  // leap, so it favours the jump/gap formations (docs/DESIGN.md → biomes).
+  const jumpBias = biomeAt(seed, distance).jumpBias;
+  const formation = pickFormation(act, intensity, jumpBias, rng);
   if (!formation) return [];
 
   const w = spawnWeightsAt(distance);
@@ -105,19 +110,30 @@ function generateSpawns(seed: number, index: number, rng: Rng): Spawn[] {
  * eased-in opening (`formationWeight`). Returns null only if the act has no
  * formations at all (it never does).
  */
-function pickFormation(act: number, intensity: number, rng: Rng): Formation | null {
+function pickFormation(act: number, intensity: number, jumpBias: number, rng: Rng): Formation | null {
   const bias = DIFFICULTY_TUNING.hardnessBias;
+  const weightOf = (f: Formation): number => {
+    const w = formationWeight(f, act, intensity, bias);
+    // A jump-biased biome (bridge, lava) over-weights formations that carry a hole or
+    // a ramp, so its stretch reads as a road full of leaps.
+    return jumpBias !== 1 && w > 0 && isJumpFormation(f) ? w * jumpBias : w;
+  };
   let total = 0;
-  for (const f of FORMATIONS) total += formationWeight(f, act, intensity, bias);
+  for (const f of FORMATIONS) total += weightOf(f);
   if (total <= 0) return null;
   let r = nextFloat(rng) * total;
   for (const f of FORMATIONS) {
-    const weight = formationWeight(f, act, intensity, bias);
+    const weight = weightOf(f);
     if (weight <= 0) continue;
     r -= weight;
     if (r < 0) return f;
   }
   return FORMATIONS[FORMATIONS.length - 1];
+}
+
+/** A formation is "jump" if it makes the player leave the ground: a gap or a ramp. */
+function isJumpFormation(f: Formation): boolean {
+  return f.cells.some((c) => c.role === 'gap' || c.role === 'crackgap' || c.role === 'ramp');
 }
 
 /** Resolve one formation cell into its concrete spawn(s) on `lane` at `z`. */
@@ -147,8 +163,11 @@ function resolveCell(
     case 'barricade':
     case 'boulder':
     case 'barrel':
+    case 'toxbarrel':
     case 'spikes':
     case 'meteor':
+    case 'stomp':
+    case 'shell':
     case 'gap':
     case 'ramp':
       spawns.push({ kind: cell.role, lane, z });
@@ -184,6 +203,12 @@ function resolveCell(
       // hull hit, or shoot/dodge it (the crash math lives in the sim).
       spawns.push({ kind: 'zombie', lane, z, phase: nextFloat(rng), brute: true });
       break;
+    case 'jumper':
+      // A leaper that latches onto the hood and drains hull regardless of lane: the
+      // one threat that reaches the safe line. Shoot it before it leaps, or crash it
+      // off (the latch/drain math lives in the sim).
+      spawns.push({ kind: 'zombie', lane, z, phase: nextFloat(rng), jumper: true });
+      break;
     case 'loot':
       // The greedy lane's payout: a full crowd (still inside the act's bounds).
       addZombieCluster(spawns, lane, rng, z, clusterMax);
@@ -197,6 +222,13 @@ function resolveCell(
       spawns.push({ kind: 'scrap', lane, z, phase: nextFloat(rng) });
       break;
     }
+    case 'coin':
+      // A money trail: a line of small coins down this risky lane, the lure that
+      // pulls a greedy line off the safe lane (docs/DESIGN.md → Pillar 3 greed). The
+      // whole trail is the formation's payout, so it always lays when on-road (like a
+      // loot crowd), not thinned like a bonus refill.
+      addCoinTrail(spawns, lane, rng, z, PICKUP_TUNING.coinTrail);
+      break;
     case 'ammo':
     case 'health':
     case 'lift': {
@@ -237,6 +269,24 @@ function addZombieCluster(spawns: Spawn[], lane: number, rng: Rng, baseZ: number
   for (let i = 0; i < size; i += 1) {
     spawns.push({
       kind: 'zombie',
+      lane,
+      z: z0 + i * SPAWN_TUNING.clusterSpacing,
+      phase: nextFloat(rng),
+    });
+  }
+}
+
+/**
+ * A line of `count` coins in one lane starting near `baseZ`, spaced like a zombie
+ * cluster so grabbing the whole trail reads as one greedy run down the lane. Clamped
+ * to fit the chunk; each coin gets a deterministic phase for render variety (spin).
+ */
+function addCoinTrail(spawns: Spawn[], lane: number, rng: Rng, baseZ: number, count: number): void {
+  const span = (count - 1) * SPAWN_TUNING.clusterSpacing;
+  const z0 = Math.max(0, Math.min(baseZ, CHUNK_LENGTH - span));
+  for (let i = 0; i < count; i += 1) {
+    spawns.push({
+      kind: 'coin',
       lane,
       z: z0 + i * SPAWN_TUNING.clusterSpacing,
       phase: nextFloat(rng),

@@ -104,6 +104,35 @@ describe('safe-line invariant', () => {
     expect(zombies).toBeGreaterThan(0);
     expect(pickups).toBeGreaterThan(0);
   });
+
+  it('lays coins as contiguous money trails down a flanking lane (greed lure)', () => {
+    // A coin role expands into a line of coins on one lane, spaced like a cluster, so
+    // grabbing them reads as one greedy run off the safe line (docs/DESIGN.md → Pillar 3).
+    let checked = 0;
+    for (let seed = 1; seed < 40 && checked < 4; seed += 1) {
+      for (let i = SPAWN_TUNING.graceChunks; i < 400 && checked < 4; i += 1) {
+        const safe = safeLane(seed, i);
+        const coins = chunkAt(seed, i).spawns.filter((s) => s.kind === 'coin');
+        if (coins.length < 2) continue;
+        const byLane = new Map<number, number[]>();
+        for (const c of coins) {
+          expect(c.lane).not.toBe(safe); // never lures onto the safe line
+          const list = byLane.get(c.lane) ?? [];
+          list.push(c.z);
+          byLane.set(c.lane, list);
+        }
+        for (const zs of byLane.values()) {
+          if (zs.length < 2) continue;
+          zs.sort((a, b) => a - b);
+          for (let k = 1; k < zs.length; k += 1) {
+            expect(zs[k] - zs[k - 1]).toBeCloseTo(SPAWN_TUNING.clusterSpacing, 5);
+          }
+          checked += 1;
+        }
+      }
+    }
+    expect(checked).toBeGreaterThan(0);
+  });
 });
 
 describe('zombie clusters', () => {
@@ -113,9 +142,11 @@ describe('zombie clusters', () => {
     // it like any other spawn.
     let checked = 0;
     for (let i = SPAWN_TUNING.graceChunks; i < 400 && checked < 6; i += 1) {
-      // Brutes are standalone obstacles, not cluster members, so they are excluded
-      // from the fodder-cluster line/spacing checks.
-      const zombies = chunkAt(99, i).spawns.filter((s) => s.kind === 'zombie' && !s.brute);
+      // Brutes and jumpers are standalone obstacles, not cluster members, so they are
+      // excluded from the fodder-cluster line/spacing checks.
+      const zombies = chunkAt(99, i).spawns.filter(
+        (s) => s.kind === 'zombie' && !s.brute && !s.jumper,
+      );
       if (zombies.length < 2) continue;
       // Group by lane and verify spacing within each lane's run.
       const byLane = new Map<number, number[]>();
@@ -142,8 +173,10 @@ describe('zombie clusters', () => {
       const w = spawnWeightsAt(i * CHUNK_LENGTH);
       const byLane = new Map<number, number>();
       for (const s of chunkAt(7, i).spawns) {
-        // Brutes are standalone obstacles, not part of a fodder cluster's size.
-        if (s.kind === 'zombie' && !s.brute) byLane.set(s.lane, (byLane.get(s.lane) ?? 0) + 1);
+        // Brutes and jumpers are standalone obstacles, not part of a fodder cluster's size.
+        if (s.kind === 'zombie' && !s.brute && !s.jumper) {
+          byLane.set(s.lane, (byLane.get(s.lane) ?? 0) + 1);
+        }
       }
       for (const count of byLane.values()) {
         expect(count).toBeGreaterThanOrEqual(w.clusterMin);

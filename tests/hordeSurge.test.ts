@@ -32,12 +32,12 @@ describe('horde surge', () => {
     expect(has('ammo')).toBe(true); // the ammo cost is paid for
   });
 
-  it('floods all three non-safe lanes wherever the safe line wanders', () => {
+  it('floods every non-safe lane wherever the safe line wanders', () => {
     if (!surge) return;
     const crowdOffsets = surge.cells.filter((c) => c.role === 'loot' || c.role === 'horde').map((c) => c.off);
     // For every possible safe lane, the crowd offsets that land on the road and off
-    // the safe lane must cover all three non-safe lanes — the whole point of a surge
-    // is that the safe lane is the only gap.
+    // the safe lane must cover every non-safe lane — the whole point of a surge is
+    // that the safe lane is the only gap.
     for (let safe = 0; safe < LANE_COUNT; safe += 1) {
       const flooded = new Set<number>();
       for (const off of crowdOffsets) {
@@ -61,7 +61,7 @@ describe('horde surge', () => {
         const safe = safeLane(seed, i);
         const lanes = new Set(chunk.spawns.filter((s) => s.kind === 'zombie').map((s) => s.lane));
         const hasBrute = chunk.spawns.some((s) => s.kind === 'zombie' && s.brute);
-        if (!hasBrute || lanes.size < 3) continue; // not a surge chunk
+        if (!hasBrute || lanes.size < LANE_COUNT - 1) continue; // not a surge chunk (both flanks flooded)
         surgesSeen += 1;
         for (const s of chunk.spawns) expect(s.lane).not.toBe(safe);
       }

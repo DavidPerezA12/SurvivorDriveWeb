@@ -12,6 +12,7 @@ export type {
   PropKind,
   Spawn,
   SpawnKind,
+  HazardKind,
   PickupKind,
   Hazard,
   Zombie,

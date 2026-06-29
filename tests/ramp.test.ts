@@ -11,7 +11,7 @@ import { ACT_SPAN_M } from '../src/content/acts';
  * friendly on-road object. Headless sim tests.
  */
 
-const LANE = 2; // the car's start lane center
+const LANE = 1; // the car's start lane center
 
 function ramp(lane: number, forward: number) {
   return {
@@ -72,7 +72,7 @@ describe('collapse ramp', () => {
 
   it('does not touch a car off the ramp lane', () => {
     const s = createSim(1);
-    s.hazards.push(ramp(0, 8)); // far-left lane, away from the lane-2 car
+    s.hazards.push(ramp(0, 8)); // far-left lane, away from the centre-lane car
     s.distance = 7;
     s.car.speed = 60;
     resolveCollisions(s);

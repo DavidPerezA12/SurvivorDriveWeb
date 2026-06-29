@@ -12,7 +12,7 @@ import { ACT_SPAN_M } from '../src/content/acts';
  */
 
 /** The car's start lane center, so a hazard placed there overlaps it laterally. */
-const LANE = 2;
+const LANE = 1;
 
 describe('quake split', () => {
   it('a crack is harmless while still closed (collisions skip an unopened gap)', () => {

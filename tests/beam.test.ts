@@ -11,7 +11,7 @@ import { ACT_SPAN_M } from '../src/content/acts';
  * its arc). The sweep is the telegraph. Headless sim tests.
  */
 
-const LANE = 2; // the car's start lane center
+const LANE = 1; // the car's start lane center
 
 function beam(fromLane: number, toLane: number, forward: number) {
   return {
@@ -71,7 +71,7 @@ describe('UFO beam sweep', () => {
 
   it('does not touch a car off its settled lane (flee-to-safe is always an out)', () => {
     const s = createSim(1);
-    s.hazards.push(beam(0, 0, 8)); // settles on lane 0, far from the lane-2 car
+    s.hazards.push(beam(0, 0, 8)); // settles on lane 0, far from the centre-lane car
     s.distance = 7;
     s.car.speed = 50;
     updateBeams(s);

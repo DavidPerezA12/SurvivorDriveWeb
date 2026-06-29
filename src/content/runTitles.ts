@@ -32,12 +32,16 @@ export type DeathCause =
   | 'barricade'
   | 'boulder'
   | 'barrel'
+  | 'toxbarrel'
   | 'spikes'
   | 'drifter'
   | 'meteor'
+  | 'stomp'
+  | 'shell'
   | 'beam'
   | 'gap'
   | 'brute'
+  | 'jumper'
   | 'attrition';
 
 /** Every cause, in a stable order — used to key the RNG and to drive tests. */
@@ -49,12 +53,16 @@ export const DEATH_CAUSES: readonly DeathCause[] = [
   'barricade',
   'boulder',
   'barrel',
+  'toxbarrel',
   'spikes',
   'drifter',
   'meteor',
+  'stomp',
+  'shell',
   'beam',
   'gap',
   'brute',
+  'jumper',
   'attrition',
 ];
 
@@ -213,6 +221,13 @@ const TEMPLATES: Record<DeathCause, readonly string[]> = {
     'Went Up in {adj} Flames',
     'Played with Fire {finale}',
   ],
+  toxbarrel: [
+    'Gassed by a {adj} Spill',
+    'Dissolved in the Green Cloud',
+    'Should Not Have Popped It Close',
+    'Drove Through Its Own Poison {finale}',
+    'Marinated in {adj} Toxin {finale}',
+  ],
   drifter: [
     'T-Boned by a {adj} Drifter',
     'Side-Swiped {finale}',
@@ -226,6 +241,20 @@ const TEMPLATES: Record<DeathCause, readonly string[]> = {
     'Stood Under the {adj} Sky',
     'Out-Run by a Meteor',
     'Parked in the Impact Zone {finale}',
+  ],
+  stomp: [
+    'Stomped Flat by a {adj} Tyrannosaur',
+    'Dinner for a {adj} Dinosaur',
+    '{verb} Under a {adj} Foot',
+    'Out-Run by Extinction Itself',
+    'Should Not Have Cloned the {adj} Lizards',
+  ],
+  shell: [
+    'Shelled by a {adj} War Machine',
+    'Out-Gunned by a {adj} Mecha',
+    '{verb} by Walking Artillery',
+    'Targeted from a {adj} Cockpit',
+    'Should Have Read the Reticle {finale}',
   ],
   beam: [
     '{verb} by an {adj} Light',
@@ -254,6 +283,13 @@ const TEMPLATES: Record<DeathCause, readonly string[]> = {
     'Should Have Shot It {finale}',
     'Out-Massed by {horde}',
     'Rammed One Too Many {finale}',
+  ],
+  jumper: [
+    'Ridden Down by a {adj} Leaper',
+    'Drained by the Thing on the Hood',
+    'Should Have Shaken It Off {finale}',
+    'Latched Onto by {horde}',
+    'Carried a Passenger Too Far {finale}',
   ],
   attrition: [
     'Hull Gave Out {finale}',

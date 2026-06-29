@@ -3,6 +3,21 @@ import { CAR_TUNING, LANE_COUNT, LANE_WIDTH, laneCenterX } from '../content/tuni
 import { weaponStats } from '../content/weapons';
 import type { Loadout } from '../content/upgrades';
 
+/**
+ * Per-tick handling modifiers from the biome the car is in (`src/content/biomes.ts`).
+ * `omegaMul` scales the steering spring's natural frequency (a looser wheel) and
+ * `dampingMul` below 1 underdamps it, so the car slides and overshoots its lane on
+ * ice. Neutral on the open road. A deliberate, telegraphed exception to "terrain
+ * never touches the controls"; damage still never does (docs/DESIGN.md).
+ */
+export interface Handling {
+  readonly omegaMul: number;
+  readonly dampingMul: number;
+}
+
+/** Open-road handling: a crisp, critically-damped wheel. */
+export const NEUTRAL_HANDLING: Handling = { omegaMul: 1, dampingMul: 1 };
+
 /** Move `value` toward `target` by at most `maxDelta`. */
 function moveTowards(value: number, target: number, maxDelta: number): number {
   const diff = target - value;
@@ -34,6 +49,7 @@ export function makeCar(loadout: Loadout): CarState {
     // more than the scrap shotgun).
     ammo: weaponStats(loadout.weaponLevel).startAmmo,
     fireCooldown: 0,
+    clinging: 0,
   };
 }
 
@@ -49,6 +65,7 @@ export function stepCar(
   dt: number,
   out: FrameEvent[],
   loadout: Loadout,
+  handling: Handling = NEUTRAL_HANDLING,
 ): void {
   // Forward speed ramps toward the current cruising speed.
   car.speed = moveTowards(car.speed, topSpeed, CAR_TUNING.accel * dt);
@@ -62,14 +79,17 @@ export function stepCar(
     }
   }
 
-  // Lateral motion as a critically-damped spring toward the target lane center.
-  // Semi-implicit Euler (update velocity, then position) stays stable at 60 Hz.
-  // The car always handles clean — damage never touches the controls
-  // (docs/DESIGN.md → Pillar 2). Sticky Tires snaps the spring (higher omega) so
-  // lane changes land faster — felt the instant you change lanes.
+  // Lateral motion as a damped spring toward the target lane center. Semi-implicit
+  // Euler (update velocity, then position) stays stable at 60 Hz. Damage never
+  // touches the controls (docs/DESIGN.md → Pillar 2); Sticky Tires snaps the spring
+  // (higher omega) so lane changes land faster. The biome `handling` is the lone
+  // terrain exception: ice slows the wheel (`omegaMul`) and underdamps the spring
+  // (`dampingMul` < 1), so the car slides and overshoots — a telegraphed slip, not
+  // mushy damage handling.
   const targetX = laneCenterX(car.targetLane);
-  const omega = CAR_TUNING.lateralOmega * loadout.steerOmegaMul;
-  const accel = omega * omega * (targetX - car.lateralX) - 2 * omega * car.lateralVel;
+  const omega = CAR_TUNING.lateralOmega * loadout.steerOmegaMul * handling.omegaMul;
+  const accel =
+    omega * omega * (targetX - car.lateralX) - 2 * omega * handling.dampingMul * car.lateralVel;
   car.lateralVel += accel * dt;
   car.lateralX += car.lateralVel * dt;
 

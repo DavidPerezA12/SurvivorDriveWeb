@@ -183,9 +183,9 @@ export function spawnWeightsAt(distance: number): SpawnWeights {
  */
 export const DIFFICULTY_TUNING = {
   /** Formation-hardness bias at distance 0: the opening eases in below neutral. */
-  intensityStart: 0.8,
+  intensityStart: 0.9,
   /** Distance (m) by which intensity has climbed back to neutral (1.0). */
-  intensityWarmup: 9000,
+  intensityWarmup: 4500,
   /** The most intensity ever reaches, deep into the endless tail. */
   intensityMax: 1.55,
   /** Distance (m) by which intensity reaches `intensityMax`. */
@@ -198,8 +198,8 @@ export const DIFFICULTY_TUNING = {
    * teaches; the deep tail is near wall-to-wall. Interpolated over the same
    * intensity range as everything else.
    */
-  openChanceStart: 0.14,
-  openChanceDeep: 0.03,
+  openChanceStart: 0.06,
+  openChanceDeep: 0.0,
   /**
    * How hard intensity tilts formation selection toward the punishing formations
    * (and away from the gentle ones) as it moves off neutral. Higher = the opening
@@ -212,7 +212,7 @@ export const DIFFICULTY_TUNING = {
    * formations that only carry wrecks, so the deep tail's blockers turn nastier
    * even when the same formation repeats.
    */
-  lethalWreckUpgrade: 0.32,
+  lethalWreckUpgrade: 0.42,
   /** Pickup frequency multiplier early in a run (teaching is generous). */
   pickupScaleStart: 1,
   /** Pickup frequency multiplier deep in a run (the hull/ammo economy tightens). */

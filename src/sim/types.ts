@@ -66,9 +66,12 @@ export type SpawnKind =
   | 'barricade'
   | 'boulder'
   | 'barrel'
+  | 'toxbarrel'
   | 'spikes'
   | 'drifter'
   | 'meteor'
+  | 'stomp'
+  | 'shell'
   | 'gap'
   | 'beam'
   | 'ramp'
@@ -76,7 +79,8 @@ export type SpawnKind =
   | 'jump'
   | 'health'
   | 'ammo'
-  | 'scrap';
+  | 'scrap'
+  | 'coin';
 
 /**
  * The objects spawned with a plain `{lane, z}` shape (everything but the
@@ -93,8 +97,11 @@ export type StaticHazardKind =
   | 'barricade'
   | 'boulder'
   | 'barrel'
+  | 'toxbarrel'
   | 'spikes'
   | 'meteor'
+  | 'stomp'
+  | 'shell'
   | 'gap'
   | 'ramp';
 
@@ -102,9 +109,11 @@ export type StaticHazardKind =
  * The damaging on-road blockers, shared by `Spawn` and `Hazard`, in three
  * readability classes (docs/DESIGN.md → readability):
  *
- * - Ground-class survivable: `wreck`, `boulder`, `barrel`, `drifter`. A jump
- *   sails over them and a hit only chews hull. The `barrel` is the one the gun
- *   can detonate (`detonateBarrel`); the `drifter` slides one lane over as it nears.
+ * - Ground-class survivable: `wreck`, `boulder`, `barrel`, `toxbarrel`, `drifter`. A
+ *   jump sails over them and a hit only chews hull. The `barrel` is the one the gun
+ *   can detonate (`detonateBarrel`) for a wide chain-clear; the `toxbarrel` ruptures
+ *   (shot or rammed) into a lingering `GasCloud` that denies its lane; the `drifter`
+ *   slides one lane over as it nears.
  * - Lethal walls: `rig`, `barrier`, `bus`, and a landed `meteor`. Too tall/solid
  *   to clear (the only out is a lane change); a square hit at speed ends the run.
  * - Lethal ground traps: the `gap` (a hole), the `spikes` strip, and the `beam`.
@@ -118,10 +127,12 @@ export type HazardKind = StaticHazardKind | 'drifter' | 'beam';
 
 /**
  * The on-ground collectible kinds, shared by `Spawn` and `Pickup`: a `jump` lift
- * charge, a `health` repair, an `ammo` box, and a `scrap` salvage cache (instant
- * scrap, a pure greed grab with no fight). All spawn off the safe lane.
+ * charge, a `health` repair, an `ammo` box, a `scrap` salvage cache (one fat
+ * instant grab), and a `coin` (a single small scrap nugget, laid in trails down a
+ * risky lane so the money lures the car off the safe line). All spawn off the safe
+ * lane, so every refill and every grab is a greed reward (docs/DESIGN.md → Pillar 3).
  */
-export type PickupKind = 'jump' | 'health' | 'ammo' | 'scrap';
+export type PickupKind = 'jump' | 'health' | 'ammo' | 'scrap' | 'coin';
 
 export type Spawn =
   | {
@@ -174,6 +185,13 @@ export type Spawn =
        * silhouette so it reads apart from a normal shambler (docs/DESIGN.md → roster).
        */
       readonly brute?: boolean;
+      /**
+       * A jumper: a leaper that latches onto the hood and drains hull regardless of
+       * lane (docs/DESIGN.md → the one threat that reaches the safe line). Shoot it
+       * before it leaps, or shake it off by ramming/scraping; you cannot mow it for
+       * scrap. Mutually exclusive with `brute`.
+       */
+      readonly jumper?: boolean;
     }
   | {
       readonly kind: PickupKind;
@@ -227,6 +245,13 @@ export interface CarState {
   ammo: number;
   /** Ticks until the gun can fire again (the held-trigger cadence gate). */
   fireCooldown: number;
+  /**
+   * Jumper zombies currently latched onto the hood. Each one drains hull every tick
+   * (`updateClingers`), regardless of lane, so a latch is felt even on the safe line.
+   * A fired shot peels one off; a crash (ram or scrape) shakes them all loose. At 0
+   * the car drives clean. Never touches the controls (docs/DESIGN.md → Pillar 2).
+   */
+  clinging: number;
 }
 
 /**
@@ -302,6 +327,13 @@ export interface Zombie {
   /** True on a brute: a damaging heavy zombie, not free fodder. */
   readonly brute?: boolean;
   /**
+   * True on a jumper: a leaper that latches onto the hood instead of being mowed.
+   * `mowed` latches the moment it leaps (so it pays/leaps once and prunes like any
+   * other), but it banks no scrap; the cost lands as a hull drain while it clings
+   * (`updateClingers`). Shootable like a normal zombie before it reaches you.
+   */
+  readonly jumper?: boolean;
+  /**
    * Shootable integrity, set only on a brute: each shot's `killsPerShot` chips it
    * and it drops at 0 (`resolveShots`). Undefined on a normal zombie, which dies
    * in one hit.
@@ -328,6 +360,26 @@ export interface Pickup {
   taken: boolean;
 }
 
+/**
+ * A lingering cloud of toxic gas left when a `toxbarrel` ruptures (shot or rammed).
+ * It does not move and is not a thing you crash into; it is an area-denial hazard
+ * that drains the hull while the car is grounded inside it, so the toxic drum's
+ * payoff is "you made that lane poison for a couple of seconds" (docs/DESIGN.md →
+ * roster). A jump clears it (you are above the cloud). It expires after `life` ticks.
+ */
+export interface GasCloud {
+  /** The lane the cloud sits over (the ruptured drum's lane). */
+  readonly lane: number;
+  /** Lane-center world X. */
+  readonly x: number;
+  /** Absolute world-forward position in meters (fixed where the drum ruptured). */
+  readonly forward: number;
+  /** Ticks of life remaining; the cloud is removed at 0. */
+  life: number;
+  /** Total life it was born with, so the renderer can fade it as it thins. */
+  readonly maxLife: number;
+}
+
 export interface SimState {
   /** The run seed; world generation is a pure function of it. */
   seed: number;
@@ -348,6 +400,8 @@ export interface SimState {
   zombies: Zombie[];
   /** Live pickups near the car: jump/health/ammo refills, materialized and pruned like hazards. */
   pickups: Pickup[];
+  /** Live toxic gas clouds left by ruptured toxbarrels; ticked down and pruned each tick. */
+  gas: GasCloud[];
   /** Next chunk index whose spawns have not yet been materialized. */
   nextSpawnChunk: number;
   /** Scrap collected this run; the currency mowing pays out. */
@@ -407,4 +461,7 @@ export type FrameEvent =
   | { type: 'shotFired'; x: number; level: number }
   | { type: 'zombieMowed'; lane: number; combo: number; x: number }
   | { type: 'pickupCollected'; kind: PickupKind; lane: number; x: number }
+  | { type: 'jumperLatched'; x: number }
+  | { type: 'jumperShed'; count: number }
+  | { type: 'gasReleased'; x: number; forward: number }
   | { type: 'died' };

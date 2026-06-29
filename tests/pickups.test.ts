@@ -135,3 +135,49 @@ describe('scrap caches', () => {
     expect(s.scrap).toBe(before);
   });
 });
+
+describe('coins', () => {
+  it('a coin banks its small value on the spot', () => {
+    const s = createSim(1);
+    s.car.lateralX = laneCenterX(2);
+    s.distance = 10;
+    const before = s.scrap;
+    s.pickups.push({ kind: 'coin', lane: 2, x: laneCenterX(2), forward: 8, phase: 0, taken: false });
+    resolvePickups(s);
+    expect(s.scrap).toBe(before + PICKUP_TUNING.coinValue);
+    expect(s.pickups[0].taken).toBe(true);
+    expect(s.events.some((e) => e.type === 'pickupCollected' && e.kind === 'coin')).toBe(true);
+  });
+
+  it('a coin is worth less than a salvage cache — it is loose change', () => {
+    expect(PICKUP_TUNING.coinValue).toBeLessThan(PICKUP_TUNING.scrapValue);
+  });
+
+  it('a trail banks the sum of the coins ridden over', () => {
+    const s = createSim(1);
+    s.car.lateralX = laneCenterX(2);
+    const before = s.scrap;
+    // A short trail down the lane; sweep the car forward over each so it scoops them.
+    for (let i = 0; i < 4; i += 1) {
+      s.pickups.push({ kind: 'coin', lane: 2, x: laneCenterX(2), forward: i * 2.6, phase: 0, taken: false });
+    }
+    for (let d = 0; d <= 8; d += 0.4) {
+      s.distance = d;
+      resolvePickups(s);
+    }
+    expect(s.pickups.every((p) => p.taken)).toBe(true);
+    expect(s.scrap).toBe(before + 4 * PICKUP_TUNING.coinValue);
+  });
+
+  it('cannot be scooped mid-jump, like every grab', () => {
+    const s = createSim(1);
+    s.car.lateralX = laneCenterX(2);
+    s.distance = 10;
+    s.car.height = 1.0; // airborne
+    const before = s.scrap;
+    s.pickups.push({ kind: 'coin', lane: 2, x: laneCenterX(2), forward: 8, phase: 0, taken: false });
+    resolvePickups(s);
+    expect(s.pickups[0].taken).toBe(false);
+    expect(s.scrap).toBe(before);
+  });
+});
