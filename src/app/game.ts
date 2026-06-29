@@ -163,11 +163,10 @@ export class Game {
 
   /** Push settings into the impure layers. Never called per frame. */
   private applySettings(settings: Settings): void {
-    this.view.applySettings(
-      reducedMotion(settings.motion),
-      settings.shake,
-      qualityPixelCap(settings.quality),
-    );
+    const motionReduced = reducedMotion(settings.motion);
+    this.view.applySettings(motionReduced, settings.shake, qualityPixelCap(settings.quality));
+    this.hud.setReducedMotion(motionReduced);
+    this.carPreview.setReducedMotion(motionReduced);
     this.overlay.setVisible(settings.debugOverlay);
     // settings.volume is persisted but inert until the audio layer is wired.
   }
@@ -342,7 +341,10 @@ export class Game {
       this.snapshot();
 
       step(this.state, this.input.takeIntent());
-      for (const event of this.state.events) this.view.handleEvent(event);
+      for (const event of this.state.events) {
+        this.view.handleEvent(event);
+        this.hud.handleEvent(event);
+      }
 
       this.accumulator -= FIXED_DT;
       ticks += 1;

@@ -32,7 +32,7 @@ export class CarPreview {
   private chassisId: ChassisId = 'survivor';
   private paintColor: number | undefined = undefined;
   private owned: ReadonlySet<UpgradeId> = new Set();
-  private readonly reduced: boolean;
+  private reduced: boolean;
 
   private spin = -0.7; // start at a three-quarter angle so the gun + flank read
   private raf = 0;
@@ -75,6 +75,10 @@ export class CarPreview {
     this.turntable.add(this.car);
     this.turntable.rotation.y = this.spin;
     this.scene.add(this.turntable);
+  }
+
+  setReducedMotion(reduced: boolean): void {
+    this.reduced = reduced;
   }
 
   /**

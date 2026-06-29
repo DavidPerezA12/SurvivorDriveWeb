@@ -1,5 +1,33 @@
-import type { ReadonlyState } from '../sim';
+import type { FrameEvent, ReadonlyState } from '../sim';
 import { CAR_TUNING } from '../content/tuning';
+import { biomeAt } from '../content/biomes';
+
+/**
+ * Arcade kill-streak callouts (the inspiration's "DOUBLE KILL" / "MEGA KILL"). Each
+ * tier fires once when the streak first crosses its threshold, so the banners
+ * punctuate a run instead of spamming every kill. Warm escalates with the heat of
+ * the streak (white → amber → red → hot), matching the combo readout.
+ */
+const COMBO_TIERS: readonly {
+  readonly min: number;
+  readonly label: string;
+  readonly color: string;
+}[] = [
+  { min: 2, label: 'DOUBLE KILL', color: '#e8d9c4' },
+  { min: 3, label: 'TRIPLE KILL', color: '#f0d28a' },
+  { min: 5, label: 'MULTI KILL', color: '#e0a93a' },
+  { min: 8, label: 'MEGA KILL', color: '#e87a2a' },
+  { min: 12, label: 'ULTRA KILL', color: '#e8503a' },
+  { min: 18, label: 'GODLIKE', color: '#ff3a2a' },
+  { min: 26, label: 'APOCALYPSE', color: '#ff2a6a' },
+];
+
+/** Highest tier index (1-based) the streak qualifies for; 0 means no banner yet. */
+function comboTier(combo: number): number {
+  let tier = 0;
+  for (let i = 0; i < COMBO_TIERS.length; i += 1) if (combo >= COMBO_TIERS[i].min) tier = i + 1;
+  return tier;
+}
 
 /** Cool electric blue of the lift pickup — jump fuel reads cool, like its token. */
 const JUMP_COLOR = '#4fb6ff';
@@ -34,6 +62,13 @@ export class Hud {
   private readonly dead: HTMLDivElement;
   private readonly deadDistance: HTMLDivElement;
   private readonly deadStats: HTMLDivElement;
+  private readonly comboCallout: HTMLDivElement;
+  /** Highest streak tier already announced this streak; reset when the streak drops. */
+  private lastComboTier = 0;
+  private readonly biomeBanner: HTMLDivElement;
+  /** Last biome announced, so the banner only fires when the run crosses into a new one. */
+  private lastBiomeName: string | null = null;
+  private reducedMotion = false;
   private accum = 0;
 
   constructor() {
@@ -128,6 +163,122 @@ export class Hud {
     prompt.style.cssText = 'margin-top:6px;opacity:0.7';
     this.dead.append(title, this.deadDistance, this.deadStats, prompt);
     document.body.appendChild(this.dead);
+
+    // The arcade kill-streak banner, centred above the car. Parked invisible until a
+    // tier fires; the Web Animations pop drives its own fade, so it costs nothing in
+    // the steady state and never needs per-frame work.
+    this.comboCallout = document.createElement('div');
+    this.comboCallout.className = 'sdw-combo-callout';
+    this.comboCallout.style.cssText = [
+      'position:fixed',
+      'left:50%',
+      'top:28%',
+      'transform:translateX(-50%) scale(0.6)',
+      'opacity:0',
+      'font:800 34px/1 ui-monospace,SFMono-Regular,Menlo,monospace',
+      'letter-spacing:3px',
+      'color:#e8d9c4',
+      'text-shadow:0 2px 0 rgba(0,0,0,0.6)',
+      'pointer-events:none',
+      'white-space:nowrap',
+      'z-index:15',
+    ].join(';');
+    document.body.appendChild(this.comboCallout);
+
+    // The biome entry banner — a location title that slides in when the run crosses
+    // into a new environment (the inspiration's changing scenery). Parked invisible;
+    // the Web Animations slide drives its own fade.
+    this.biomeBanner = document.createElement('div');
+    this.biomeBanner.className = 'sdw-biome-banner';
+    this.biomeBanner.style.cssText = [
+      'position:fixed',
+      'left:50%',
+      'top:14%',
+      'transform:translateX(-50%)',
+      'opacity:0',
+      'font:700 18px/1 ui-monospace,SFMono-Regular,Menlo,monospace',
+      'letter-spacing:6px',
+      'color:#dfe7f0',
+      'text-shadow:0 2px 6px rgba(0,0,0,0.7)',
+      'pointer-events:none',
+      'white-space:nowrap',
+      'z-index:14',
+    ].join(';');
+    document.body.appendChild(this.biomeBanner);
+  }
+
+  setReducedMotion(reduced: boolean): void {
+    this.reducedMotion = reduced;
+  }
+
+  /**
+   * Per-tick frame events the HUD reacts to (the app forwards them alongside the
+   * renderer's). Only the kill streak banner lives here; everything else the HUD
+   * shows is read from state each frame.
+   */
+  handleEvent(event: FrameEvent): void {
+    if (event.type !== 'zombieMowed') return;
+    // A streak's first kill arms the banners again from the bottom tier (the prior
+    // streak lapsed or was wiped), independent of the throttled per-frame update.
+    if (event.combo <= 1) this.lastComboTier = 0;
+    const tier = comboTier(event.combo);
+    // Fire only when the streak first reaches a new, higher tier, so each banner is
+    // a fresh milestone rather than one per kill.
+    if (tier > this.lastComboTier) {
+      this.lastComboTier = tier;
+      const t = COMBO_TIERS[tier - 1];
+      this.fireCallout(t.label, t.color);
+    }
+  }
+
+  /** Pop the streak banner: a punchy scale-in that drifts up and fades on its own. */
+  private fireCallout(label: string, color: string): void {
+    const el = this.comboCallout;
+    el.textContent = label;
+    el.style.color = color;
+    if (this.reducedMotion) {
+      el.animate([{ opacity: 1 }, { opacity: 1, offset: 0.6 }, { opacity: 0 }], {
+        duration: 800,
+        easing: 'ease-out',
+      });
+      return;
+    }
+    el.animate(
+      [
+        { opacity: 0, transform: 'translateX(-50%) scale(0.6)' },
+        { opacity: 1, transform: 'translateX(-50%) scale(1.18)', offset: 0.18 },
+        { opacity: 1, transform: 'translateX(-50%) scale(1.0)', offset: 0.45 },
+        { opacity: 0, transform: 'translateX(-50%) translateY(-30px) scale(1.0)' },
+      ],
+      { duration: 900, easing: 'ease-out' },
+    );
+  }
+
+  /** Slide the biome location title in, hold, then fade — a quiet scene-change cue. */
+  private fireBiomeBanner(name: string): void {
+    const el = this.biomeBanner;
+    el.textContent = name;
+    if (this.reducedMotion) {
+      el.animate(
+        [
+          { opacity: 0 },
+          { opacity: 1, offset: 0.15 },
+          { opacity: 1, offset: 0.75 },
+          { opacity: 0 },
+        ],
+        { duration: 2200, easing: 'ease-out' },
+      );
+      return;
+    }
+    el.animate(
+      [
+        { opacity: 0, transform: 'translateX(-50%) translateY(-12px)' },
+        { opacity: 1, transform: 'translateX(-50%) translateY(0)', offset: 0.14 },
+        { opacity: 1, transform: 'translateX(-50%) translateY(0)', offset: 0.7 },
+        { opacity: 0, transform: 'translateX(-50%) translateY(0)' },
+      ],
+      { duration: 2200, easing: 'ease-out' },
+    );
   }
 
   update(state: ReadonlyState): void {
@@ -137,12 +288,22 @@ export class Hud {
       // The seed of the death card: distance, what you killed, what you banked.
       this.deadDistance.textContent = `${Math.floor(state.distance)} m`;
       this.deadStats.textContent = `${state.zombiesMowed} zombies killed · ${state.scrap} scrap`;
+      // Re-arm the biome banner so the next run announces its environments afresh.
+      this.lastBiomeName = null;
       return;
     }
 
     this.accum += 1;
     if (this.accum < 4) return; // throttle DOM writes to ~15 Hz
     this.accum = 0;
+
+    // Announce the biome the run crosses into (the inspiration's changing scenery).
+    // The first observation arms silently, so spawn does not flash a banner.
+    const biomeName = biomeAt(state.seed, state.distance).name;
+    if (biomeName !== this.lastBiomeName) {
+      if (this.lastBiomeName !== null) this.fireBiomeBanner(biomeName);
+      this.lastBiomeName = biomeName;
+    }
 
     const kmh = Math.round(state.car.speed * 3.6);
     this.numbers.innerHTML =
@@ -207,7 +368,10 @@ export class Hud {
 
   /** The kill streak: hidden below 2, then climbing in size and heat with the run. */
   private applyCombo(combo: number): void {
+    // The streak dropped (lapsed or wiped by a crash): arm the banners to fire again
+    // from the bottom tier the next time a streak builds.
     if (combo < 2) {
+      this.lastComboTier = 0;
       this.combo.style.visibility = 'hidden';
       return;
     }
