@@ -57,11 +57,16 @@ Fixed-timestep simulation with interpolated rendering:
 
 ## World model
 
-The car lives on a **3-lane grid** with a continuous lateral offset. One lane is
-the current safe line and the other two carry the pressure. Steering is a
-target-lane state machine with a tunable velocity curve ("snappy but analog").
-Forward motion is one scalar, `distance` (meters); the world streams toward the
-car so world-space `z` never grows unbounded.
+Objects are placed on a **two-lane grid**, but the car drives freely across the
+full width of the road. One lane is the current safe line and the other carries the
+pressure; a moving threat sweeps within its own lane rather than crossing between
+lanes. Steering is a
+held axis: the wheel sets a target lateral velocity and the car eases to it, so it
+moves continuously across the lane band and stops where you let go, rather than
+snapping from one lane center to the next. The lane index the car is nearest is
+derived from its lateral position, for HUD and audio cues only. Forward motion is
+one scalar, `distance` (meters); the world streams toward the car so world-space
+`z` never grows unbounded.
 
 The road is a stream of **chunks** (50 m), generated pull-based from
 `(seed, index, actTable)` as a 250 m lookahead window reaches them; nothing is

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createSim, chunkAt, safeLane } from '../src/sim';
 import { resolveCollisions, updateBeams } from '../src/sim/collision';
-import { BEAM_TUNING, laneCenterX, CHUNK_LENGTH } from '../src/content/tuning';
+import { BEAM_TUNING, laneCenterX, LANE_WIDTH, CHUNK_LENGTH } from '../src/content/tuning';
 import { ACT_SPAN_M } from '../src/content/acts';
 
 /**
@@ -93,11 +93,15 @@ describe('UFO beam sweep', () => {
         for (const sp of chunkAt(seed, i).spawns) {
           if (sp.kind !== 'beam') continue;
           late += 1;
-          // Both ends of the sweep are valid non-safe lanes on the same side of the
-          // refuge, so the moving strip never crosses through the safe line.
+          // It sweeps a non-safe lane, and both ends of the sweep stay inside that
+          // lane, so the lethal strip never reaches the safe line.
           expect(sp.lane).not.toBe(safe);
-          expect(sp.toLane).not.toBe(safe);
-          expect((sp.lane - safe) * (sp.toLane - safe)).toBeGreaterThan(0);
+          const laneMin = laneCenterX(sp.lane) - LANE_WIDTH / 2;
+          const laneMax = laneCenterX(sp.lane) + LANE_WIDTH / 2;
+          for (const x of [sp.fromX, sp.toX]) {
+            expect(x).toBeGreaterThanOrEqual(laneMin - 1e-6);
+            expect(x).toBeLessThanOrEqual(laneMax + 1e-6);
+          }
         }
       }
     }

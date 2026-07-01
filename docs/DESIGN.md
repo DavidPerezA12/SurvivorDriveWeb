@@ -31,7 +31,7 @@ gameplay:
 | Event | Spectacle | Gameplay |
 | --- | --- | --- |
 | Building collapse | A tower falls across the road | Its rubble forms a ramp; the new line goes over it |
-| UFO strafe | A beam sweeps the lanes, telegraphed by a ground glow | Carves a trench: jump it, or be in the safe lane |
+| UFO strafe | A beam sweeps across a lane, telegraphed by a ground glow | Carves a trench: jump it, or be in the safe lane |
 | The Big One | The sky tears open under a meteor storm | Falling impacts crater alternating lines; read the descent and hold the opening |
 | Horde surge | A zombie wave floods the flanking lanes | Mow through (hull/ammo cost) or thread the gap |
 | Quake split | The road shears lengthwise | One side ramps up, the other crumbles; pick fast |
@@ -213,7 +213,7 @@ All earned with in-run scrap; no purchase shortcuts, no soft paywall.
 | Cowcatcher | Light barricades and lone zombies shatter at no cost |
 | Hydraulic jump | Higher, longer arc; rooftop and trench lines open |
 | Off-road suspension | Shoulders and rubble stop slowing you; the map widens |
-| Sticky tires | Lane changes snap instead of slide |
+| Sticky tires | Sharper steering; the wheel cuts and settles faster |
 | Gun tiers (Mk I to V) | More fodder per shot, farther, faster, wider |
 | Scrap magnet | Pickup radius grows |
 | Plow blade | Horde mass barely slows you; drive through surges |
@@ -255,7 +255,7 @@ tier. Upgrades render on the car, so the build is legible at a glance.
 | Explosive barrel | Trap and tool | Shoot to detonate (clears lanes, chains); ramming is a big hit; a jump clears it |
 | Spike strip | Lethal ground trap | Jump it or change lane; on it grounded ends the run |
 | Sky meteor | Falling killer | Change lanes; the descending rock is the telegraph |
-| Drifting wreck | Moving lane-crosser | Read its telegraphed drift, then steer clear |
+| Drifting wreck | Moving threat that slides across its lane | Read its telegraphed slide, then steer clear |
 | Road crack / gap | Gap in the surface | Jump, or be in another lane; falling in ends the run |
 | Collapsed section | Wide gap | Jump, or detour to a standing lane |
 | Collapse ramp | Rubble route over the debris | Drive onto it to vault the wreckage; a free launch, no charge |

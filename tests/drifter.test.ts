@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createSim, step, NO_INTENT, type Hazard, type SimState } from '../src/sim';
 import { resolveCollisions, updateDrifters } from '../src/sim/collision';
 import { chunkAt, safeLane } from '../src/sim';
-import { DRIFT_TUNING, LANE_COUNT, SPAWN_TUNING, laneCenterX } from '../src/content/tuning';
+import { DRIFT_TUNING, LANE_WIDTH, SPAWN_TUNING, laneCenterX } from '../src/content/tuning';
 
 /**
  * The drifting wreck (docs/DESIGN.md → roster): the only *moving* blocker, a wreck
@@ -89,9 +89,9 @@ describe('drifting wreck', () => {
     expect(s.car.health).toBe(1);
   });
 
-  it('materializes with drift endpoints when driven into existence', () => {
-    // Drive far enough that drifters are generated and check the live hazard
-    // carries both endpoints and that they are an adjacent, non-safe pair.
+  it('materializes with distinct drift endpoints when driven into existence', () => {
+    // Drive far enough that drifters are generated and check the live hazard carries
+    // both sweep endpoints and that they differ (it sweeps, it is not static).
     const s: SimState = createSim(123);
     let found = false;
     // Drifters first appear in Swarm (act III ≈ 12000 m+ at 6000 m/act), so drive
@@ -116,17 +116,21 @@ describe('drifting wreck', () => {
 });
 
 describe('drifter safe-line invariant', () => {
-  it('only ever drifts to an adjacent, non-safe lane (never toward safety)', () => {
+  it('sweeps within its own non-safe lane, never reaching the safe line', () => {
     for (const seed of [1, 42, 7777, 0xc0ffee]) {
       for (let i = SPAWN_TUNING.graceChunks; i < 600; i += 1) {
         const safe = safeLane(seed, i);
         for (const spawn of chunkAt(seed, i).spawns) {
           if (spawn.kind !== 'drifter') continue;
-          expect(spawn.lane).not.toBe(safe); // origin is non-safe
-          expect(spawn.toLane).not.toBe(safe); // target is non-safe
-          expect(Math.abs(spawn.toLane - spawn.lane)).toBe(1); // exactly one lane
-          expect(spawn.toLane).toBeGreaterThanOrEqual(0);
-          expect(spawn.toLane).toBeLessThan(LANE_COUNT);
+          expect(spawn.lane).not.toBe(safe); // it sweeps a non-safe lane
+          // Both sweep endpoints stay inside that lane, so the wreck's body (bounded by
+          // its half-width when the endpoints were chosen) never reaches the safe line.
+          const laneMin = laneCenterX(spawn.lane) - LANE_WIDTH / 2;
+          const laneMax = laneCenterX(spawn.lane) + LANE_WIDTH / 2;
+          for (const x of [spawn.fromX, spawn.toX]) {
+            expect(x).toBeGreaterThanOrEqual(laneMin - 1e-6);
+            expect(x).toBeLessThanOrEqual(laneMax + 1e-6);
+          }
         }
       }
     }

@@ -37,9 +37,10 @@ describe('determinism', () => {
 
   it('keeps the car path seed-independent inside the opening grace zone', () => {
     // Before any spawned content is reached, the car path cannot depend on the
-    // seed — there is nothing seeded to interact with yet.
-    const a = run(1, script, 120);
-    const b = run(2, script, 120);
+    // seed — there is nothing seeded to interact with yet. 50 ticks at the opening
+    // cruising speed stays inside the one-chunk grace zone (~43 m of ~50 m).
+    const a = run(1, script, 50);
+    const b = run(2, script, 50);
     expect(a.car).toEqual(b.car);
   });
 
@@ -55,7 +56,7 @@ describe('determinism', () => {
       for (let i = 0; i < 4000; i += 1) {
         const ahead = Math.floor((s.distance + s.car.speed * 0.35) / CHUNK_LENGTH);
         const want = Math.min(LANE_COUNT - 1, safeLane(seed, ahead) + 1);
-        const steer: -1 | 0 | 1 = want > s.car.targetLane ? 1 : want < s.car.targetLane ? -1 : 0;
+        const steer: -1 | 0 | 1 = want > s.car.lane ? 1 : want < s.car.lane ? -1 : 0;
         step(s, { steer, jump: false, fire: true });
       }
       return s;

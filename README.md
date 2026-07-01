@@ -71,9 +71,10 @@ Other scripts: `npm run typecheck`, `npm run lint`, `npm run preview`,
 
 ## Controls
 
-Left / Right (or A / D) to change lanes, Space or Up to jump, F (or Shift) to
-fire, R to restart after a wreck, Esc to pause. On touch screens the lane, jump,
-fire, and pause buttons feed the same controls.
+Hold Left / Right (or A / D) to steer, Space or Up to jump, F (or Shift) to
+fire, R to restart after a wreck, Esc to pause. The car drives freely across the
+road, not in fixed lane jumps. On touch screens the steer, jump, fire, and pause
+buttons feed the same controls.
 
 The car accelerates on its own and gets faster the farther you go, and it handles
 the same whether it is pristine or wrecked. Abandoned cars block lanes once the

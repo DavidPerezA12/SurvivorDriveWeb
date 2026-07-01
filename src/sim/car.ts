@@ -1,21 +1,30 @@
 import type { CarState, FrameEvent, Intent } from './types';
-import { CAR_TUNING, LANE_COUNT, LANE_WIDTH, laneCenterX } from '../content/tuning';
+import {
+  CAR_HALF_WIDTH,
+  CAR_TUNING,
+  LANE_COUNT,
+  LANE_WIDTH,
+  laneCenterX,
+  roadHalfWidth,
+} from '../content/tuning';
 import { weaponStats } from '../content/weapons';
 import type { Loadout } from '../content/upgrades';
 
 /**
  * Per-tick handling modifiers from the biome the car is in (`src/content/biomes.ts`).
- * `omegaMul` scales the steering spring's natural frequency (a looser wheel) and
- * `dampingMul` below 1 underdamps it, so the car slides and overshoots its lane on
- * ice. Neutral on the open road. A deliberate, telegraphed exception to "terrain
- * never touches the controls"; damage still never does (docs/DESIGN.md).
+ * With the free wheel, `omegaMul` scales how fast the car responds to the steer axis
+ * (a looser wheel on ice is slower to bite) and `dampingMul` below 1 weakens the
+ * brake that stops the car when the wheel centers, so on ice it keeps gliding and
+ * overshoots where you aimed. Neutral on the open road. A deliberate, telegraphed
+ * exception to "terrain never touches the controls"; damage still never does
+ * (docs/DESIGN.md).
  */
 export interface Handling {
   readonly omegaMul: number;
   readonly dampingMul: number;
 }
 
-/** Open-road handling: a crisp, critically-damped wheel. */
+/** Open-road handling: a crisp wheel that bites and stops on a dime. */
 export const NEUTRAL_HANDLING: Handling = { omegaMul: 1, dampingMul: 1 };
 
 /** Move `value` toward `target` by at most `maxDelta`. */
@@ -26,19 +35,27 @@ function moveTowards(value: number, target: number, maxDelta: number): number {
 }
 
 function clampLane(lane: number): number {
-  if (lane < 0) return 0;
+  // `<= 0` (rather than `< 0`) also normalizes a -0 from Math.round to +0, so a -0
+  // never leaks into a lane index or a `laneChanged` event.
+  if (lane <= 0) return 0;
   if (lane > LANE_COUNT - 1) return LANE_COUNT - 1;
   return lane;
 }
 
 export function makeCar(loadout: Loadout): CarState {
+  // Start in the middle spawn lane. On the two-lane road that is one of the two
+  // lanes; the car is free to steer across the whole width from there.
   const startLane = Math.floor(LANE_COUNT / 2);
   return {
     lane: startLane,
-    targetLane: startLane,
     lateralX: laneCenterX(startLane),
     lateralVel: 0,
-    speed: 0,
+    // The run opens already at cruising speed: there is no spool-up from a dead
+    // stop. The car is rolling from the first tick (the opening cinematic runs the
+    // sim, so the world is already streaming past under it) — accelerating from rest
+    // off the line felt wrong (the car crawled and steered sideways faster than it
+    // drove forward). The speed ramp still climbs with distance.
+    speed: cruisingSpeed(0),
     height: 0,
     vertVel: 0,
     airborne: false,
@@ -70,32 +87,47 @@ export function stepCar(
   // Forward speed ramps toward the current cruising speed.
   car.speed = moveTowards(car.speed, topSpeed, CAR_TUNING.accel * dt);
 
-  // Edge-triggered steering: one tap shifts the target lane by one.
-  if (intent.steer !== 0) {
-    const next = clampLane(car.targetLane + intent.steer);
-    if (next !== car.targetLane) {
-      car.targetLane = next;
-      out.push({ type: 'laneChanged', lane: next });
-    }
-  }
-
-  // Lateral motion as a damped spring toward the target lane center. Semi-implicit
-  // Euler (update velocity, then position) stays stable at 60 Hz. Damage never
-  // touches the controls (docs/DESIGN.md → Pillar 2); Sticky Tires snaps the spring
-  // (higher omega) so lane changes land faster. The biome `handling` is the lone
-  // terrain exception: ice slows the wheel (`omegaMul`) and underdamps the spring
-  // (`dampingMul` < 1), so the car slides and overshoots — a telegraphed slip, not
-  // mushy damage handling.
-  const targetX = laneCenterX(car.targetLane);
-  const omega = CAR_TUNING.lateralOmega * loadout.steerOmegaMul * handling.omegaMul;
-  const accel =
-    omega * omega * (targetX - car.lateralX) - 2 * omega * handling.dampingMul * car.lateralVel;
-  car.lateralVel += accel * dt;
+  // Free steering: the held steer axis (-1/0/+1) sets a target lateral velocity and
+  // the car eases toward it, so you drive continuously across the lane band instead
+  // of snapping from one lane center to the next. Holding pushes the car; centering
+  // the wheel brakes it back to rest where you left it (no rails, no magnet). Sticky
+  // Tires raises the top lateral speed (`steerOmegaMul`) so a cut crosses faster.
+  // Damage never touches the controls (docs/DESIGN.md → Pillar 2). The biome
+  // `handling` is the lone terrain exception: ice slows the bite (`omegaMul`) and
+  // weakens the brake (`dampingMul` < 1), so the car glides and overshoots where you
+  // aimed — a telegraphed slip, not mushy damage handling.
+  const targetVel = intent.steer * CAR_TUNING.lateralMaxSpeed * loadout.steerOmegaMul;
+  // Sticky Tires (`steerOmegaMul` > 1) both raises the top lateral speed and quickens
+  // the bite and the stop, so a cut crosses and settles faster. The biome scales only
+  // the terrain side: `omegaMul` the bite while steering, `dampingMul` the brake when
+  // the wheel centers (ice underbrakes, so it slides).
+  const rate =
+    intent.steer !== 0
+      ? CAR_TUNING.lateralAccel * loadout.steerOmegaMul * handling.omegaMul
+      : CAR_TUNING.lateralBrake * loadout.steerOmegaMul * handling.dampingMul;
+  car.lateralVel = moveTowards(car.lateralVel, targetVel, rate * dt);
   car.lateralX += car.lateralVel * dt;
 
-  // The settled lane is whichever center the car is nearest right now — the
-  // inverse of `laneCenterX`, rounded to the closest lane index.
-  car.lane = clampLane(Math.round(car.lateralX / LANE_WIDTH + (LANE_COUNT - 1) / 2));
+  // Stay on the road: the car roams the full drivable width freely but never lets its
+  // body poke off the asphalt (road half-width minus the car's half-width). A hit wall
+  // kills only the outward velocity, so the car settles against the edge rather than
+  // bouncing.
+  const edge = roadHalfWidth() - CAR_HALF_WIDTH;
+  if (car.lateralX > edge) {
+    car.lateralX = edge;
+    if (car.lateralVel > 0) car.lateralVel = 0;
+  } else if (car.lateralX < -edge) {
+    car.lateralX = -edge;
+    if (car.lateralVel < 0) car.lateralVel = 0;
+  }
+
+  // The current lane is whichever center the car is nearest right now — the inverse
+  // of `laneCenterX`, rounded to the closest lane index. Crossing into a new lane
+  // fires one `laneChanged` cue (a tire chirp), so the render/audio read still marks
+  // every line you cross even though the motion is now continuous.
+  const lane = clampLane(Math.round(car.lateralX / LANE_WIDTH + (LANE_COUNT - 1) / 2));
+  if (lane !== car.lane) out.push({ type: 'laneChanged', lane });
+  car.lane = lane;
 
   // Jump: launch only from the ground, and only with a charge to spend. The arc
   // is always full height — the cost of jumping is the charge, refilled by lift

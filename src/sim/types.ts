@@ -147,30 +147,42 @@ export type Spawn =
        * plain static gap leaves this unset and is lethal from the start.
        */
       readonly opening?: boolean;
+      /**
+       * Optional lateral offset (meters) from the lane center, kept within the lane so
+       * the body never reaches the safe line. Used by the mecha barrage to stagger its
+       * shells across the wide threat lane into a pattern rather than one stacked
+       * column. Unset means the object sits on the lane center.
+       */
+      readonly dx?: number;
     }
   | {
       readonly kind: 'drifter';
-      /** The lane it starts in. Never the chunk's safe lane. */
+      /** The lane it sweeps within. Never the chunk's safe lane. */
       readonly lane: number;
       readonly z: number;
       /**
-       * The adjacent lane it slides into as it nears the car. Always non-safe and
-       * exactly one lane from `lane`, so the slide never crosses the safe line
+       * The world-X endpoints of the lateral sweep, both inside `lane`: it starts at
+       * `fromX` (the far edge) and eases to `toX` (the safe-lane side of its own lane)
+       * as it nears. Both are bounded so the wreck's body never reaches the safe line,
+       * so it threatens a greedy line within the lane without closing the refuge
        * (docs/DESIGN.md → Pillar 3: the safe lane always stays open).
        */
-      readonly toLane: number;
+      readonly fromX: number;
+      readonly toX: number;
     }
   | {
       readonly kind: 'beam';
-      /** The non-safe lane the sweep starts over. */
+      /** The non-safe lane the sweep stays within. */
       readonly lane: number;
       readonly z: number;
       /**
-       * The non-safe lane the beam sweeps across to as it nears. The sweep stays
-       * among non-safe lanes and never crosses the safe lane, so fleeing to safety
-       * is always the out (docs/DESIGN.md → the safe line always exists).
+       * The world-X endpoints of the beam's sweep, both inside `lane`: it eases from
+       * `fromX` across to `toX` as it nears. Both are bounded so the lethal strip never
+       * reaches the safe lane, so fleeing to safety is always the out (docs/DESIGN.md →
+       * the safe line always exists).
        */
-      readonly toLane: number;
+      readonly fromX: number;
+      readonly toX: number;
     }
   | {
       readonly kind: 'zombie';
@@ -213,13 +225,11 @@ export interface Chunk {
 }
 
 export interface CarState {
-  /** Current lane the car is settling into (continuous target is `targetLane`). */
+  /** Lane index the car is currently nearest, derived from `lateralX` for HUD/audio cues. */
   lane: number;
-  /** Lane the player has steered toward; the car slides to reach it. */
-  targetLane: number;
-  /** Continuous lateral position in meters (world X). */
+  /** Continuous lateral position in meters (world X); the free wheel moves this directly. */
   lateralX: number;
-  /** Lateral velocity (m/s), driven by the steering spring. */
+  /** Lateral velocity (m/s), eased toward the held steer axis's target speed. */
   lateralVel: number;
   /** Forward speed in m/s. */
   speed: number;
@@ -432,11 +442,12 @@ export type ReadonlyState = Readonly<SimState>;
 
 /**
  * Normalized player input for one tick. The only channel from input → sim.
- * `steer` is -1 / +1 on the tick a lane-change is requested (0 otherwise) and
- * `jump` is true on the tick a jump is requested. Both are edge-triggered. `fire`
- * is a held state: true while the trigger is down, with the sim gating the
+ * `steer` is a held axis: -1 (left) / +1 (right) while a steer key is down, 0 when
+ * centered, so the car drives continuously across the road rather than snapping
+ * lane to lane. `jump` is edge-triggered, true on the tick a jump is requested.
+ * `fire` is a held state: true while the trigger is down, with the sim gating the
  * cadence, so holding it auto-fires (docs/DESIGN.md → Pillar 2). The input layer
- * does the edge detection; the sim stays pure.
+ * does the edge detection for jump; the sim stays pure.
  */
 export interface Intent {
   steer: -1 | 0 | 1;

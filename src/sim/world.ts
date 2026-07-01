@@ -4,8 +4,10 @@ import {
   CHUNK_LENGTH,
   DECOR_TUNING,
   LANE_COUNT,
+  LANE_WIDTH,
   PICKUP_TUNING,
   SPAWN_TUNING,
+  laneCenterX,
   roadHalfWidth,
 } from '../content/tuning';
 import {
@@ -149,12 +151,17 @@ function resolveCell(
   lethality: number,
   rng: Rng,
 ): void {
+  // `cell.xf`, when set, staggers a placeable object across its wide lane into a weave
+  // or pattern (a fraction in -1..1 from the lane center), kept within the lane so the
+  // body never reaches the safe line. Unset means the lane center. Shared by the solid
+  // road objects below; moving and area roles position themselves.
+  const dx = cell.xf !== undefined ? laneInsetX(cell.xf) : undefined;
   switch (cell.role) {
     case 'wreck': {
       // Deep-run lethality can promote a steerable wreck to an un-jumpable rig, so
       // a familiar formation's blockers turn nastier the further in you get.
       const toRig = nextFloat(rng) < (lethality - 1) * DIFFICULTY_TUNING.lethalWreckUpgrade;
-      spawns.push({ kind: toRig ? 'rig' : 'wreck', lane, z });
+      spawns.push({ kind: toRig ? 'rig' : 'wreck', lane, z, dx });
       break;
     }
     case 'rig':
@@ -170,29 +177,25 @@ function resolveCell(
     case 'shell':
     case 'gap':
     case 'ramp':
-      spawns.push({ kind: cell.role, lane, z });
+      spawns.push({ kind: cell.role, lane, z, dx });
       break;
     case 'crackgap':
       // A quake gap: a `gap` that starts as a harmless crack and tears open later.
       spawns.push({ kind: 'gap', lane, z, opening: true });
       break;
     case 'drifter': {
-      // Slides one lane over as it nears; never crosses onto the safe line. If
-      // neither side is a valid non-safe lane, fall back to a static wreck.
-      const toLane = driftTarget(rng, lane, safe);
-      if (toLane >= 0) spawns.push({ kind: 'drifter', lane, z, toLane });
-      else spawns.push({ kind: 'wreck', lane, z });
+      // Sweeps laterally within its own wide lane toward the safe-lane side as it
+      // nears, never letting its body reach the safe line. The slide is the telegraph;
+      // the safe lane stays open the whole time.
+      const { fromX, toX } = laneSweep(lane, safe, DRIFTER_BODY_HW);
+      spawns.push({ kind: 'drifter', lane, z, fromX, toX });
       break;
     }
     case 'beam': {
-      // Sweeps from this lane across to `cell.toOff` only when that target stays on
-      // the same side of the safe lane. Invalid targets become a static beam strike,
-      // so a malformed formation cannot silently sweep through the refuge line.
-      const toOff = cell.toOff ?? cell.off;
-      const want = safe + toOff;
-      const sameSide = Math.sign(toOff) === Math.sign(cell.off);
-      const toLane = sameSide && want >= 0 && want < LANE_COUNT && want !== safe ? want : lane;
-      spawns.push({ kind: 'beam', lane, z, toLane });
+      // Sweeps its lethal strip across its own wide lane as it nears, bounded so the
+      // strip never reaches the safe lane: fleeing to safety is always the out.
+      const { fromX, toX } = laneSweep(lane, safe, BEAM_BODY_HW);
+      spawns.push({ kind: 'beam', lane, z, fromX, toX });
       break;
     }
     case 'horde':
@@ -242,20 +245,32 @@ function resolveCell(
   }
 }
 
+// Body half-widths (m) of the lateral set-pieces, kept in step with the collision
+// footprints in `src/sim/collision.ts` (wreck, beam strip, crater). The sweep math
+// uses them so a moving threat's body never reaches the safe line.
+const DRIFTER_BODY_HW = 1.0;
+const BEAM_BODY_HW = 1.2;
+const FALLING_BODY_HW = 1.1;
+
 /**
- * Pick the lane a drifter slides into: an adjacent lane that is on the road and
- * is not the safe lane, so the slide is always exactly one lane and never crosses
- * (or settles on) the safe line. Tries an RNG-chosen side first, then the other;
- * returns -1 when neither side is valid (an edge lane whose only neighbour is the
- * safe lane), letting the caller fall back to a static wreck.
+ * World-X endpoints for a set-piece that sweeps laterally within its own lane toward
+ * the safe-lane side as it nears: it starts at the far edge (`fromX`) and eases to the
+ * safe-lane edge (`toX`), bounded by `bodyHW` so the body never reaches the safe line.
+ * Deterministic — a pure function of the lane geometry.
  */
-function driftTarget(rng: Rng, origin: number, safe: number): number {
-  const first = nextFloat(rng) < 0.5 ? -1 : 1;
-  for (const dir of [first, -first]) {
-    const t = origin + dir;
-    if (t >= 0 && t < LANE_COUNT && t !== safe) return t;
-  }
-  return -1;
+function laneSweep(lane: number, safe: number, bodyHW: number): { fromX: number; toX: number } {
+  const cx = laneCenterX(lane);
+  const reach = Math.max(0, LANE_WIDTH / 2 - bodyHW);
+  const towardSafe = Math.sign(safe - lane) || 1;
+  return { fromX: cx - towardSafe * reach, toX: cx + towardSafe * reach };
+}
+
+/**
+ * Lateral offset (m) for a within-lane stagger from a fraction `xf` in -1..1, bounded
+ * so a falling hazard's crater stays inside its lane (the mecha barrage's pattern).
+ */
+function laneInsetX(xf: number): number {
+  return xf * Math.max(0, LANE_WIDTH / 2 - FALLING_BODY_HW);
 }
 
 /**

@@ -8,7 +8,7 @@ import {
 } from '../src/content/biomes';
 import { makeCar, stepCar, NEUTRAL_HANDLING } from '../src/sim/car';
 import { BASE_LOADOUT } from '../src/content/upgrades';
-import { CHUNK_LENGTH, laneCenterX } from '../src/content/tuning';
+import { CHUNK_LENGTH } from '../src/content/tuning';
 import { chunkAt } from '../src/sim';
 import type { FrameEvent } from '../src/sim';
 
@@ -158,31 +158,29 @@ describe('biome layer', () => {
 });
 
 describe('snow handling slides where the open road grips', () => {
-  /** Run a one-lane change from centre and return the furthest lateral X reached. */
-  function laneChangeOvershoot(handling: { omegaMul: number; dampingMul: number }): {
-    maxX: number;
-    targetX: number;
-  } {
+  /**
+   * Cut the wheel hard then centre it from a fixed lateral speed, and return how far
+   * the car coasts before it settles. With the free wheel, ice's tell is the brake:
+   * `dampingMul` < 1 weakens it, so the car keeps gliding after you let go where the
+   * open road plants and stops almost on the spot.
+   */
+  function coastDistance(handling: { omegaMul: number; dampingMul: number }): number {
     const car = makeCar(BASE_LOADOUT);
+    car.lateralVel = 12; // the wheel was just cut; now it centres
+    const startX = car.lateralX;
     const out: FrameEvent[] = [];
-    const targetX = laneCenterX(2); // one lane right of the centre start (lane 1)
-    // Tick 0 requests the lane change (edge-triggered); the rest just settle.
-    stepCar(car, { steer: 1, jump: false, fire: false }, 60, 1 / 60, out, BASE_LOADOUT, handling);
-    let maxX = car.lateralX;
-    for (let i = 0; i < 90; i += 1) {
+    for (let i = 0; i < 120; i += 1) {
       stepCar(car, { steer: 0, jump: false, fire: false }, 60, 1 / 60, out, BASE_LOADOUT, handling);
-      if (car.lateralX > maxX) maxX = car.lateralX;
     }
-    return { maxX, targetX };
+    return car.lateralX - startX;
   }
 
-  it('the open road is critically damped: it reaches the lane without overshooting', () => {
-    const { maxX, targetX } = laneChangeOvershoot(NEUTRAL_HANDLING);
-    expect(maxX).toBeLessThanOrEqual(targetX + 0.02);
+  it('the open road grips: the car stops promptly when you let the wheel go', () => {
+    expect(coastDistance(NEUTRAL_HANDLING)).toBeLessThan(1);
   });
 
-  it('ice underdamps: the car slides past the target lane before settling', () => {
-    const { maxX, targetX } = laneChangeOvershoot({ omegaMul: 0.82, dampingMul: 0.6 });
-    expect(maxX).toBeGreaterThan(targetX + 0.1);
+  it('ice slides: the car coasts noticeably further before settling', () => {
+    const ice = coastDistance({ omegaMul: 0.82, dampingMul: 0.6 });
+    expect(ice).toBeGreaterThan(coastDistance(NEUTRAL_HANDLING) + 0.3);
   });
 });

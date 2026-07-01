@@ -7,14 +7,17 @@ export interface TouchControlsCallbacks {
 type TouchAction = 'left' | 'right' | 'jump' | 'fire' | 'pause';
 
 /**
- * Touch controls are an input adapter only: they feed the same edge-triggered
- * steering / jump latches and held fire state as the keyboard. Gameplay stays
- * entirely in the pure sim.
+ * Touch controls are an input adapter only: they feed the same held steer axis,
+ * jump latch, and held fire state as the keyboard. Gameplay stays entirely in the
+ * pure sim.
  */
 export class TouchControls {
   private readonly root: HTMLDivElement;
   private readonly buttons: HTMLButtonElement[] = [];
-  private readonly queue: number[] = [];
+  // Held steer is tracked per pointer (like fire) so multitouch and a pointer that
+  // slides off the button both resolve cleanly. The axis is right minus left.
+  private readonly leftPointers = new Set<number>();
+  private readonly rightPointers = new Set<number>();
   private readonly firePointers = new Set<number>();
   private jumpLatched = false;
   private restartLatched = false;
@@ -28,7 +31,7 @@ export class TouchControls {
     const pause = this.button('pause', 'II', 'Pause');
     const dpad = document.createElement('div');
     dpad.className = 'sdw-touch-dpad';
-    dpad.append(this.button('left', '<', 'Change lane left'), this.button('right', '>', 'Change lane right'));
+    dpad.append(this.button('left', '<', 'Steer left'), this.button('right', '>', 'Steer right'));
 
     const actions = document.createElement('div');
     actions.className = 'sdw-touch-actions';
@@ -45,10 +48,10 @@ export class TouchControls {
   }
 
   takeIntent(): Intent {
-    const steer = this.queue.shift();
+    const steer = (this.rightPointers.size > 0 ? 1 : 0) - (this.leftPointers.size > 0 ? 1 : 0);
     const jump = this.jumpLatched;
     this.jumpLatched = false;
-    return { steer: steer === -1 || steer === 1 ? steer : 0, jump, fire: this.firePointers.size > 0 };
+    return { steer: steer as -1 | 0 | 1, jump, fire: this.firePointers.size > 0 };
   }
 
   takeRestart(): boolean {
@@ -58,7 +61,8 @@ export class TouchControls {
   }
 
   reset(): void {
-    this.queue.length = 0;
+    this.leftPointers.clear();
+    this.rightPointers.clear();
     this.firePointers.clear();
     this.jumpLatched = false;
     this.restartLatched = false;
@@ -88,10 +92,10 @@ export class TouchControls {
 
     switch (action) {
       case 'left':
-        this.queue.push(-1);
+        this.leftPointers.add(e.pointerId);
         break;
       case 'right':
-        this.queue.push(1);
+        this.rightPointers.add(e.pointerId);
         break;
       case 'jump':
         this.jumpLatched = true;
@@ -107,7 +111,9 @@ export class TouchControls {
 
   private release(e: PointerEvent, action: TouchAction, button: HTMLButtonElement): void {
     if (button.hasPointerCapture(e.pointerId)) button.releasePointerCapture(e.pointerId);
-    if (action === 'fire') this.firePointers.delete(e.pointerId);
+    if (action === 'left') this.leftPointers.delete(e.pointerId);
+    else if (action === 'right') this.rightPointers.delete(e.pointerId);
+    else if (action === 'fire') this.firePointers.delete(e.pointerId);
     button.classList.remove('is-held');
   }
 }

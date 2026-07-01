@@ -163,8 +163,11 @@ describe('the mow loop in real play', () => {
     const lanes = [...up, ...down];
     for (let i = 0; i < ticks; i += 1) {
       const desired = lanes[Math.floor(i / 45) % lanes.length];
-      const diff = desired - s.car.targetLane;
-      step(s, { steer: diff > 0 ? 1 : diff < 0 ? -1 : 0, jump: false, fire: false });
+      // Steer toward the desired lane's center, not just its index: with the free
+      // wheel on wide lanes the car must reach the lane center to mow it, not stop
+      // at the boundary the moment the rounded lane index flips.
+      const diff = laneCenterX(desired) - s.car.lateralX;
+      step(s, { steer: diff > 0.05 ? 1 : diff < -0.05 ? -1 : 0, jump: false, fire: false });
       // This is an economy smoke test, not a survival one: a dumb bot that sweeps
       // every lane without jumping eats every blocker (jumpable boulders and the
       // un-jumpable, lethal rig alike). Pin the hull so the sweep samples the

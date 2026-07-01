@@ -7,6 +7,7 @@ import {
   BEAM_TUNING,
   BRUTE_TUNING,
   JUMPER_TUNING,
+  CAR_HALF_WIDTH,
   CAR_TUNING,
   CHUNK_LENGTH,
   CRASH_TUNING,
@@ -32,7 +33,6 @@ import { weaponStats } from '../content/weapons';
 // can sail a low mound and still belly-flop into a taller drum at the same hop
 // (docs/ARCHITECTURE.md → Collision). These heights are kept in step with the render
 // meshes in `src/render/hazards.ts` (low survivable chatarra, not full-height cars).
-const CAR_HALF_WIDTH = 0.95;
 const CAR_LENGTH = 4;
 const HAZARD_HALF_WIDTH = 1.0;
 const HAZARD_HALF_LENGTH = 1.6;
@@ -144,38 +144,38 @@ export function materializeSpawns(state: SimState): void {
           taken: false,
         });
       } else if (spawn.kind === 'drifter') {
-        // A wreck that slides from its lane to an adjacent one as it nears.
-        const fromX = laneCenterX(spawn.lane);
+        // A wreck that sweeps laterally within its own lane as it nears, from `fromX`
+        // (the far edge) toward `toX` (the safe-lane side), never onto the safe lane.
         state.hazards.push({
           kind: 'drifter',
           lane: spawn.lane,
-          x: fromX,
+          x: spawn.fromX,
           forward: base + spawn.z,
           hit: false,
-          driftFromX: fromX,
-          driftToX: laneCenterX(spawn.toLane),
+          driftFromX: spawn.fromX,
+          driftToX: spawn.toX,
           hp: WEAPON_TUNING.wreckHp,
         });
       } else if (spawn.kind === 'beam') {
-        // A UFO beam: a lethal strip that sweeps from its start lane across to its
-        // target lane as it nears (`updateBeams`). Both lanes are non-safe.
-        const fromX = laneCenterX(spawn.lane);
+        // A UFO beam: a lethal strip that sweeps across its own wide lane as it nears
+        // (`updateBeams`), bounded so it never reaches the safe lane.
         state.hazards.push({
           kind: 'beam',
           lane: spawn.lane,
-          x: fromX,
+          x: spawn.fromX,
           forward: base + spawn.z,
           hit: false,
-          beamFromX: fromX,
-          beamToX: laneCenterX(spawn.toLane),
+          beamFromX: spawn.fromX,
+          beamToX: spawn.toX,
         });
       } else if (spawn.kind === 'meteor' || spawn.kind === 'stomp' || spawn.kind === 'shell') {
         // A sky meteor, a T-Rex foot, or a mecha shell: harmless while it falls (just a
-        // telegraph), lethal the moment `updateMeteors` lands it on this lane.
+        // telegraph), lethal the moment `updateMeteors` lands it. `dx` staggers it
+        // within its lane (the mecha barrage's pattern); unset means the lane center.
         state.hazards.push({
           kind: spawn.kind,
           lane: spawn.lane,
-          x: laneCenterX(spawn.lane),
+          x: laneCenterX(spawn.lane) + (spawn.dx ?? 0),
           forward: base + spawn.z,
           hit: false,
           landed: false,
@@ -189,7 +189,7 @@ export function materializeSpawns(state: SimState): void {
         state.hazards.push({
           kind: spawn.kind,
           lane: spawn.lane,
-          x: laneCenterX(spawn.lane),
+          x: laneCenterX(spawn.lane) + ('dx' in spawn ? (spawn.dx ?? 0) : 0),
           forward: base + spawn.z,
           hit: false,
           open: spawn.kind === 'gap' && spawn.opening ? false : undefined,
@@ -259,7 +259,8 @@ export function updateBeams(state: SimState): void {
  */
 export function updateMeteors(state: SimState): void {
   for (const h of state.hazards) {
-    if ((h.kind !== 'meteor' && h.kind !== 'stomp' && h.kind !== 'shell') || h.landed || h.hit) continue;
+    if ((h.kind !== 'meteor' && h.kind !== 'stomp' && h.kind !== 'shell') || h.landed || h.hit)
+      continue;
     if (h.forward - state.distance <= METEOR_TUNING.impactGap) {
       h.landed = true;
       state.events.push({ type: 'exploded', x: h.x, forward: h.forward });
@@ -395,7 +396,8 @@ export function resolveCollisions(state: SimState): void {
 
     // Forward overlap: car spans [distance - CAR_LENGTH, distance].
     const forwardOverlap =
-      state.distance >= h.forward - halfLength && state.distance - CAR_LENGTH <= h.forward + halfLength;
+      state.distance >= h.forward - halfLength &&
+      state.distance - CAR_LENGTH <= h.forward + halfLength;
     if (!forwardOverlap) continue;
 
     const dx = Math.abs(car.lateralX - h.x);
@@ -628,7 +630,8 @@ function payKill(state: SimState, z: Zombie): void {
   state.zombiesMowed += 1;
   const streakBonus = Math.min(state.combo - 1, ECONOMY_TUNING.comboScrapCap);
   const bruteBonus = z.brute ? BRUTE_TUNING.scrapBonus : 0;
-  state.scrap += ECONOMY_TUNING.mowScrapBase + streakBonus * ECONOMY_TUNING.mowScrapStep + bruteBonus;
+  state.scrap +=
+    ECONOMY_TUNING.mowScrapBase + streakBonus * ECONOMY_TUNING.mowScrapStep + bruteBonus;
   state.events.push({ type: 'zombieMowed', lane: z.lane, combo: state.combo, x: z.x });
 }
 
@@ -809,7 +812,13 @@ export function resolveMows(state: SimState, topSpeed: number): void {
       // Ramming a brute is a crash: a hull hit and a frenazo before you plow it.
       const impact = car.speed;
       state.events.push({ type: 'crashed', impact, lane: z.lane });
-      applyCrash(car, impact, false, state.events, state.loadout.damageMul * CRASH_TUNING.bruteDamageMul);
+      applyCrash(
+        car,
+        impact,
+        false,
+        state.events,
+        state.loadout.damageMul * CRASH_TUNING.bruteDamageMul,
+      );
       car.speed *= CRASH_TUNING.bruteSpeedKeep;
       // The hull hit breaks the streak before the kill banks a fresh one.
       state.combo = 0;

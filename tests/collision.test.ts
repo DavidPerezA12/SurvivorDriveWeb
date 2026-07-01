@@ -68,7 +68,9 @@ describe('collision', () => {
     const state = createSim(1);
     state.hazards.push({ kind: 'wreck', lane: 1, x: laneCenterX(1), forward: 6, hit: false });
 
-    const events = driveCollecting(state, 120);
+    // 40 ticks at the opening cruising speed reaches the injected wreck but stays
+    // inside the one-chunk grace zone, so the only blocker met is the one we pushed.
+    const events = driveCollecting(state, 40);
     const crashes = events.filter((e) => e.type === 'crashed').length;
     expect(crashes).toBe(1);
   });

@@ -10,19 +10,31 @@
  */
 
 /**
- * Number of lanes, including the two shoulders. Lane 0 is the far left.
+ * Number of spawn lanes the road is split into. Lane 0 is the far left.
  *
- * Tuned to 3 (down from 4, originally 5): with the safe line always clear, three
- * lanes means just two threat lanes, so every blocker is a real commitment and
- * there is almost nowhere to hide a sloppy line. This is the global difficulty
- * lever. Everything (sim and render) derives from this constant; nothing hardcodes
- * a lane count, so this is the single knob. An odd count keeps a true centre lane,
- * where the car starts, with one threat lane to each side.
+ * Tuned to 2 (down from 3): a wide two-lane road, closer to the inspiration's free
+ * driving than a tight lane grid. With the safe line always clear, two lanes means
+ * one safe line and one threat line; the car drives the whole width freely, so the
+ * "lanes" are just where spawns sit, not rails. Total road width is held constant by
+ * pairing this with `LANE_WIDTH` (2 × 4.8 = 3 × 3.2 = 9.6 m), so dropping a lane
+ * widened the lanes rather than narrowing the road. Everything (sim and render)
+ * derives from these two constants; nothing hardcodes a lane count or road width.
  */
-export const LANE_COUNT = 3;
+export const LANE_COUNT = 2;
 
-/** Width of a single lane, in meters. */
-export const LANE_WIDTH = 3.2;
+/**
+ * Width of a single lane, in meters. Widened from 3.2 to 4.8 when the road went from
+ * three lanes to two, so the drivable road stays the same total width (`LANE_COUNT ×
+ * LANE_WIDTH` = 9.6 m); only the number of spawn columns changed.
+ */
+export const LANE_WIDTH = 4.8;
+
+/**
+ * Half the car's collidable width, in meters. Shared by the collision footprints
+ * (`src/sim/collision.ts`) and the steering edge clamp (`src/sim/car.ts`), so the
+ * car can drive right up to the road edge without its body poking off the asphalt.
+ */
+export const CAR_HALF_WIDTH = 0.95;
 
 /** Length of one road chunk, in meters (docs/ARCHITECTURE.md → Chunks). */
 export const CHUNK_LENGTH = 50;
@@ -55,12 +67,25 @@ export const CAR_TUNING = {
   accel: 20,
 
   /**
-   * Lateral steering as a critically-damped spring toward the target lane:
-   * `omega` is the natural frequency (higher = snappier). Critical damping
-   * (2·omega) gives "snappy but analog" with no overshoot. This is the velocity
-   * curve M0's flat rate promised.
+   * Free lateral steering: a held wheel, not a lane snap. The held steer axis sets
+   * a target lateral velocity (`lateralMaxSpeed`), `lateralAccel` ramps the car up
+   * to it, and `lateralBrake` brings it back to rest the moment the wheel centers,
+   * so the car glides where you steer and stops where you let go (no rails, no
+   * magnet). The car still moves only within the lane band (clamped to the outer
+   * lane centers), so the drivable width and the readable lane grid are unchanged;
+   * only the input went continuous.
+   *
+   * `lateralMaxSpeed` is the ceiling on how fast the car tracks sideways while a
+   * key is held, so it sets how placeable the wheel is: too high and the car rockets
+   * across the road on any tap and overshoots; this is tuned so a held cut crosses
+   * one lane (4.8 m) in about half a second, fast enough to dodge but slow
+   * enough to feather. `lateralAccel`/`lateralBrake` are firm so the response is
+   * crisp without being instant. Damage never touches these; the biome `handling`
+   * is the lone terrain exception (ice loosens the wheel and lets it slide).
    */
-  lateralOmega: 15,
+  lateralMaxSpeed: 11,
+  lateralAccel: 70,
+  lateralBrake: 95,
 
   /** Jump launch velocity (m/s) and gravity (m/s²): ~0.6 s arc, ~1.1 m peak. */
   jumpImpulse: 7,
@@ -251,11 +276,12 @@ export const BRUTE_TUNING = {
  */
 export const JUMPER_TUNING = {
   /**
-   * Lateral reach (m) of the leap. Bigger than a lane width (3.2) so a jumper on a
-   * flanking lane can latch onto a car in the adjacent safe lane (the whole point),
-   * but under two lane widths so a jumper two lanes away cannot reach.
+   * Lateral reach (m) of the leap. Bigger than a lane width so a jumper on the threat
+   * lane can latch onto a car in the adjacent safe lane (the whole point), but under
+   * two lane widths so a jumper two lanes away (on a wider grid) cannot reach. Scaled
+   * off `LANE_WIDTH` so it tracks the lane width automatically.
    */
-  leapLateral: 3.7,
+  leapLateral: LANE_WIDTH * 1.15,
   /** Forward half-length (m) of the leap footprint: it springs a touch before contact. */
   leapHalfLength: 1.1,
   /**

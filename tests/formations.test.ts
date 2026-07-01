@@ -36,12 +36,11 @@ describe('formation library', () => {
         expect(c.off).not.toBe(0);
         expect(c.z).toBeGreaterThanOrEqual(0);
         expect(c.z).toBeLessThanOrEqual(1);
-        if (c.role === 'beam') {
-          expect(c.toOff).not.toBeUndefined();
-          if (c.toOff !== undefined) {
-            expect(c.toOff).not.toBe(0);
-            expect(Math.sign(c.toOff)).toBe(Math.sign(c.off));
-          }
+        // A within-lane stagger fraction, when present, stays in -1..1 so the body is
+        // kept inside its lane (and off the safe line) by the sim.
+        if (c.xf !== undefined) {
+          expect(c.xf).toBeGreaterThanOrEqual(-1);
+          expect(c.xf).toBeLessThanOrEqual(1);
         }
       }
     }

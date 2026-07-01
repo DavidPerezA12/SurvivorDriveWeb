@@ -89,19 +89,24 @@ describe('mecha barrage in the world', () => {
     expect(late).toBeGreaterThan(0);
   });
 
-  it('a volley shells both flanking lanes, leaving only the safe lane open', () => {
-    // On any chunk the barrage laid, the shells must cover every non-safe lane at the
-    // volley beat (the seal idiom), so the safe lane is the only gap.
+  it('a volley rakes the threat lane in a staggered pattern, never the safe lane', () => {
+    // On any chunk the barrage laid, the shells walk across the wide threat lane at
+    // several distinct lateral offsets (the zigzag pattern), and never touch the safe
+    // lane, which stays the clean out.
     const actIVStart = Math.floor((3 * ACT_SPAN_M) / CHUNK_LENGTH);
     let volleysSeen = 0;
     for (const seed of [1, 7, 42, 123, 2024]) {
       for (let i = actIVStart; i < actIVStart + 600; i += 1) {
         const chunk = chunkAt(seed, i);
         const safe = safeLane(seed, i);
-        const shellLanes = new Set(chunk.spawns.filter((s) => s.kind === 'shell').map((s) => s.lane));
-        if (shellLanes.size < 2) continue; // not a barrage volley chunk
+        const shells = chunk.spawns.filter((s) => s.kind === 'shell');
+        if (shells.length < 4) continue; // not a barrage volley chunk
         volleysSeen += 1;
-        expect(shellLanes.has(safe)).toBe(false);
+        // All on the one threat lane, never the safe lane.
+        for (const sh of shells) expect(sh.lane).not.toBe(safe);
+        // Staggered across the lane: several distinct lateral offsets, not one column.
+        const offsets = new Set(shells.map((s) => Math.round(('dx' in s ? (s.dx ?? 0) : 0) * 100)));
+        expect(offsets.size).toBeGreaterThan(1);
       }
     }
     expect(volleysSeen).toBeGreaterThan(0);

@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { createSim, step, NO_INTENT, type Intent } from '../src/sim';
 import { cruisingSpeed } from '../src/sim/car';
-import { CAR_TUNING, LANE_COUNT, laneCenterX } from '../src/content/tuning';
+import {
+  CAR_HALF_WIDTH,
+  CAR_TUNING,
+  LANE_COUNT,
+  LANE_WIDTH,
+  laneCenterX,
+  roadHalfWidth,
+} from '../src/content/tuning';
 
 function intent(steer: -1 | 0 | 1, jump = false): Intent {
   return { steer, jump, fire: false };
@@ -18,18 +25,22 @@ function drive(seed: number, intents: Intent[], totalTicks: number) {
 const startLane = Math.floor(LANE_COUNT / 2);
 
 describe('car kinematics', () => {
-  it('starts centered, grounded, and stationary', () => {
+  it('starts centered, grounded, and already at cruising speed', () => {
     const s = createSim(0);
-    expect(s.car.targetLane).toBe(startLane);
+    expect(s.car.lane).toBe(startLane);
     expect(s.car.lateralX).toBeCloseTo(laneCenterX(startLane));
-    expect(s.car.speed).toBe(0);
+    expect(s.car.lateralVel).toBe(0);
+    // The run opens mid-cruise, not from a standstill (the intro hands it off rolling).
+    expect(s.car.speed).toBeCloseTo(cruisingSpeed(0));
     expect(s.car.airborne).toBe(false);
     expect(s.car.height).toBe(0);
   });
 
-  it('accelerates from rest within the hazard-free grace zone', () => {
-    const s = drive(0, [], 150); // ~2.5 s, still inside the opening grace zone
-    expect(s.car.speed).toBeGreaterThan(0);
+  it('rolls forward at cruising speed within the hazard-free grace zone', () => {
+    const s = drive(0, [], 30); // ~0.5 s, still inside the opening grace zone
+    // It cruises (tracking the distance ramp), never spooling up from a standstill.
+    expect(s.car.speed).toBeCloseTo(cruisingSpeed(s.distance), 1);
+    expect(s.car.speed).toBeGreaterThanOrEqual(cruisingSpeed(0));
     expect(s.distance).toBeGreaterThan(0);
     expect(s.dead).toBe(false);
   });
@@ -38,35 +49,45 @@ describe('car kinematics', () => {
     expect(cruisingSpeed(2200)).toBeGreaterThan(cruisingSpeed(0));
   });
 
-  it('a single steer tap settles at exactly one lane over', () => {
-    const s = drive(0, [intent(1)], 120);
-    expect(s.car.targetLane).toBe(startLane + 1);
-    expect(s.car.lateralX).toBeCloseTo(laneCenterX(startLane + 1));
-    expect(s.car.lane).toBe(startLane + 1);
-  });
-
-  it('the steering spring slides analog and does not overshoot the target', () => {
-    // One tick after a tap: moving, but not arrived.
+  it('drives continuously while the wheel is held, not in lane snaps', () => {
+    // A single tick of held steer moves only a sliver, far less than a whole lane:
+    // there is no one-tap lane jump anymore.
     const oneTick = drive(0, [intent(1)], 1);
     expect(oneTick.car.lateralX).toBeGreaterThan(laneCenterX(startLane));
-    expect(oneTick.car.lateralX).toBeLessThan(laneCenterX(startLane + 1));
+    expect(oneTick.car.lateralX - laneCenterX(startLane)).toBeLessThan(LANE_WIDTH * 0.25);
 
-    // Critically damped: it never crosses past the target lane center.
-    const target = laneCenterX(startLane + 1);
-    const sim = createSim(0);
-    let maxX = -Infinity;
-    for (let i = 0; i < 200; i += 1) {
-      step(sim, i === 0 ? intent(1) : NO_INTENT);
-      maxX = Math.max(maxX, sim.car.lateralX);
-    }
-    expect(maxX).toBeLessThanOrEqual(target + 1e-6);
+    // Held a short while, it comes to rest between lane centers, not snapped onto
+    // one: the wheel is free, not a per-lane ratchet.
+    const held = drive(
+      0,
+      Array.from({ length: 8 }, () => intent(1)),
+      8,
+    );
+    expect(held.car.lateralX).toBeGreaterThan(laneCenterX(startLane));
+    expect(held.car.lateralX).toBeLessThan(laneCenterX(startLane + 1));
   });
 
-  it('cannot steer past the outer shoulders', () => {
-    const spam: Intent[] = Array.from({ length: 50 }, () => intent(1));
+  it('coasts to a stop when the wheel centers, without snapping back to a lane', () => {
+    const startX = laneCenterX(startLane);
+    // Hold left a good while (there is room toward the far edge), then release.
+    const intents: Intent[] = Array.from({ length: 80 }, (_, i) => (i < 18 ? intent(-1) : intent(0)));
+    const s = drive(0, intents, 80);
+    // It stayed where it was steered (well left of where it started), not pulled
+    // back to its start lane by any magnet.
+    expect(s.car.lateralX).toBeLessThan(startX - LANE_WIDTH * 0.4);
+    // And it has come to rest: the free wheel brakes to zero, it does not drift on.
+    expect(Math.abs(s.car.lateralVel)).toBeLessThan(1e-3);
+  });
+
+  it('cannot steer off the road', () => {
+    // The car roams the full drivable width but plants at the road edge (road
+    // half-width minus the car's half-width), not at the outer lane center.
+    const edge = roadHalfWidth() - CAR_HALF_WIDTH;
+    const spam: Intent[] = Array.from({ length: 600 }, () => intent(-1));
     const s = drive(0, spam, 600);
-    expect(s.car.targetLane).toBe(LANE_COUNT - 1);
-    expect(s.car.lateralX).toBeCloseTo(laneCenterX(LANE_COUNT - 1));
+    expect(s.car.lane).toBe(0);
+    expect(s.car.lateralX).toBeCloseTo(-edge);
+    expect(s.car.lateralVel).toBeCloseTo(0);
   });
 });
 
