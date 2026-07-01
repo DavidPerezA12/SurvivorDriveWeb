@@ -95,6 +95,9 @@ const WRECK_CLEAR = 0.9; // crushed sedan/van husk, and the drifting wreck
 const BARRICADE_CLEAR = 0.65; // a low trestle: jumpable, or just barge through it
 const BOULDER_CLEAR = 0.6; // low rubble mound, the teaching jump
 const BARREL_CLEAR = 0.95; // a standing drum, the hardest thing to hop
+// The bus keeps its tall mesh but a deliberately low hitbox so a well-timed jump
+// clears it (David's call): the hitbox, not the model, is what a hop has to beat.
+const BUS_CLEAR = 0.95;
 const SPIKES_CLEAR = 0.35; // a flat strip on the deck
 const GAP_CLEAR = 0.5; // a hole: just be clearly off the ground
 const BEAM_CLEAR = 0.45; // a thin light strip across the lane
@@ -343,11 +346,12 @@ export function resolveCollisions(state: SimState): void {
     const gap = h.kind === 'gap';
     const spikes = h.kind === 'spikes';
     const beam = h.kind === 'beam';
-    // Lethal walls (rig, concrete barrier, crashed bus, landed meteor/stomp) are too
-    // tall/solid to jump: the only out is a lane change. Everything else is
-    // ground-class — a jump clears it (the beam, gap, and spikes included)
-    // (docs/DESIGN.md → readability: lethal reads as a wall; jump it or take the lane).
-    const tall = rig || barrier || bus || meteor;
+    // Lethal walls (rig, concrete barrier, landed meteor/stomp) are too
+    // tall/solid to jump: the only out is a lane change. The crashed bus is the
+    // exception — it keeps a tall mesh but a low hitbox (`BUS_CLEAR`), so a hop
+    // clears it even though a clip is still a lethal crash. Everything else is
+    // ground-class and a jump clears it (the beam, gap, and spikes included).
+    const tall = rig || barrier || meteor;
     // A road gap and a spike strip are lethal ground traps: not things you ram but
     // things you must not be on while grounded (jump or change lane, or die).
     const lethalTrap = gap || spikes;
@@ -404,8 +408,8 @@ export function resolveCollisions(state: SimState): void {
     if (dx >= CAR_HALF_WIDTH + halfWidth) continue;
 
     // A jump clears a ground-class hazard only while the car is actually above its
-    // clearance height, so a low mound is an easy hop and a standing drum needs the
-    // top of the arc. The lethal walls (rig, barrier, bus, landed meteor) are too
+    // clearance height, so a low mound is an easy hop and the bus's low hitbox needs
+    // the top of the arc. The lethal walls (rig, barrier, landed meteor) are too
     // tall/solid to clear at any height, so the only out is a lane change
     // (docs/DESIGN.md → telegraphed, dodgeable, safe lane open).
     const clearHeight = barricade
@@ -414,13 +418,15 @@ export function resolveCollisions(state: SimState): void {
         ? BOULDER_CLEAR
         : barrelLike
           ? BARREL_CLEAR
-          : spikes
-            ? SPIKES_CLEAR
-            : gap
-              ? GAP_CLEAR
-              : beam
-                ? BEAM_CLEAR
-                : WRECK_CLEAR; // wreck + drifter
+          : bus
+            ? BUS_CLEAR
+            : spikes
+              ? SPIKES_CLEAR
+              : gap
+                ? GAP_CLEAR
+                : beam
+                  ? BEAM_CLEAR
+                  : WRECK_CLEAR; // wreck + drifter
     if (!tall && car.height >= clearHeight) continue;
 
     h.hit = true;
@@ -446,9 +452,10 @@ export function resolveCollisions(state: SimState): void {
     const impact = car.speed;
     const glancing = dx > halfWidth;
     state.events.push({ type: 'crashed', impact, lane: h.lane });
-    // The lethal walls (rig, barrier, bus, meteor) scale the hull cost up so a
-    // square hit at speed empties the bar outright. The boulder's is scaled down, a
-    // ram you survive to regret; the barrel's is scaled up (the blast in your face).
+    // The lethal walls (rig, barrier, meteor) scale the hull cost up so a square hit
+    // at speed empties the bar outright. The bus does the same (it is a wall you can
+    // hop, not a soft one). The boulder's is scaled down, a ram you survive to regret;
+    // the barrel's is scaled up (the blast in your face).
     const hazardMul = rig
       ? CRASH_TUNING.rigDamageMul
       : barrier

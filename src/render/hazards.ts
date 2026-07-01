@@ -269,10 +269,11 @@ function barrierGeometry(): THREE.BufferGeometry {
 }
 
 /**
- * A crashed bus blocking a lane: the longest lethal wall. A long dead coach along
- * the lane, tall and solid, with dead glass, rust, and red hazard chevrons on the
- * rear facing the player, so it reads as an un-jumpable wall, not a survivable
- * bump (docs/DESIGN.md → readability). One merged geometry, instanced.
+ * A crashed bus blocking a lane: the longest blocker. A long dead coach along the
+ * lane, with dead glass, rust, and red hazard chevrons on the rear facing the
+ * player. Its hitbox is low enough that a well-timed jump clears it (the sim's
+ * `BUS_CLEAR`), but a square hit at speed is still a lethal crash. One merged
+ * geometry, instanced.
  */
 function busGeometry(): THREE.BufferGeometry {
   const p = palette;

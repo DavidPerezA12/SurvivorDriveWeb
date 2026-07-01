@@ -249,7 +249,7 @@ tier. Upgrades render on the car, so the build is legible at a glance.
 | Abandoned car | Survivable lane blocker | Steer, jump, or ram for a hull hit |
 | Toppled big rig | Lethal wall, too tall to jump | Steer only; never on the safe lane |
 | Concrete barrier | Lethal wall | Steer only; the safe lane is always open |
-| Crashed bus | Long lethal wall | Steer only; reads as a wall along the lane |
+| Crashed bus | Long blocker with a low hitbox; lethal but jumpable | Jump it (the hitbox is low), or steer; a square hit ends the run |
 | Boulder / rubble | Low obstacle; makes the jump load-bearing | Jump, or steer; ramming costs hull |
 | Light barricade | Soft blocker | Shoot, ram, or steer |
 | Explosive barrel | Trap and tool | Shoot to detonate (clears lanes, chains); ramming is a big hit; a jump clears it |
@@ -261,10 +261,12 @@ tier. Upgrades render on the car, so the build is legible at a glance.
 | Collapse ramp | Rubble route over the debris | Drive onto it to vault the wreckage; a free launch, no charge |
 | Scrap / lift / ammo / health | Pickups | Grab; clustered off the safe lane |
 
-Lethal walls (rig, barrier, bus, landed meteor) all share the same read: a tall
-solid mass you steer around, never jump. Survivable blockers (wreck, boulder,
-barrel) stay low and only cost hull. The brute is the one piece of fodder that is
-also an obstacle: ram it and you take the crash, so the gun or a dodge is the play.
+Lethal walls (rig, barrier, landed meteor) all share the same read: a tall
+solid mass you steer around, never jump. The crashed bus is the one exception: it
+still hits like a wall (a square hit ends the run), but its hitbox is low enough that
+a well-timed jump clears it. Survivable blockers (wreck, boulder, barrel) stay low
+and only cost hull. The brute is the one piece of fodder that is also an obstacle:
+ram it and you take the crash, so the gun or a dodge is the play.
 
 **Counterplay-verb coverage.** Every control verb must be required by at least one
 object or it is decoration. Steer is forced by the lethal walls; ram and shoot by

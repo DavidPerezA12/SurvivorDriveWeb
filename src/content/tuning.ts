@@ -226,9 +226,10 @@ export const CRASH_TUNING = {
   barrierSpeedKeep: 0.16,
 
   /**
-   * The crashed bus is the longest lethal wall: a square hit at speed empties the
-   * hull like the barrier, and it stops the car dead. Its length is what makes it
-   * read as a wall across the lane (docs/DESIGN.md → roster).
+   * The crashed bus is the longest blocker: a square hit at speed empties the hull
+   * like the barrier, and it stops the car dead. Unlike the rig and barrier its
+   * hitbox is low enough to clear with a well-timed jump (the sim's `BUS_CLEAR`), but
+   * clipping it is still a lethal crash (docs/DESIGN.md → roster).
    */
   busDamageMul: 3,
   busSpeedKeep: 0.16,

@@ -5,11 +5,12 @@ import { laneCenterX } from '../src/content/tuning';
 
 /**
  * Lethal walls and ground traps (docs/DESIGN.md → readability: lethal looks
- * lethal). The concrete `barrier` and the crashed `bus` are un-jumpable walls like
- * the rig — a square hit at speed ends the run, and a jump cannot clear them. The
- * `spikes` strip is a lethal ground trap like the gap — fatal if you are on it
- * grounded, but a jump clears it. Headless sim contracts; the look is judged in
- * the browser.
+ * lethal). The concrete `barrier` is an un-jumpable wall like the rig — a square hit
+ * at speed ends the run, and a jump cannot clear it. The crashed `bus` is the
+ * exception: a square hit is just as lethal, but its hitbox is low enough that a
+ * well-timed jump clears it (`BUS_CLEAR`). The `spikes` strip is a lethal ground trap
+ * like the gap — fatal if you are on it grounded, but a jump clears it. Headless sim
+ * contracts; the look is judged in the browser.
  */
 
 /** A car cruising on a lane, overlapping a hazard placed just ahead of its nose. */
@@ -52,7 +53,7 @@ describe('concrete barrier (lethal wall)', () => {
   });
 });
 
-describe('crashed bus (lethal wall)', () => {
+describe('crashed bus (lethal, but jumpable)', () => {
   it('a square hit at speed empties the hull and is attributed to the bus', () => {
     const s = approaching(2, 60);
     s.hazards.push({ kind: 'bus', lane: 2, x: laneCenterX(2), forward: 8, hit: false });
@@ -61,13 +62,13 @@ describe('crashed bus (lethal wall)', () => {
     expect(s.deathCause).toBe('bus');
   });
 
-  it('cannot be jumped — it hits even mid-air', () => {
+  it('a well-timed jump clears it — airborne above its hitbox, the car is untouched', () => {
     const s = approaching(2, 50);
-    s.car.height = 1.2;
+    s.car.height = 1.05; // above BUS_CLEAR
     s.hazards.push({ kind: 'bus', lane: 2, x: laneCenterX(2), forward: 8, hit: false });
     resolveCollisions(s);
-    expect(s.hazards[0].hit).toBe(true);
-    expect(s.car.health).toBeLessThan(1);
+    expect(s.hazards[0].hit).toBe(false);
+    expect(s.car.health).toBe(1);
   });
 });
 
