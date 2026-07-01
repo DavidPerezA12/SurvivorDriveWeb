@@ -357,31 +357,64 @@ function barricadeGeometry(): THREE.BufferGeometry {
 }
 
 /**
- * A boulder blocking a lane, low enough to read as jumpable. Warm tones separate
- * it from off-road scenery while keeping it in the threat palette. One merged
- * geometry, instanced.
+ * One craggy stone: a low-detail icosahedron whose vertices are pushed in and out
+ * along their own radius so it reads as faceted rock, never a smooth ball or a
+ * stacked box. The push is hashed from each vertex's (quantized) position, so the
+ * duplicated verts a non-indexed icosahedron shares along every edge move
+ * together and the facets stay welded (no cracks). `flatten` squashes it
+ * vertically into a mound; flat per-face normals make each facet a single shade
+ * under `paint`, the low-poly stone read. 20 faces, so a few of these still merge
+ * cheap.
+ */
+function rockChunk(
+  radius: number,
+  flatten: number,
+  amount: number,
+  color: number,
+  ao: number,
+): THREE.BufferGeometry {
+  const geo = new THREE.IcosahedronGeometry(radius, 0);
+  const pos = geo.getAttribute('position');
+  for (let i = 0; i < pos.count; i += 1) {
+    const x = pos.getX(i);
+    const y = pos.getY(i);
+    const z = pos.getZ(i);
+    const qx = Math.round(x * 256);
+    const qy = Math.round(y * 256);
+    const qz = Math.round(z * 256);
+    let h = (Math.imul(qx, 374761393) ^ Math.imul(qy, 668265263) ^ Math.imul(qz, 1274126177)) >>> 0;
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+    const r = ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+    const m = 1 + (r - 0.5) * amount;
+    pos.setXYZ(i, x * m, y * m * flatten, z * m);
+  }
+  pos.needsUpdate = true;
+  geo.computeVertexNormals();
+  return paint(geo, color, ao);
+}
+
+/**
+ * A boulder blocking a lane, low enough to read as jumpable. A cluster of faceted
+ * stones (not stacked boxes) so the silhouette reads as rock at a glance and is
+ * never mistaken for shootable crates. Warm sandstone tones separate it from
+ * off-road scenery while keeping it in the threat palette. One merged geometry,
+ * instanced.
  */
 function boulderGeometry(): THREE.BufferGeometry {
   const p = palette;
   const parts = [
-    // Main mass: a big angular block, tilted off-axis so no face is square-on.
-    box(1.7, 0.92, 1.55, p.boulderBody, 0.5).rotateY(0.4).rotateZ(0.12).translate(0, 0.4, 0),
-    // A second lobe giving the mound its two-peak, broken silhouette.
-    box(1.15, 0.74, 1.2, p.boulderLight, 0.45)
-      .rotateY(-0.5)
-      .rotateZ(-0.12)
-      .translate(0.55, 0.33, 0.3),
-    // Shadowed crevice block wedged into the back.
-    box(0.95, 0.62, 0.9, p.boulderDark, 0.55).rotateY(0.9).translate(-0.5, 0.3, -0.45),
-    // Top cap chunk — the high point you read first at the horizon.
-    box(0.82, 0.52, 0.72, p.boulderLight, 0.4)
-      .rotateY(0.3)
-      .rotateZ(0.22)
-      .translate(0.08, 0.74, -0.08),
-    // Spilled rubble around the base, breaking the box outline into rock.
-    box(0.5, 0.32, 0.5, p.boulderDark, 0.5).rotateY(0.6).translate(-0.92, 0.16, 0.7),
-    box(0.42, 0.26, 0.44, p.boulderBody, 0.45).rotateY(1.1).translate(0.96, 0.13, -0.68),
-    box(0.34, 0.22, 0.36, p.boulderDark, 0.4).rotateY(0.2).translate(0.22, 0.11, 0.96),
+    // Main mass: a broad flattened stone, the bulk of the mound.
+    rockChunk(0.85, 0.6, 0.5, p.boulderBody, 0.5).rotateY(0.4).translate(0, 0.42, 0),
+    // A second peak giving the mound its broken, two-lobe ridgeline.
+    rockChunk(0.58, 0.68, 0.6, p.boulderLight, 0.45).rotateY(0.9).translate(0.48, 0.36, 0.26),
+    // Shadowed stone wedged into the back — the dark crevice between the peaks.
+    rockChunk(0.48, 0.68, 0.7, p.boulderDark, 0.55).rotateY(1.4).translate(-0.48, 0.3, -0.38),
+    // Sunlit cap chunk — the high point you read first at the horizon.
+    rockChunk(0.38, 0.7, 0.6, p.boulderLight, 0.42).rotateY(0.2).translate(0.05, 0.6, -0.04),
+    // Spilled rubble around the base, breaking the outline into scattered rock.
+    rockChunk(0.26, 0.62, 0.7, p.boulderDark, 0.5).rotateY(0.6).translate(-0.86, 0.12, 0.62),
+    rockChunk(0.24, 0.62, 0.7, p.boulderBody, 0.45).rotateY(1.1).translate(0.9, 0.1, -0.6),
+    rockChunk(0.2, 0.6, 0.7, p.boulderDark, 0.4).rotateY(0.3).translate(0.22, 0.09, 0.92),
   ];
   const geo = mergeGeometries(parts, false);
   for (const part of parts) part.dispose();
