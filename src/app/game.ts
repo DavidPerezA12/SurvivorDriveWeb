@@ -1,4 +1,4 @@
-import { createSim, step, FIXED_DT, type SimState } from '../sim';
+import { createSim, step, FIXED_DT, NO_INTENT, type SimState } from '../sim';
 import { GameView, CarPreview, type RenderSnapshot } from '../render';
 import { PlayerInput } from '../input/playerInput';
 import { Hud } from '../ui/hud';
@@ -11,11 +11,26 @@ import { isGlobalUpgrade, upgradeDef, upgradePrereq, type UpgradeId } from '../c
 import { runLoadout, type ChassisId } from '../content/chassis';
 import { paintBody, type PaintId } from '../content/paint';
 import { runTitle } from '../content/runTitles';
+import { biomeAt } from '../content/biomes';
 
 /** Beyond this many catch-up ticks in one frame, pause rather than spiral. */
 const MAX_CATCHUP = 5;
 /** A tab regaining focus can report a huge gap; clamp it so we never spiral. */
 const MAX_FRAME_S = 0.25;
+/**
+ * The run-opening cinematic (The Last Driver style). The sim *runs* through the intro
+ * (the car is already at cruising speed, so the world scrolls and the roadside streams
+ * past — real motion, not a frozen hero shot) for a fixed `INTRO_TICKS`, kept short
+ * enough to stay inside the opening spawn-free grace chunk so nothing can hit the car
+ * while the player has no control. A fixed tick count keeps the run deterministic per
+ * seed (the daily/replay contract). The camera dollies off the hood then orbits to the
+ * chase pose; any action input skips straight to driving.
+ *
+ * `INTRO_DOLLY_FRAC` splits the camera beats: the first fraction is the backward dolly
+ * off the hood (the card reads here), the rest is the orbit to the chase pose.
+ */
+const INTRO_TICKS = 50;
+const INTRO_DOLLY_FRAC = 0.5;
 
 /**
  * Composition root. Wires the pure sim to the impure views and runs the
@@ -69,6 +84,10 @@ export class Game {
 
   private accumulator = 0;
   private last = 0;
+  /** Run-opening cinematic: while active the camera plays the intro over the moving world. */
+  private introActive = false;
+  /** Sim ticks stepped so far in the current intro (drives the camera and ends it). */
+  private introTicks = 0;
 
   constructor(seed: number) {
     this.seed = seed;
@@ -131,8 +150,35 @@ export class Game {
   start(): void {
     this.running = true;
     this.input.setTouchVisible(true);
+    this.beginIntro();
     this.last = performance.now();
     this.raf = requestAnimationFrame(this.frame);
+  }
+
+  /** Open the run-opening cinematic: raise the location card; the sim keeps running. */
+  private beginIntro(): void {
+    this.introActive = true;
+    this.introTicks = 0;
+    // The location the run opens in (distance 0), the title on the intro card.
+    this.hud.showIntroCard(biomeAt(this.seed, 0).name);
+  }
+
+  /** Hand the cinematic off to gameplay: drop the card, hand control back to the player. */
+  private endIntro(): void {
+    this.introActive = false;
+    this.hud.hideIntroCard();
+  }
+
+  /**
+   * Intro camera progress from the fraction `p` (0→1) of the intro elapsed: `dolly`
+   * 0→1 over the opening beat (the backward pull off the hood, card reading), then
+   * `settle` 0→1 over the orbit to the chase pose.
+   */
+  private introPose(p: number): { dolly: number; settle: number } {
+    const dolly = Math.min(p / INTRO_DOLLY_FRAC, 1);
+    const settle =
+      p <= INTRO_DOLLY_FRAC ? 0 : Math.min((p - INTRO_DOLLY_FRAC) / (1 - INTRO_DOLLY_FRAC), 1);
+    return { dolly, settle };
   }
 
   /** Stop the loop and raise the pause menu (zero cost while up). */
@@ -195,6 +241,8 @@ export class Game {
     this.dressCar();
     this.input.reset();
     this.snapshot();
+    // Every fresh run opens with the cinematic, not just the first.
+    this.beginIntro();
   }
 
   /** The owned upgrades that apply to the selected chassis: global ∪ that car's per-chassis set. */
@@ -325,6 +373,34 @@ export class Game {
   private readonly frame = (now: number): void => {
     const frameMs = now - this.last;
     this.last = now;
+
+    // The run-opening cinematic: the sim runs (the car drives at cruising speed, so the
+    // world scrolls and the roadside streams past — real motion) while the camera plays
+    // its dolly-and-orbit over it, for a fixed `INTRO_TICKS` inside the spawn-free grace
+    // chunk. The intro plays out in full — it is not skippable — but input is still
+    // drained so a key held through it does not leak a buffered move into the first tick.
+    if (this.introActive) {
+      this.input.takeIntent();
+      this.accumulator += Math.min(frameMs / 1000, MAX_FRAME_S);
+      while (this.accumulator >= FIXED_DT && this.introTicks < INTRO_TICKS) {
+        this.snapshot();
+        step(this.state, NO_INTENT);
+        for (const event of this.state.events) {
+          this.view.handleEvent(event);
+          this.hud.handleEvent(event);
+        }
+        this.accumulator -= FIXED_DT;
+        this.introTicks += 1;
+      }
+      const alpha = this.accumulator / FIXED_DT;
+      const p = Math.min((this.introTicks + alpha) / INTRO_TICKS, 1);
+      this.view.render(this.prev, this.state, alpha, frameMs / 1000, this.introPose(p));
+      this.hud.update(this.state);
+      this.overlay.update(frameMs, this.view.stats());
+      if (this.introTicks >= INTRO_TICKS) this.endIntro();
+      if (this.running) this.raf = requestAnimationFrame(this.frame);
+      return;
+    }
 
     // The wreck flow: bank scrap and raise the garage once, then R (or the
     // garage's Drive button) starts the next run wearing the new loadout.

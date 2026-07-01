@@ -66,6 +66,8 @@ export class Hud {
   /** Highest streak tier already announced this streak; reset when the streak drops. */
   private lastComboTier = 0;
   private readonly biomeBanner: HTMLDivElement;
+  /** The run-opening intro card (location title + DRIVE), shown while the app holds the sim. */
+  private readonly introCard: HTMLDivElement;
   /** Last biome announced, so the banner only fires when the run crosses into a new one. */
   private lastBiomeName: string | null = null;
   private reducedMotion = false;
@@ -205,6 +207,75 @@ export class Hud {
       'z-index:14',
     ].join(';');
     document.body.appendChild(this.biomeBanner);
+
+    // The run-opening intro card: the current location title with a DRIVE prompt
+    // under it, centred while the cinematic camera sweeps in. The app shows it when
+    // a run begins and hides it when the sweep hands off to gameplay.
+    this.introCard = document.createElement('div');
+    this.introCard.className = 'sdw-intro-card';
+    this.introCard.style.cssText = [
+      'position:fixed',
+      'left:50%',
+      'top:42%',
+      'transform:translateX(-50%)',
+      'display:none',
+      'text-align:center',
+      'pointer-events:none',
+      'white-space:nowrap',
+      'z-index:16',
+    ].join(';');
+    document.body.appendChild(this.introCard);
+  }
+
+  /** Raise the intro card on a fresh run: the location title and a DRIVE prompt. */
+  showIntroCard(location: string): void {
+    const el = this.introCard;
+    el.textContent = '';
+    const title = document.createElement('div');
+    title.textContent = location;
+    title.style.cssText = [
+      'font:700 30px/1 ui-monospace,SFMono-Regular,Menlo,monospace',
+      'letter-spacing:8px',
+      'color:#f1ead8',
+      'text-shadow:0 3px 10px rgba(0,0,0,0.8)',
+    ].join(';');
+    const prompt = document.createElement('div');
+    prompt.textContent = 'DRIVE';
+    prompt.style.cssText = [
+      'margin-top:14px',
+      'font:700 15px/1 ui-monospace,SFMono-Regular,Menlo,monospace',
+      'letter-spacing:10px',
+      'color:#9fb4c8',
+      'text-shadow:0 2px 6px rgba(0,0,0,0.7)',
+    ].join(';');
+    el.append(title, prompt);
+    el.style.display = 'block';
+    if (!this.reducedMotion) {
+      el.animate(
+        [
+          { opacity: 0, transform: 'translateX(-50%) translateY(10px)' },
+          { opacity: 1, transform: 'translateX(-50%) translateY(0)' },
+        ],
+        { duration: 320, easing: 'ease-out' },
+      );
+    }
+  }
+
+  /** Drop the intro card as the cinematic hands off to gameplay. */
+  hideIntroCard(): void {
+    const el = this.introCard;
+    if (el.style.display === 'none') return;
+    if (this.reducedMotion) {
+      el.style.display = 'none';
+      return;
+    }
+    const anim = el.animate([{ opacity: 1 }, { opacity: 0 }], {
+      duration: 260,
+      easing: 'ease-in',
+    });
+    anim.onfinish = () => {
+      el.style.display = 'none';
+    };
   }
 
   setReducedMotion(reduced: boolean): void {

@@ -14,8 +14,18 @@ const ROAD_WIDTH = LANE_COUNT * LANE_WIDTH;
  * ~16×, so the road stays under the wheels (docs/DESIGN.md → the road is the boss).
  */
 const TILE_LEN = CHUNK_LENGTH / 4;
-// Enough tiles to cover the lookahead window plus a little behind, at TILE_LEN.
-const POOL_SIZE = Math.ceil((LOOKAHEAD + CHUNK_LENGTH) / TILE_LEN) + 2;
+/**
+ * How far behind the car the road can stream during the run-opening cinematic. In
+ * normal play only one tile trails the car (the chase camera never looks back), but
+ * the intro frames the hood from in front, so the road has to reach back far enough
+ * to read as a road the car was already driving on. Capped to the ground plane's
+ * reach behind the start (`environment.ts`), so the ribbon never runs past the floor.
+ */
+export const ROAD_INTRO_BEHIND = 100;
+// Enough tiles to cover the lookahead window, the intro's behind reach, and a little
+// slack at TILE_LEN. The extra tiles sit invisible in normal play (only drawn when the
+// intro streams the road behind), so they cost memory, not draw calls.
+const POOL_SIZE = Math.ceil((LOOKAHEAD + ROAD_INTRO_BEHIND + CHUNK_LENGTH) / TILE_LEN) + 2;
 
 /**
  * The asphalt surface as a subdivided plane, mottled with vertex-color
@@ -133,8 +143,8 @@ export class RoadField {
    * the car's own forward sits at exactly `yAt = 0`, the car (drawn level) is glued
    * to the asphalt. Allocation-free: the position buffers are rewritten in place.
    */
-  update(distance: number, elevation: Elevation): void {
-    const first = Math.floor((distance - TILE_LEN) / TILE_LEN);
+  update(distance: number, elevation: Elevation, behind: number = TILE_LEN): void {
+    const first = Math.floor((distance - behind) / TILE_LEN);
     const last = Math.ceil((distance + LOOKAHEAD) / TILE_LEN);
 
     let slot = 0;

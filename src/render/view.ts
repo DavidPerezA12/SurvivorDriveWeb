@@ -5,7 +5,7 @@ import { buildUpgradeLayer, buildDamageLayer, gunMuzzle } from './car';
 import { createChassis } from './chassis';
 import type { UpgradeId } from '../content/upgrades';
 import type { ChassisId } from '../content/chassis';
-import { RoadField } from './road';
+import { RoadField, ROAD_INTRO_BEHIND } from './road';
 import { RoadWear } from './roadwear';
 import { CrossStreets } from './crossStreets';
 import { DecorField } from './decor';
@@ -338,7 +338,21 @@ export class GameView {
     }
   }
 
-  render(prev: RenderSnapshot, curr: ReadonlyState, alpha: number, dt: number): void {
+  /**
+   * Draw one frame. `intro` is null during normal play (the chase camera follows the
+   * car); when the run-opening cinematic is up it carries the `dolly` (0→1 backward
+   * pull through the hold) and `settle` (0→1 hero-to-chase sweep) progress, and the
+   * camera plays its intro pose instead. The road also streams further behind the car
+   * so the hood shot has a road to sit on. The world is otherwise drawn the same (the
+   * app holds the sim, so the state is frozen).
+   */
+  render(
+    prev: RenderSnapshot,
+    curr: ReadonlyState,
+    alpha: number,
+    dt: number,
+    intro: { dolly: number; settle: number } | null = null,
+  ): void {
     const carX = lerp(prev.carLateralX, curr.car.lateralX, alpha);
     const carVel = lerp(prev.carLateralVel, curr.car.lateralVel, alpha);
     const distance = lerp(prev.distance, curr.distance, alpha);
@@ -364,7 +378,7 @@ export class GameView {
     this.horizon.update(distance, dt, this.elevation);
     this.dust.update(distance, dt);
     this.snow.update(distance, dt, biome.precip);
-    this.road.update(distance, this.elevation);
+    this.road.update(distance, this.elevation, intro ? ROAD_INTRO_BEHIND : undefined);
     this.roadWear.update(distance, this.elevation);
     this.crossStreets.update(distance, this.elevation);
     this.groundScatter.update(distance, this.elevation);
@@ -392,7 +406,8 @@ export class GameView {
     this.gunFx.update(curr.distance, dt);
     this.explosionFx.update(curr.distance, dt, this.elevation);
     this.groundFx.update(carX, carHeight, dt);
-    this.stage.camera.update(carX, carHeight, curr.car.speed, dt);
+    if (intro) this.stage.camera.frameIntro(carX, intro.dolly, intro.settle);
+    else this.stage.camera.update(carX, carHeight, curr.car.speed, dt);
 
     this.lastDistance = curr.distance;
     this.stage.renderer.render(this.stage.scene, this.stage.camera.camera);
