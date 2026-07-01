@@ -68,6 +68,8 @@ export class Hud {
   private readonly biomeBanner: HTMLDivElement;
   /** The run-opening intro card (location title + DRIVE), shown while the app holds the sim. */
   private readonly introCard: HTMLDivElement;
+  /** Whether the card is up (or fading out): makes `hideIntroCard` safe per frame. */
+  private introCardShown = false;
   /** Last biome announced, so the banner only fires when the run crosses into a new one. */
   private lastBiomeName: string | null = null;
   private reducedMotion = false;
@@ -216,7 +218,9 @@ export class Hud {
     this.introCard.style.cssText = [
       'position:fixed',
       'left:50%',
-      'top:42%',
+      // High enough to float in the sky above the hood shot: clear of the car
+      // and of any roof-mounted gun tiers or upgrade cargo, on any aspect.
+      'top:22%',
       'transform:translateX(-50%)',
       'display:none',
       'text-align:center',
@@ -250,6 +254,7 @@ export class Hud {
     ].join(';');
     el.append(title, prompt);
     el.style.display = 'block';
+    this.introCardShown = true;
     if (!this.reducedMotion) {
       el.animate(
         [
@@ -261,10 +266,11 @@ export class Hud {
     }
   }
 
-  /** Drop the intro card as the cinematic hands off to gameplay. */
+  /** Drop the intro card as the orbit takes over. Safe to call every frame. */
   hideIntroCard(): void {
     const el = this.introCard;
-    if (el.style.display === 'none') return;
+    if (!this.introCardShown) return;
+    this.introCardShown = false;
     if (this.reducedMotion) {
       el.style.display = 'none';
       return;

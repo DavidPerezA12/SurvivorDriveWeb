@@ -127,10 +127,35 @@ export const DECOR_TUNING = {
  * (docs/DESIGN.md → Pillar 3: greed is the slider).
  */
 export const SPAWN_TUNING = {
-  /** Chunks at the start of a run with nothing spawned, so the drive eases in. */
-  graceChunks: 1,
+  /**
+   * Chunks at the start of a run with nothing spawned. Two, and they are mostly
+   * spent by the opening cinematic: the intro holds the car for
+   * `INTRO_TUNING.ticks` with no player control while it covers ~90 m of the
+   * 100 m grace, and nothing may spawn where the player cannot dodge (a hit
+   * during the cinematic would be an unattributable death, docs/DESIGN.md).
+   * Control lands just before the first spawn chunk, so the played opening is
+   * as busy as the old one-chunk grace was.
+   */
+  graceChunks: 2,
   /** Spacing along the lane (m) between zombies in a cluster (act sets the count). */
   clusterSpacing: 2.6,
+} as const;
+
+/**
+ * The run-opening cinematic. The sim runs through it (the car opens already at
+ * cruising speed) for exactly `ticks` fixed ticks with no input, so it is part of
+ * the determinism contract: every run of a seed opens with the same no-input
+ * ticks regardless of platform or motion settings (only the camera differs). It
+ * lives here rather than in the app so the headless tests can hold the invariant
+ * that the whole intro fits inside the spawn-free grace chunks — nothing may
+ * reach the car while the player has no control (`tests/intro.test.ts`).
+ *
+ * `dollyFrac` splits the camera beats: the first fraction is the held hood shot
+ * (the location card reads here), the rest is the orbit up to the chase pose.
+ */
+export const INTRO_TUNING = {
+  ticks: 100,
+  dollyFrac: 0.55,
 } as const;
 
 /**

@@ -12,25 +12,12 @@ import { runLoadout, type ChassisId } from '../content/chassis';
 import { paintBody, type PaintId } from '../content/paint';
 import { runTitle } from '../content/runTitles';
 import { biomeAt } from '../content/biomes';
+import { INTRO_TUNING } from '../content/tuning';
 
 /** Beyond this many catch-up ticks in one frame, pause rather than spiral. */
 const MAX_CATCHUP = 5;
 /** A tab regaining focus can report a huge gap; clamp it so we never spiral. */
 const MAX_FRAME_S = 0.25;
-/**
- * The run-opening cinematic (The Last Driver style). The sim *runs* through the intro
- * (the car is already at cruising speed, so the world scrolls and the roadside streams
- * past — real motion, not a frozen hero shot) for a fixed `INTRO_TICKS`, kept short
- * enough to stay inside the opening spawn-free grace chunk so nothing can hit the car
- * while the player has no control. A fixed tick count keeps the run deterministic per
- * seed (the daily/replay contract). The camera dollies off the hood then orbits to the
- * chase pose; any action input skips straight to driving.
- *
- * `INTRO_DOLLY_FRAC` splits the camera beats: the first fraction is the backward dolly
- * off the hood (the card reads here), the rest is the orbit to the chase pose.
- */
-const INTRO_TICKS = 50;
-const INTRO_DOLLY_FRAC = 0.5;
 
 /**
  * Composition root. Wires the pure sim to the impure views and runs the
@@ -175,9 +162,9 @@ export class Game {
    * `settle` 0→1 over the orbit to the chase pose.
    */
   private introPose(p: number): { dolly: number; settle: number } {
-    const dolly = Math.min(p / INTRO_DOLLY_FRAC, 1);
-    const settle =
-      p <= INTRO_DOLLY_FRAC ? 0 : Math.min((p - INTRO_DOLLY_FRAC) / (1 - INTRO_DOLLY_FRAC), 1);
+    const f = INTRO_TUNING.dollyFrac;
+    const dolly = Math.min(p / f, 1);
+    const settle = p <= f ? 0 : Math.min((p - f) / (1 - f), 1);
     return { dolly, settle };
   }
 
@@ -376,13 +363,14 @@ export class Game {
 
     // The run-opening cinematic: the sim runs (the car drives at cruising speed, so the
     // world scrolls and the roadside streams past — real motion) while the camera plays
-    // its dolly-and-orbit over it, for a fixed `INTRO_TICKS` inside the spawn-free grace
-    // chunk. The intro plays out in full — it is not skippable — but input is still
-    // drained so a key held through it does not leak a buffered move into the first tick.
+    // its dolly-and-orbit over it, for the fixed `INTRO_TUNING.ticks` inside the
+    // spawn-free grace chunks (the pairing `tests/intro.test.ts` holds). The intro plays
+    // out in full — it is not skippable — but input is still drained so a key held
+    // through it does not leak a buffered move into the first gameplay tick.
     if (this.introActive) {
       this.input.takeIntent();
       this.accumulator += Math.min(frameMs / 1000, MAX_FRAME_S);
-      while (this.accumulator >= FIXED_DT && this.introTicks < INTRO_TICKS) {
+      while (this.accumulator >= FIXED_DT && this.introTicks < INTRO_TUNING.ticks) {
         this.snapshot();
         step(this.state, NO_INTENT);
         for (const event of this.state.events) {
@@ -393,11 +381,14 @@ export class Game {
         this.introTicks += 1;
       }
       const alpha = this.accumulator / FIXED_DT;
-      const p = Math.min((this.introTicks + alpha) / INTRO_TICKS, 1);
-      this.view.render(this.prev, this.state, alpha, frameMs / 1000, this.introPose(p));
+      const p = Math.min((this.introTicks + alpha) / INTRO_TUNING.ticks, 1);
+      const pose = this.introPose(p);
+      // The card belongs to the hood shot: fade it out as the orbit takes over.
+      if (pose.settle > 0) this.hud.hideIntroCard();
+      this.view.render(this.prev, this.state, alpha, frameMs / 1000, pose);
       this.hud.update(this.state);
       this.overlay.update(frameMs, this.view.stats());
-      if (this.introTicks >= INTRO_TICKS) this.endIntro();
+      if (this.introTicks >= INTRO_TUNING.ticks) this.endIntro();
       if (this.running) this.raf = requestAnimationFrame(this.frame);
       return;
     }

@@ -2,6 +2,12 @@ import * as THREE from 'three';
 import { LOOKAHEAD } from '../content/tuning';
 
 const BASE_FOV = 50;
+/**
+ * The intro hood shot's lens: tighter than the chase FOV, the long-lens hero
+ * look. It also keeps the frame on the car, the road, and the horizon — the
+ * near-black zenith of the sky dome behind the car stays out of shot.
+ */
+const HERO_FOV = 46;
 
 function damp(current: number, target: number, lambda: number, dt: number): number {
   return current + (target - current) * (1 - Math.exp(-lambda * dt));
@@ -72,11 +78,26 @@ export class ChaseCamera {
    */
   frameIntro(carX: number, dolly: number, settle: number): void {
     this.smoothedX = carX * 0.5;
+
+    // Reduced motion: no dolly, no orbit — hold the chase pose through the whole
+    // cinematic (the world still streams past and the location card still reads).
+    // The sim runs the same fixed ticks either way, so seeds stay comparable.
+    if (this.reduced) {
+      this.camera.position.set(this.smoothedX, 3.8, 8);
+      this.camera.lookAt(this.smoothedX * 0.7, 0.8, -14);
+      this.camera.fov = BASE_FOV;
+      this.camera.updateProjectionMatrix();
+      return;
+    }
+
     const s = settle * settle * (3 - 2 * settle);
 
-    // Hero beat: in front of the hood (negative z), low, dollying back through the hold.
-    const heroY = 1.35;
-    const heroZ = lerp(-5, -8.5, dolly);
+    // Hero beat: planted in front of the hood (negative z), a touch above the
+    // bumper and looking slightly down the body, dollying back through the hold.
+    // The down-tilt and the tight lens keep the frame on the car, the road, and
+    // the horizon behind it.
+    const heroY = 1.4;
+    const heroZ = lerp(-6.5, -11, dolly);
     // Orbit the right flank to the chase pose; the bulge peaks mid-arc, zero at both
     // ends so the sweep starts on the hood and lands exactly on the chase pose.
     const bulge = Math.sin(Math.PI * s) * 5;
@@ -87,11 +108,13 @@ export class ChaseCamera {
     );
     this.camera.lookAt(
       lerp(carX, this.smoothedX * 0.7, s),
-      lerp(1.05, 0.8, s),
+      lerp(0.9, 0.8, s),
       lerp(3, -14, s),
     );
 
-    this.camera.fov = damp(this.camera.fov, BASE_FOV, 10, 1 / 60);
+    // Long hero lens relaxing to the chase FOV through the orbit, so the pose
+    // *and* the lens land exactly on the first gameplay frame.
+    this.camera.fov = lerp(HERO_FOV, BASE_FOV, s);
     this.camera.updateProjectionMatrix();
   }
 
