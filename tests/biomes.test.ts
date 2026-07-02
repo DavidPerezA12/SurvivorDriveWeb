@@ -115,6 +115,32 @@ describe('biome layer', () => {
     expect(checked).toBe(true);
   });
 
+  it('reports the band liquid flat mid-band and eased across the boundary', () => {
+    // Mid-band the state is the band's own liquid, full strength; just inside a
+    // band boundary it must be partial (the sea wells up / drains away, no snap).
+    let flatChecked = false;
+    let blendChecked = false;
+    for (const seed of [1, 7, 42, 123, 2024]) {
+      for (let band = 5; band < 80; band += 1) {
+        const cur = biomeForBand(seed, band);
+        const mid = sample(seed, band * BIOME_BAND_M + BIOME_BAND_M / 2);
+        expect(mid.sea).toBe(cur.liquid === 'sea' ? 1 : 0);
+        expect(mid.lava).toBe(cur.liquid === 'lava' ? 1 : 0);
+        if (cur.liquid !== 'none') flatChecked = true;
+        const prev = biomeForBand(seed, band - 1);
+        if (prev.liquid === 'none' && cur.liquid !== 'none') {
+          const inBlend = sample(seed, band * BIOME_BAND_M + 100); // 100 m in
+          const amt = cur.liquid === 'sea' ? inBlend.sea : inBlend.lava;
+          expect(amt).toBeGreaterThan(0);
+          expect(amt).toBeLessThan(1);
+          blendChecked = true;
+        }
+      }
+    }
+    expect(flatChecked).toBe(true);
+    expect(blendChecked).toBe(true);
+  });
+
   it('discrete biomeAt matches biomeForBand', () => {
     for (const seed of [1, 42]) {
       for (let band = 0; band < 20; band += 1) {

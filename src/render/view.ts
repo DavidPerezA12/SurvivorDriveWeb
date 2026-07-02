@@ -29,6 +29,7 @@ import { Horizon } from './horizon';
 import { GroundScatter } from './groundscatter';
 import { Dust } from './atmosphere';
 import { SnowFall } from './snowfall';
+import { LiquidSurface } from './liquid';
 import { EnvironmentDirector } from './environment';
 import { Elevation } from './elevation';
 import { biomeStateAt, createBiomeState } from '../content/biomes';
@@ -82,6 +83,7 @@ export class GameView {
   private readonly horizon: Horizon;
   private readonly dust: Dust;
   private readonly snow: SnowFall;
+  private readonly liquid: LiquidSurface;
   private readonly decor: DecorField;
   private readonly guardrail: Guardrail;
   private readonly overpass: Overpass;
@@ -118,6 +120,7 @@ export class GameView {
     this.horizon = new Horizon(this.stage.scene, seed);
     this.dust = new Dust(this.stage.scene);
     this.snow = new SnowFall(this.stage.scene);
+    this.liquid = new LiquidSurface(this.stage.scene);
     this.road = new RoadField(this.stage.scene);
     this.roadWear = new RoadWear(this.stage.scene, seed);
     this.crossStreets = new CrossStreets(this.stage.scene, seed);
@@ -241,6 +244,7 @@ export class GameView {
     this.stage.camera.setMotion(reducedMotion, shake);
     this.dust.setReducedMotion(reducedMotion);
     this.snow.setReducedMotion(reducedMotion);
+    this.liquid.setReducedMotion(reducedMotion);
     this.trex.setReducedMotion(reducedMotion);
     this.mecha.setReducedMotion(reducedMotion);
     this.storm.setReducedMotion(reducedMotion);
@@ -378,6 +382,7 @@ export class GameView {
     this.horizon.update(distance, dt, this.elevation);
     this.dust.update(distance, dt);
     this.snow.update(distance, dt, biome.precip);
+    this.liquid.update(distance, dt, biome.sea, biome.lava, this.elevation);
     this.road.update(distance, this.elevation, intro ? ROAD_INTRO_BEHIND : undefined);
     this.roadWear.update(distance, this.elevation);
     this.crossStreets.update(distance, this.elevation);

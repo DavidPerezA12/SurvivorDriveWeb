@@ -198,11 +198,14 @@ export const palette = {
   bridgeSteelDark: 0x333c45,
   bridgeCable: 0x272e35, // snapped suspension cable drooping to the deck
   seaFoam: 0x9fb9c6, // whitecap streaks on the water below the broken deck
+  seaDeep: 0x1c4059, // the animated sea's swell troughs (liquid surface)
+  seaSwell: 0x3a6f92, // the lit body of a rolling swell
   basaltDark: 0x211f24, // cooled volcanic columns
   basaltCool: 0x393641, // the lighter fractured faces
   emberVein: 0xd8551e, // molten seams veining the cooled crust (dim hot, not neon)
   lavaPool: 0xff7a2e, // an open molten pool off the road (self-lit read)
   lavaPoolDeep: 0xb03c12,
+  lavaCooling: 0x5a1c10, // molten rock skinning over between the glow and the crust
 
   // Roadside crash barrier: a galvanized W-beam guardrail on rusted posts,
   // collapsed in stretches. Cool, weathered steel — structure, not threat

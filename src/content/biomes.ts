@@ -23,6 +23,14 @@
 export type BiomeId = 'highway' | 'snow' | 'desert' | 'tunnel' | 'bridge' | 'lava';
 
 /**
+ * What the ground off the road *is* in this band: solid earth, open sea, or a
+ * molten plain. The renderer swaps the static wasteland floor for an animated
+ * liquid surface when this is not 'none'; the sim never reads it (the car cannot
+ * leave the road, so the liquid is a look, not a collider).
+ */
+export type BiomeLiquid = 'none' | 'sea' | 'lava';
+
+/**
  * A biome's art direction, as hex colors the renderer blends over the live act mood
  * by `amount` (0 = the act's own look, 1 = fully this biome). Colors are plain hex
  * numbers so this module stays free of Three.js; the renderer turns them into reused
@@ -56,6 +64,8 @@ export interface Biome {
   readonly steerDampingMul: number;
   /** Falling-particle density (0 = clear; snow uses it for snowfall). */
   readonly precip: number;
+  /** The animated surface flanking the road ('none' = solid ground). */
+  readonly liquid: BiomeLiquid;
   readonly look: BiomeLook;
   /**
    * Multiplier on the selection weight of jump/gap formations in world gen (1 = no
@@ -95,6 +105,7 @@ export const BIOMES: readonly Biome[] = [
     steerOmegaMul: 1,
     steerDampingMul: 1,
     precip: 0,
+    liquid: 'none',
     look: NEUTRAL_LOOK,
     jumpBias: 1,
     minBand: 1,
@@ -109,6 +120,7 @@ export const BIOMES: readonly Biome[] = [
     steerOmegaMul: 0.82,
     steerDampingMul: 0.6,
     precip: 1,
+    liquid: 'none',
     look: {
       amount: 0.86,
       fog: 0xc9d4e2,
@@ -134,6 +146,7 @@ export const BIOMES: readonly Biome[] = [
     steerOmegaMul: 1,
     steerDampingMul: 1,
     precip: 0,
+    liquid: 'none',
     look: {
       amount: 0.7,
       fog: 0xc6a468,
@@ -160,6 +173,7 @@ export const BIOMES: readonly Biome[] = [
     steerOmegaMul: 1,
     steerDampingMul: 1,
     precip: 0,
+    liquid: 'none',
     look: {
       amount: 0.92,
       fog: 0x0c0d10,
@@ -185,6 +199,7 @@ export const BIOMES: readonly Biome[] = [
     steerOmegaMul: 1,
     steerDampingMul: 1,
     precip: 0,
+    liquid: 'sea',
     look: {
       amount: 0.7,
       fog: 0x6f93b4,
@@ -208,6 +223,7 @@ export const BIOMES: readonly Biome[] = [
     steerOmegaMul: 1,
     steerDampingMul: 1,
     precip: 0,
+    liquid: 'lava',
     look: {
       amount: 0.85,
       fog: 0x3a1410,
@@ -280,6 +296,13 @@ export interface BiomeState {
   steerOmegaMul: number;
   steerDampingMul: number;
   precip: number;
+  /**
+   * How much of each liquid surface is active (0..1 each, summing to at most 1).
+   * Inside a band these are simply 1 for the band's own liquid; across a
+   * transition they crossfade, so the sea can drain away as the lava wells up.
+   */
+  sea: number;
+  lava: number;
   look: BiomeLookState;
 }
 
@@ -290,6 +313,8 @@ export function createBiomeState(): BiomeState {
     steerOmegaMul: HIGHWAY.steerOmegaMul,
     steerDampingMul: HIGHWAY.steerDampingMul,
     precip: HIGHWAY.precip,
+    sea: 0,
+    lava: 0,
     look: { ...NEUTRAL_LOOK },
   };
 }
@@ -355,12 +380,16 @@ export function biomeStateAt(seed: number, distance: number, out: BiomeState): B
     out.steerOmegaMul = lerp(prev.steerOmegaMul, cur.steerOmegaMul, t);
     out.steerDampingMul = lerp(prev.steerDampingMul, cur.steerDampingMul, t);
     out.precip = lerp(prev.precip, cur.precip, t);
+    out.sea = (prev.liquid === 'sea' ? 1 - t : 0) + (cur.liquid === 'sea' ? t : 0);
+    out.lava = (prev.liquid === 'lava' ? 1 - t : 0) + (cur.liquid === 'lava' ? t : 0);
     blendLookInto(out.look, prev.look, cur.look, t);
     return out;
   }
   out.steerOmegaMul = cur.steerOmegaMul;
   out.steerDampingMul = cur.steerDampingMul;
   out.precip = cur.precip;
+  out.sea = cur.liquid === 'sea' ? 1 : 0;
+  out.lava = cur.liquid === 'lava' ? 1 : 0;
   copyLookInto(out.look, cur.look);
   return out;
 }
