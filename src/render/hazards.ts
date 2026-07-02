@@ -1,11 +1,37 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { Hazard, HazardKind, ReadonlyState } from '../sim';
-import { box, paint, propMaterial, silhouetteMaterial, wheel } from './materials';
+import {
+  box,
+  merged,
+  paint,
+  propMaterial,
+  rockChunk,
+  silhouetteMaterial,
+  wheel,
+} from './materials';
 import { palette } from './palette';
+import { BIOME_BAND_M, BIOME_TRANSITION_M, biomeForBand, type BiomeId } from '../content/biomes';
 import type { Elevation } from './elevation';
 
 const MAX_INSTANCES = 48;
+
+/**
+ * Per-biome weathering, as RGB multipliers folded into each instance tint: frost
+ * whitens a wreck on the ice fields, dust warms it on the flats, tunnel grime
+ * darkens it, sea air cools it, and the lava plain chars it. The silhouette and
+ * the signature colour stay untouched (docs/DESIGN.md → readability: recognition
+ * lives in shape + palette; this only weathers the finish so the same object
+ * belongs to the place it sits in). Neutral on the open highway.
+ */
+const WEATHER: Partial<Record<BiomeId, readonly [number, number, number]>> = {
+  snow: [1.06, 1.12, 1.24],
+  desert: [1.14, 1.03, 0.82],
+  tunnel: [0.72, 0.74, 0.8],
+  bridge: [0.92, 1.0, 1.08],
+  lava: [0.95, 0.72, 0.6],
+};
+const NEUTRAL_WEATHER: readonly [number, number, number] = [1, 1, 1];
 
 /** Crater-family hazards rendered by their own meteor, T-Rex, or mecha field. */
 export function usesDedicatedCraterField(kind: HazardKind): boolean {
@@ -70,6 +96,19 @@ function wreckGeometry(): THREE.BufferGeometry {
     box(0.5, 0.3, 0.6, p.wreckRust, 0.5).translate(0.7, 0.78, 0.5),
     box(0.8, 0.05, 0.5, p.wreckScorch, 0.2).translate(-0.2, 0.95, 0.95),
     tb(0.9, 0.1, 0.7, p.wreckRust, -0.35, -0.25, 1.04, 0.9, 0.3),
+    // The gutted engine block showing through the sprung hood gap.
+    box(0.5, 0.22, 0.4, p.wreckDark, 0.35).translate(-0.15, 0.9, 1.1),
+    box(0.2, 0.1, 0.34, p.carChrome, 0.4).translate(-0.1, 1.02, 1.1), // valve cover glint
+    // Door mirrors — one folded flat, one snapped to a stub — and a bent antenna.
+    box(0.16, 0.12, 0.08, p.wreckDark, 0.35).translate(-0.94, 1.02, 0.72),
+    box(0.08, 0.1, 0.08, p.wreckDark, 0.35).translate(0.9, 1.0, 0.72),
+    paint(
+      new THREE.BoxGeometry(0.03, 0.5, 0.03).rotateZ(0.7).rotateX(0.3).translate(0.7, 1.1, -1.1),
+      p.wreckDark,
+      0.3,
+    ),
+    // Fuel-filler door left hanging open on the rear quarter.
+    box(0.04, 0.16, 0.16, p.wreckRust, 0.35).rotateY(0.6).translate(-0.9, 0.78, -1.15),
     // Wheels: three round, the rear-right blown flat (lower, squashed).
     wheel(0.36, 0.28, p.wreckDark).translate(-0.86, 0.32, 1.3),
     wheel(0.36, 0.28, p.wreckDark).translate(0.86, 0.32, 1.3),
@@ -116,12 +155,39 @@ function wreckVanGeometry(): THREE.BufferGeometry {
     box(1.92, 0.22, 0.3, p.wreckDark, 0.4).translate(0, 0.42, 1.9), // bumper
     box(0.32, 0.16, 0.1, p.wreckGlass, 0.2).translate(-0.6, 0.66, 1.88), // headlights (dead)
     box(0.32, 0.16, 0.1, p.wreckScorch, 0.2).translate(0.6, 0.66, 1.88),
-    // Split rear doors + a dented panel.
+    // Split rear doors + a dented panel, with the rear access ladder still bolted
+    // to one leaf and cargo spilled out behind.
     box(1.74, 0.92, 0.14, p.wreckDark, 0.4).translate(0, 0.96, -1.72),
     box(0.1, 0.78, 0.16, p.wreckRust, 0.4).translate(0, 0.96, -1.79),
-    // Rust eating the flanks.
+    box(0.05, 0.9, 0.05, p.wreckDark, 0.35).translate(-0.45, 0.95, -1.84),
+    box(0.05, 0.9, 0.05, p.wreckDark, 0.35).translate(-0.72, 0.95, -1.84),
+    box(0.32, 0.05, 0.05, p.wreckDark, 0.35).translate(-0.58, 0.7, -1.84),
+    box(0.32, 0.05, 0.05, p.wreckDark, 0.35).translate(-0.58, 1.0, -1.84),
+    box(0.32, 0.05, 0.05, p.wreckDark, 0.35).translate(-0.58, 1.3, -1.84),
+    box(0.44, 0.34, 0.4, p.wreckRust, 0.45).rotateY(0.5).translate(0.4, 0.17, -2.15),
+    box(0.36, 0.26, 0.32, p.wreckDark, 0.45).rotateY(1.0).translate(-0.35, 0.13, -2.3),
+    // Sliding-door outline and handle on the kerb flank.
+    box(0.03, 0.74, 0.05, p.wreckDark, 0.35).translate(0.93, 0.95, 0.7),
+    box(0.03, 0.74, 0.05, p.wreckDark, 0.35).translate(0.93, 0.95, -0.2),
+    box(0.05, 0.06, 0.2, p.wreckDark, 0.3).translate(0.94, 1.05, 0.55),
+    // Roof vent + a snapped whip antenna off the cab corner.
+    box(0.32, 0.1, 0.32, p.wreckDark, 0.35).translate(-0.3, 1.56, -0.7),
+    paint(
+      new THREE.BoxGeometry(0.03, 0.5, 0.03).rotateZ(0.5).rotateX(0.2).translate(-0.8, 1.15, 1.7),
+      p.wreckDark,
+      0.3,
+    ),
+    // Door mirrors on the cab.
+    box(0.16, 0.14, 0.08, p.wreckDark, 0.35).translate(-0.95, 1.1, 1.7),
+    box(0.16, 0.14, 0.08, p.wreckDark, 0.35).translate(0.95, 1.1, 1.7),
+    // Rust eating the flanks + streaks bleeding down from the roof seam.
     box(0.16, 0.7, 1.1, p.wreckRust, 0.5).translate(0.94, 0.95, -0.4),
     box(0.5, 0.5, 0.16, p.wreckRust, 0.5).translate(-0.6, 1.0, 0.86),
+    box(0.04, 0.6, 0.22, p.wreckRust, 0.4).translate(-0.93, 1.1, -1.1),
+    box(0.04, 0.44, 0.18, p.wreckScorch, 0.35).translate(0.93, 1.15, 0.2),
+    // Wheel arches over the front pair.
+    box(0.16, 0.34, 1.06, p.wreckDark, 0.5).translate(-0.9, 0.52, 1.25),
+    box(0.16, 0.34, 1.06, p.wreckDark, 0.5).translate(0.9, 0.52, 1.25),
     // Wheels — rear-left blown flat.
     wheel(0.36, 0.28, p.wreckDark).translate(-0.85, 0.32, 1.25),
     wheel(0.36, 0.28, p.wreckDark).translate(0.85, 0.32, 1.25),
@@ -176,6 +242,31 @@ function wreckTruckGeometry(): THREE.BufferGeometry {
     box(0.14, 0.36, 2.0, p.wreckBody, 0.5).translate(0.8, 0.66, -1.2),
     box(1.6, 0.36, 0.14, p.wreckBody, 0.5).translate(0, 0.66, -0.25), // bulkhead behind cab
     tb(1.6, 0.34, 0.12, p.wreckRust, -0.6, 0, 0.5, -2.18, 0.5), // tailgate hung open
+    // The load it died carrying: a lashed crate, a tarp roll, and a jerry can.
+    box(0.55, 0.42, 0.55, p.wreckRust, 0.45).rotateY(0.4).translate(-0.3, 0.78, -0.9),
+    paint(
+      new THREE.CylinderGeometry(0.16, 0.16, 1.2, 8).rotateZ(Math.PI / 2).translate(0.15, 0.66, -1.65),
+      p.wreckCabin,
+      0.4,
+    ),
+    box(0.24, 0.3, 0.16, p.wreckDark, 0.4).rotateY(0.9).translate(0.55, 0.72, -0.75),
+    // Spare wheel slung under the bed and a tow hitch off the rear frame.
+    wheel(0.3, 0.2, p.wreckDark).translate(0.35, 0.24, -1.9),
+    box(0.1, 0.12, 0.24, p.wreckDark, 0.35).translate(0, 0.38, -2.4),
+    // Exhaust run under the sill with a scorched tip.
+    box(0.08, 0.08, 1.5, p.wreckScorch, 0.3).translate(-0.55, 0.2, -1.3),
+    box(0.1, 0.1, 0.2, p.wreckScorch, 0.25).translate(-0.55, 0.2, -2.12),
+    // Door mirrors + a whip antenna on the cab.
+    box(0.15, 0.13, 0.08, p.wreckDark, 0.35).translate(-0.9, 1.12, 1.35),
+    box(0.15, 0.13, 0.08, p.wreckDark, 0.35).translate(0.9, 1.12, 1.35),
+    paint(
+      new THREE.BoxGeometry(0.03, 0.5, 0.03).rotateZ(-0.4).translate(0.75, 1.4, 0.55),
+      p.wreckDark,
+      0.3,
+    ),
+    // Fender arches over the front wheels.
+    box(0.16, 0.34, 1.02, p.wreckDark, 0.5).translate(-0.9, 0.55, 1.4),
+    box(0.16, 0.34, 1.02, p.wreckDark, 0.5).translate(0.9, 0.55, 1.4),
     // Rust eating the flanks + a scorch across the hood.
     box(0.16, 0.4, 0.9, p.wreckRust, 0.5).translate(-0.9, 0.6, 0.5),
     box(0.5, 0.05, 0.5, p.wreckScorch, 0.2).translate(0.3, 0.88, 1.0),
@@ -204,25 +295,74 @@ function rigGeometry(): THREE.BufferGeometry {
     // Tall box trailer along the lane, on a dark underframe.
     box(2.05, 0.42, 5.4, p.rigDark, 0.4).translate(0, 0.36, -0.6),
     box(2.0, 2.4, 5.0, p.rigBody, 0.5).translate(0, 1.55, -0.6),
-    // Rear doors facing the car, framed, with three amber hazard chevrons.
+    // The trailer's top and bottom chords, a shade darker, framing the box.
+    box(2.06, 0.16, 5.04, p.rigDark, 0.4).translate(0, 2.72, -0.6),
+    box(2.06, 0.14, 5.04, p.rigDark, 0.45).translate(0, 0.62, -0.6),
+    // Rear doors facing the car: framed, hinged, with three amber hazard chevrons,
+    // a door bar, and dead marker lamps at the corners.
     box(2.0, 2.3, 0.18, p.rigDark, 0.45).translate(0, 1.55, 1.95),
     box(0.5, 2.0, 0.22, p.rigHazard, 0.2).translate(-0.6, 1.55, 2.0),
     box(0.5, 2.0, 0.22, p.rigDark, 0.2).translate(0.0, 1.55, 2.0),
     box(0.5, 2.0, 0.22, p.rigHazard, 0.2).translate(0.6, 1.55, 2.0),
-    // Rust eating the trailer flank.
+    box(0.08, 1.9, 0.26, p.rigCab, 0.3).translate(-0.06, 1.5, 2.02), // lock bar
+    box(0.12, 0.3, 0.24, p.rigCab, 0.3).translate(-0.06, 1.2, 2.04), // bar handle
+    box(0.3, 0.12, 0.1, p.carTaillightDim, 0.2).translate(-0.8, 0.62, 2.05),
+    box(0.3, 0.12, 0.1, p.carTaillightDim, 0.2).translate(0.8, 0.62, 2.05),
+    // Rear underride bar and mudflaps under the doors.
+    box(1.9, 0.12, 0.12, p.rigDark, 0.35).translate(0, 0.34, 2.0),
+    box(0.5, 0.4, 0.06, p.rigDark, 0.5).translate(-0.75, 0.22, 1.85),
+    box(0.5, 0.4, 0.06, p.rigDark, 0.5).translate(0.75, 0.22, 1.85),
+    // Rust eating the trailer flank + a long scrape gouged along it.
     box(0.8, 0.7, 1.0, p.wreckRust, 0.5).translate(-0.95, 1.7, -0.2),
     box(0.6, 0.5, 0.8, p.wreckRust, 0.5).translate(0.97, 1.3, -1.4),
-    // Jackknifed cab off the front, angled, with a dead windshield.
+    box(0.1, 0.2, 2.6, p.wreckScorch, 0.3).translate(-1.0, 1.1, -1.0),
+    // A torn tarp corner flapped over the top rear edge.
+    box(0.9, 0.08, 0.7, p.rigCab, 0.35).rotateZ(0.14).translate(-0.55, 2.82, 1.4),
+    // Trailer axle bogie: paired duals each side on a visible axle beam.
+    box(2.1, 0.16, 0.16, p.rigDark, 0.3).translate(0, 0.34, 0.9),
+    box(2.1, 0.16, 0.16, p.rigDark, 0.3).translate(0, 0.34, -1.9),
+    // Jackknifed cab off the front, angled: body, roof wind deflector, dead
+    // windshield, grille + bumper, exhaust stack, mirror, and a fuel tank.
     box(2.0, 2.0, 2.2, p.rigCab, 0.5).rotateY(0.5).translate(0.8, 1.05, -3.5),
+    paint(
+      new THREE.BoxGeometry(1.7, 0.5, 0.9).rotateX(0.25).rotateY(0.5).translate(0.35, 2.2, -4.0),
+      p.rigCab,
+      0.45,
+    ),
     box(1.8, 0.8, 0.14, p.wreckGlass, 0.3).rotateY(0.5).translate(0.55, 1.5, -2.6),
-    // Wheels — trailer pair each side, plus a cab wheel.
+    paint(
+      new THREE.BoxGeometry(1.6, 0.5, 0.14).rotateY(0.5).translate(0.62, 0.62, -2.55),
+      p.carGrille,
+      0.3,
+    ),
+    paint(
+      new THREE.BoxGeometry(1.9, 0.3, 0.2).rotateY(0.5).translate(0.68, 0.3, -2.5),
+      p.rigDark,
+      0.4,
+    ),
+    box(0.34, 0.14, 0.1, p.wreckGlass, 0.2).rotateY(0.5).translate(0.15, 0.62, -2.8), // dead lamp
+    box(0.34, 0.14, 0.1, p.wreckScorch, 0.2).rotateY(0.5).translate(1.1, 0.62, -2.3),
+    box(0.14, 1.5, 0.14, p.rigDark, 0.35).rotateY(0.5).translate(1.7, 1.9, -4.4), // exhaust stack
+    box(0.18, 0.18, 0.18, p.rigDark, 0.3).rotateY(0.5).translate(1.7, 2.7, -4.4), // stack cap
+    box(0.08, 0.4, 0.26, p.carChrome, 0.35).rotateY(0.5).translate(1.55, 1.7, -2.55), // mirror
+    paint(
+      new THREE.CylinderGeometry(0.3, 0.3, 1.0, 10).rotateX(Math.PI / 2).rotateY(0.5),
+      p.carChrome,
+      0.5,
+    ).translate(1.5, 0.5, -3.4), // fuel tank slung under the cab
+    // Wheels — trailer duals each side, plus a cab wheel.
     wheel(0.42, 0.3, p.rigDark).translate(-0.98, 0.32, 0.9),
+    wheel(0.42, 0.3, p.rigDark).translate(-0.98, 0.32, 1.5),
     wheel(0.42, 0.3, p.rigDark).translate(-0.98, 0.32, -1.9),
     wheel(0.42, 0.3, p.rigDark).translate(0.98, 0.32, 0.9),
+    wheel(0.42, 0.3, p.rigDark).translate(0.98, 0.32, 1.5),
+    wheel(0.42, 0.3, p.rigDark).translate(0.98, 0.32, -1.9),
     wheel(0.44, 0.32, p.rigDark).rotateY(0.5).translate(1.45, 0.34, -3.9),
-    // Spilled cargo strewn in front of the wreck.
+    // Spilled cargo strewn in front of the wreck: crates and a burst pallet.
     box(1.0, 0.6, 1.0, p.wreckRust, 0.5).rotateY(0.4).translate(-1.2, 0.3, 2.7),
     box(0.7, 0.5, 0.7, p.rigDark, 0.5).rotateY(0.8).translate(0.4, 0.25, 3.0),
+    box(0.5, 0.35, 0.5, p.rigCab, 0.45).rotateY(1.1).translate(-0.3, 0.18, 3.3),
+    box(0.9, 0.08, 0.7, p.wreckDark, 0.4).rotateY(0.25).translate(0.9, 0.05, 2.6), // flat pallet
   ];
   const geo = mergeGeometries(parts, false);
   for (const part of parts) part.dispose();
@@ -259,13 +399,26 @@ function barrierGeometry(): THREE.BufferGeometry {
       p.barrierConcreteDark,
       0.55,
     ),
-    // A chunk of broken rubble spilled at the foot, breaking the clean slab.
-    box(0.5, 0.34, 0.5, p.barrierConcreteDark, 0.5).rotateY(0.6).translate(-1.25, 0.18, 0.7),
+    // Bent rebar clawing out of the spalled corner, and a lift-hook recess.
+    paint(
+      new THREE.BoxGeometry(0.06, 0.55, 0.06).rotateZ(0.5).translate(1.15, 2.15, 0.1),
+      p.rampRebar,
+      0.35,
+    ),
+    paint(
+      new THREE.BoxGeometry(0.05, 0.4, 0.05).rotateZ(-0.4).translate(0.98, 2.1, 0.2),
+      p.rampRebar,
+      0.35,
+    ),
+    box(0.3, 0.14, 0.06, p.barrierConcreteDark, 0.4).translate(-0.6, 1.86, 0.44),
+    // Chunks of broken rubble spilled at the foot, breaking the clean slab.
+    rockChunk(0.3, 0.7, 0.6, p.barrierConcreteDark, 0.5).rotateY(0.6).translate(-1.25, 0.16, 0.7),
+    rockChunk(0.22, 0.65, 0.7, p.barrierConcrete, 0.45).rotateY(1.2).translate(-1.0, 0.1, 0.95),
+    rockChunk(0.18, 0.6, 0.7, p.barrierConcreteDark, 0.45).rotateY(0.2).translate(1.35, 0.09, 0.75),
   ];
-  const geo = mergeGeometries(parts, false);
-  for (const part of parts) part.dispose();
-  if (!geo) throw new Error('Failed to merge barrier geometry');
-  return geo;
+  // `merged` (not the raw mergeGeometries) because the rubble chunks are
+  // non-indexed icosahedra while the slab boxes are indexed.
+  return merged(parts);
 }
 
 /**
@@ -277,34 +430,66 @@ function barrierGeometry(): THREE.BufferGeometry {
  */
 function busGeometry(): THREE.BufferGeometry {
   const p = palette;
-  const parts = [
+  const parts: THREE.BufferGeometry[] = [
     // The long body along the lane, on a dark underframe.
     box(2.05, 0.42, 8.8, p.busDark, 0.45).translate(0, 0.36, -0.4),
     box(2.0, 1.6, 8.7, p.busBody, 0.5).translate(0, 1.2, -0.4),
-    // Lighter roof cap.
+    // Lighter roof cap with two escape hatches and a sagging AC pod.
     box(1.9, 0.14, 8.5, p.busRust, 0.5).translate(0, 2.0, -0.4),
+    box(0.7, 0.1, 0.7, p.busDark, 0.35).translate(0, 2.1, 1.2),
+    box(0.7, 0.1, 0.7, p.busDark, 0.35).translate(0, 2.1, -2.0),
+    box(1.1, 0.18, 1.6, p.busDark, 0.45).rotateZ(0.05).translate(0.1, 2.14, -0.4),
     // Black rub rail + dead window strip along each flank.
     box(0.06, 0.18, 8.4, p.busRail, 0.4).translate(-1.0, 1.05, -0.4),
     box(0.06, 0.18, 8.4, p.busRail, 0.4).translate(1.0, 1.05, -0.4),
     box(0.05, 0.5, 7.6, p.busGlass, 0.3).translate(-1.0, 1.45, -0.4),
     box(0.05, 0.5, 7.6, p.busGlass, 0.3).translate(1.0, 1.45, -0.4),
-    // Rear facing the player: dark panel, dead lights, red hazard chevrons.
+    // A faded livery stripe running the flank under the windows.
+    box(0.055, 0.12, 8.0, p.coupeStripe, 0.35).translate(-1.0, 1.24, -0.4),
+    box(0.055, 0.12, 8.0, p.coupeStripe, 0.35).translate(1.0, 1.24, -0.4),
+    // The passenger door ajar at the front right: a dark opening and the leaf
+    // folded out of it.
+    box(0.1, 1.3, 0.7, p.busDark, 0.3).translate(1.0, 0.95, 2.9),
+    paint(
+      new THREE.BoxGeometry(0.08, 1.25, 0.55).rotateY(-0.7).translate(1.15, 0.95, 3.4),
+      p.busBody,
+      0.4,
+    ),
+    // Rear facing the player: dark panel, dead lights, red hazard chevrons, a
+    // dented bumper, and the engine grille under the panel.
     box(2.0, 1.5, 0.16, p.busDark, 0.45).translate(0, 1.2, 3.98),
     box(0.5, 1.1, 0.2, p.busDanger, 0.2).translate(-0.6, 1.2, 4.04),
     box(0.5, 1.1, 0.2, p.busBody, 0.2).translate(0, 1.2, 4.04),
     box(0.5, 1.1, 0.2, p.busDanger, 0.2).translate(0.6, 1.2, 4.04),
     box(0.36, 0.16, 0.1, p.carTaillightDim, 0.2).translate(-0.7, 0.6, 4.06),
     box(0.36, 0.16, 0.1, p.carTaillightDim, 0.2).translate(0.7, 0.6, 4.06),
-    // Rust eating the flanks + a caved-in panel.
+    box(1.4, 0.3, 0.1, p.carGrille, 0.3).translate(0, 0.42, 4.05), // engine grille
+    paint(
+      new THREE.BoxGeometry(1.9, 0.26, 0.22).rotateX(0.2).translate(0, 0.24, 4.02),
+      p.busDark,
+      0.4,
+    ),
+    // Rust eating the flanks + a caved-in panel + a long body scrape.
     box(0.5, 0.7, 1.2, p.busRust, 0.5).translate(-1.0, 1.2, 1.0),
     box(0.5, 0.5, 0.9, p.busRust, 0.5).translate(1.0, 0.9, -2.2),
     box(0.6, 0.5, 0.5, p.busDark, 0.5).rotateY(0.3).translate(0.7, 1.5, -3.6),
+    box(0.06, 0.16, 3.0, p.wreckScorch, 0.3).translate(-1.02, 0.85, -1.4),
+    // Wheel arches over each wheel, a darker recess.
+    box(0.2, 0.5, 1.3, p.busDark, 0.5).translate(-0.95, 0.5, 2.6),
+    box(0.2, 0.5, 1.3, p.busDark, 0.5).translate(0.95, 0.5, 2.6),
+    box(0.2, 0.5, 1.3, p.busDark, 0.5).translate(-0.95, 0.5, -3.0),
+    box(0.2, 0.5, 1.3, p.busDark, 0.5).translate(0.95, 0.5, -3.0),
     // Wheels — two each side, one blown flat.
     wheel(0.5, 0.34, p.busDark).translate(-0.92, 0.42, 2.6),
     wheel(0.5, 0.34, p.busDark).translate(0.92, 0.42, 2.6),
     wheel(0.5, 0.34, p.busDark).translate(-0.92, 0.42, -3.0),
     paint(new THREE.BoxGeometry(0.86, 0.34, 0.78).translate(0.92, 0.26, -3.0), p.busDark, 0.4),
   ];
+  // Window pillars breaking the long glass strip into individual dead panes.
+  for (const pz of [-3.4, -2.2, -1.0, 0.2, 1.4, 2.6]) {
+    parts.push(box(0.07, 0.54, 0.14, p.busBody, 0.45).translate(-1.0, 1.45, pz));
+    parts.push(box(0.07, 0.54, 0.14, p.busBody, 0.45).translate(1.0, 1.45, pz));
+  }
   const geo = mergeGeometries(parts, false);
   for (const part of parts) part.dispose();
   if (!geo) throw new Error('Failed to merge bus geometry');
@@ -350,48 +535,22 @@ function barricadeGeometry(): THREE.BufferGeometry {
       p.barricadeLeg,
       0.4,
     ),
+    // A dead battery beacon clamped to the plank top — housing and a murky amber
+    // lens, unlit (the city's power is gone).
+    box(0.14, 0.16, 0.14, p.barricadeFrame, 0.35).translate(-0.55, 0.82, 0),
+    box(0.1, 0.1, 0.1, palette.trafficDeadAmber, 0.15).translate(-0.55, 0.94, 0),
+    // Paint chipped off the plank in two worn notches, and a splintered rail end.
+    box(0.14, 0.34, 0.02, p.barricadeFrame, 0.2).translate(-0.25, 0.58, 0.07),
+    box(0.1, 0.2, 0.02, p.barricadeFrame, 0.2).translate(0.5, 0.52, 0.07),
+    paint(
+      new THREE.BoxGeometry(0.3, 0.07, 0.07).rotateY(0.4).rotateZ(0.2).translate(1.1, 0.32, 0.05),
+      p.barricadeLeg,
+      0.3,
+    ),
+    // A sandbag dumped against one leg to hold it in the wind.
+    rockChunk(0.18, 0.5, 0.4, palette.sandbagBody, 0.45).translate(0.92, 0.08, 0.3),
   ];
-  const geo = mergeGeometries(parts, false);
-  for (const part of parts) part.dispose();
-  if (!geo) throw new Error('Failed to merge barricade geometry');
-  return geo;
-}
-
-/**
- * One craggy stone: a low-detail icosahedron whose vertices are pushed in and out
- * along their own radius so it reads as faceted rock, never a smooth ball or a
- * stacked box. The push is hashed from each vertex's (quantized) position, so the
- * duplicated verts a non-indexed icosahedron shares along every edge move
- * together and the facets stay welded (no cracks). `flatten` squashes it
- * vertically into a mound; flat per-face normals make each facet a single shade
- * under `paint`, the low-poly stone read. 20 faces, so a few of these still merge
- * cheap.
- */
-function rockChunk(
-  radius: number,
-  flatten: number,
-  amount: number,
-  color: number,
-  ao: number,
-): THREE.BufferGeometry {
-  const geo = new THREE.IcosahedronGeometry(radius, 0);
-  const pos = geo.getAttribute('position');
-  for (let i = 0; i < pos.count; i += 1) {
-    const x = pos.getX(i);
-    const y = pos.getY(i);
-    const z = pos.getZ(i);
-    const qx = Math.round(x * 256);
-    const qy = Math.round(y * 256);
-    const qz = Math.round(z * 256);
-    let h = (Math.imul(qx, 374761393) ^ Math.imul(qy, 668265263) ^ Math.imul(qz, 1274126177)) >>> 0;
-    h = Math.imul(h ^ (h >>> 13), 1274126177);
-    const r = ((h ^ (h >>> 16)) >>> 0) / 4294967296;
-    const m = 1 + (r - 0.5) * amount;
-    pos.setXYZ(i, x * m, y * m * flatten, z * m);
-  }
-  pos.needsUpdate = true;
-  geo.computeVertexNormals();
-  return paint(geo, color, ao);
+  return merged(parts);
 }
 
 /**
@@ -444,11 +603,20 @@ function barrelGeometry(): THREE.BufferGeometry {
     // Worn lid with a small filler bung off-centre.
     drum(0.46, 0.06, p.drumLid, 0.3).translate(0, 1.16, 0),
     box(0.16, 0.1, 0.16, p.drumDark, 0.3).translate(0.2, 1.2, 0.1),
+    // The vertical weld seam and two kicked-in dents shading the shell.
+    box(0.04, 1.0, 0.05, p.drumDark, 0.25).translate(0.02, 0.58, 0.51),
+    box(0.2, 0.24, 0.06, p.drumDark, 0.15).rotateY(0.6).translate(0.38, 0.55, 0.3),
+    box(0.16, 0.18, 0.06, p.drumDark, 0.15).rotateY(-0.9).translate(-0.36, 0.6, -0.32),
+    // Fuel weeping from under the lid, and the slick pooled at the foot.
+    box(0.05, 0.32, 0.04, p.wreckScorch, 0.15).translate(0.28, 0.96, 0.4),
+    box(0.04, 0.22, 0.04, p.wreckScorch, 0.15).translate(-0.32, 1.0, 0.34),
+    paint(new THREE.CylinderGeometry(0.62, 0.7, 0.025, 9), p.wreckScorch, 0).translate(
+      0.25,
+      0.015,
+      0.2,
+    ),
   ];
-  const geo = mergeGeometries(parts, false);
-  for (const part of parts) part.dispose();
-  if (!geo) throw new Error('Failed to merge barrel geometry');
-  return geo;
+  return merged(parts);
 }
 
 /**
@@ -472,11 +640,21 @@ function toxBarrelGeometry(): THREE.BufferGeometry {
     // Worn lid with a raised vent cap (where the gas vents on rupture).
     drum(0.46, 0.06, p.drumLid, 0.3).translate(0, 1.16, 0),
     drum(0.14, 0.12, p.drumToxBand, 0.3).translate(0, 1.24, 0),
+    // The weld seam and two corrosion scars eating through the shell.
+    box(0.04, 1.0, 0.05, p.drumToxDark, 0.25).translate(-0.02, 0.58, 0.51),
+    box(0.18, 0.22, 0.06, p.drumToxDark, 0.1).rotateY(0.7).translate(0.36, 0.5, 0.32),
+    box(0.14, 0.16, 0.06, p.drumToxDark, 0.1).rotateY(-0.5).translate(-0.34, 0.72, -0.34),
+    // Acid weeping down from the upper band, pooled dim at the foot — sickly, far
+    // duller than the band, so it never reads as a pickup glow.
+    box(0.05, 0.3, 0.04, p.drumToxBand, 0.35).translate(0.24, 0.58, 0.43),
+    box(0.04, 0.2, 0.04, p.drumToxBand, 0.35).translate(-0.28, 0.52, 0.4),
+    paint(new THREE.CylinderGeometry(0.58, 0.66, 0.025, 9), p.drumToxDark, 0).translate(
+      -0.2,
+      0.015,
+      0.25,
+    ),
   ];
-  const geo = mergeGeometries(parts, false);
-  for (const part of parts) part.dispose();
-  if (!geo) throw new Error('Failed to merge toxic barrel geometry');
-  return geo;
+  return merged(parts);
 }
 
 /**
@@ -490,18 +668,37 @@ function spikesGeometry(): THREE.BufferGeometry {
   const tooth = (x: number): THREE.BufferGeometry =>
     paint(new THREE.ConeGeometry(0.16, 0.5, 6).translate(x, 0.34, 0), p.spikesTeeth, 0.55);
   const parts: THREE.BufferGeometry[] = [
-    // The dark base rail bolted across the lane.
+    // The dark base rail bolted across the lane, in two hinged segments.
     box(2.6, 0.16, 0.7, p.spikesBar, 0.4).translate(0, 0.08, 0),
+    box(0.08, 0.2, 0.72, p.spikesBar, 0.3).translate(0, 0.1, 0), // the hinge knuckle
     // Red do-not-cross paint on the near and far edges of the base.
     box(2.6, 0.06, 0.14, p.spikesDanger, 0.1).translate(0, 0.17, 0.26),
     box(2.6, 0.06, 0.14, p.spikesDanger, 0.1).translate(0, 0.17, -0.26),
+    // Anchor plates bolted to the asphalt at each end.
+    box(0.34, 0.06, 0.86, p.spikesBar, 0.3).translate(-1.42, 0.03, 0),
+    box(0.34, 0.06, 0.86, p.spikesBar, 0.3).translate(1.42, 0.03, 0),
+    box(0.08, 0.1, 0.08, p.spikesTeeth, 0.4).translate(-1.42, 0.07, 0.3),
+    box(0.08, 0.1, 0.08, p.spikesTeeth, 0.4).translate(-1.42, 0.07, -0.3),
+    box(0.08, 0.1, 0.08, p.spikesTeeth, 0.4).translate(1.42, 0.07, 0.3),
+    box(0.08, 0.1, 0.08, p.spikesTeeth, 0.4).translate(1.42, 0.07, -0.3),
+    // A red warning plate wired to one anchor, knocked askew.
+    paint(
+      new THREE.BoxGeometry(0.05, 0.32, 0.34).rotateZ(-0.2).rotateY(0.3).translate(-1.5, 0.28, 0.1),
+      p.spikesDanger,
+      0.2,
+    ),
   ];
-  // A row of steel teeth across the strip.
-  for (let i = 0; i < 9; i += 1) parts.push(tooth(-1.12 + i * 0.28));
-  const geo = mergeGeometries(parts, false);
-  for (const part of parts) part.dispose();
-  if (!geo) throw new Error('Failed to merge spikes geometry');
-  return geo;
+  // A row of steel teeth across the strip — one already bent flat by a strike.
+  for (let i = 0; i < 9; i += 1) {
+    if (i === 3) {
+      parts.push(
+        paint(new THREE.ConeGeometry(0.16, 0.5, 6).rotateX(1.2).translate(-1.12 + i * 0.28, 0.2, 0.2), p.spikesTeeth, 0.55),
+      );
+    } else {
+      parts.push(tooth(-1.12 + i * 0.28));
+    }
+  }
+  return merged(parts);
 }
 
 /**
@@ -530,11 +727,24 @@ function gapGeometry(): THREE.BufferGeometry {
     // A couple of jagged chunks of torn-up asphalt breaking the clean rectangle.
     box(0.7, 0.18, 0.7, GAP_LIP, 0).rotateY(0.4).translate(-1.0, 0.05, 2.2),
     box(0.6, 0.16, 0.6, GAP_LIP, 0).rotateY(0.9).translate(1.05, 0.05, -2.0),
+    // Torn rebar hooked over the rim, hanging into the void where the roadbed sheared.
+    new THREE.BoxGeometry(0.06, 0.7, 0.06).rotateX(2.4).translate(-0.6, -0.2, 3.15),
+    new THREE.BoxGeometry(0.05, 0.55, 0.05).rotateX(-2.5).translate(0.7, -0.15, -3.2),
+    new THREE.BoxGeometry(0.05, 0.6, 0.05).rotateZ(2.4).translate(1.3, -0.2, 0.8),
+    // A slab of roadbed still attached, sagging into the pit.
+    new THREE.BoxGeometry(0.9, 0.14, 0.6).rotateX(0.6).translate(-0.5, -0.25, 3.05),
+    // Fracture lines radiating from the rim into the surrounding asphalt.
+    box(0.1, 0.05, 1.1, GAP_VOID, 0).rotateY(0.35).translate(-1.7, 0.03, 3.6),
+    box(0.08, 0.05, 0.9, GAP_VOID, 0).rotateY(-0.5).translate(1.75, 0.03, 3.5),
+    box(0.08, 0.05, 1.0, GAP_VOID, 0).rotateY(0.55).translate(1.7, 0.03, -3.6),
+    box(0.08, 0.05, 0.8, GAP_VOID, 0).rotateY(-0.3).translate(-1.75, 0.03, -3.4),
   ];
-  const geo = mergeGeometries(parts, false);
-  for (const part of parts) part.dispose();
-  if (!geo) throw new Error('Failed to merge gap geometry');
-  return geo;
+  // The raw BoxGeometry parts above take the lip/wall bake here (paint once, same
+  // dark unlit read as the rest of the pit).
+  const painted = parts.map((part) =>
+    part.getAttribute('color') ? part : paint(part, GAP_WALL, 0),
+  );
+  return merged(painted);
 }
 
 // The quake-crack telegraph: a glowing jagged fissure lying on the road, shown
@@ -628,21 +838,23 @@ function rampGeometry(): THREE.BufferGeometry {
       p.rampRebar,
       0.4,
     ),
-    // Spilled chunks at the foot, breaking the slab outline into rubble.
+    // Spilled rubble at the foot, craggy broken concrete — never clean crates.
+    rockChunk(0.34, 0.72, 0.65, p.rampConcreteDark, 0.5).rotateY(0.5).translate(-1.0, 0.18, 2.0),
+    rockChunk(0.28, 0.68, 0.7, p.rampConcrete, 0.5).rotateY(1.0).translate(0.95, 0.14, 2.1),
+    rockChunk(0.24, 0.66, 0.7, p.rampConcreteDark, 0.45).rotateY(0.3).translate(0.25, 0.12, 2.4),
+    rockChunk(0.18, 0.6, 0.7, p.rampConcrete, 0.45).rotateY(1.3).translate(-0.5, 0.08, 2.5),
+    // Chipped edges where the slabs sheared, and more rebar out of the break line.
+    rockChunk(0.2, 0.7, 0.7, p.rampConcreteDark, 0.45).rotateY(0.8).translate(1.1, 0.62, 0.4),
+    rockChunk(0.16, 0.7, 0.7, p.rampConcrete, 0.4).rotateY(0.2).translate(-1.05, 0.5, 1.1),
     paint(
-      new THREE.BoxGeometry(0.55, 0.4, 0.55).rotateY(0.5).translate(-1.0, 0.2, 2.0),
-      p.rampConcreteDark,
-      0.5,
+      new THREE.BoxGeometry(0.08, 0.4, 0.08).rotateX(-0.5).translate(-0.2, 1.35, -2.3),
+      p.rampRebar,
+      0.4,
     ),
     paint(
-      new THREE.BoxGeometry(0.46, 0.32, 0.46).rotateY(1.0).translate(0.95, 0.16, 2.1),
-      p.rampConcrete,
-      0.5,
-    ),
-    paint(
-      new THREE.BoxGeometry(0.4, 0.28, 0.4).rotateY(0.3).translate(0.25, 0.14, 2.4),
-      p.rampConcreteDark,
-      0.45,
+      new THREE.BoxGeometry(0.08, 0.35, 0.08).rotateZ(0.7).translate(0.15, 0.6, 1.9),
+      p.rampRebar,
+      0.4,
     ),
     // The yellow "up" chevron on the near lip — two angled bars meeting up-ramp, the
     // verb cue the player reads at the spawn horizon.
@@ -657,10 +869,9 @@ function rampGeometry(): THREE.BufferGeometry {
       0.15,
     ),
   ];
-  const geo = mergeGeometries(parts, false);
-  for (const part of parts) part.dispose();
-  if (!geo) throw new Error('Failed to merge ramp geometry');
-  return geo;
+  // `merged` (not the raw mergeGeometries): the rubble chunks are non-indexed
+  // icosahedra while the slabs are indexed boxes.
+  return merged(parts);
 }
 
 /**
@@ -688,6 +899,33 @@ export class HazardField {
   private readonly dummy = new THREE.Object3D();
   /** Reused per-instance tint, so a row of the same blocker never reads identical. */
   private readonly tint = new THREE.Color();
+  /** Reused biome-weathering multipliers written by `weatherAt` (no per-frame alloc). */
+  private wr = 1;
+  private wg = 1;
+  private wb = 1;
+
+  /**
+   * The weathering multipliers at a world-forward: the biome that owns its band,
+   * blended across the band transition exactly like the sim's `biomeStateAt`, so a
+   * wreck frosts over across the same stretch the whiteout rolls in.
+   */
+  private weatherAt(seed: number, forward: number): void {
+    const d = Math.max(0, forward);
+    const band = Math.floor(d / BIOME_BAND_M);
+    const cur = WEATHER[biomeForBand(seed, band).id] ?? NEUTRAL_WEATHER;
+    const local = d - band * BIOME_BAND_M;
+    if (band > 0 && local < BIOME_TRANSITION_M) {
+      const prev = WEATHER[biomeForBand(seed, band - 1).id] ?? NEUTRAL_WEATHER;
+      const t = local / BIOME_TRANSITION_M;
+      this.wr = prev[0] + (cur[0] - prev[0]) * t;
+      this.wg = prev[1] + (cur[1] - prev[1]) * t;
+      this.wb = prev[2] + (cur[2] - prev[2]) * t;
+      return;
+    }
+    this.wr = cur[0];
+    this.wg = cur[1];
+    this.wb = cur[2];
+  }
 
   /** Stable pseudo-random in [0,1), keyed on world-forward and salt. */
   private hv(key: number, salt: number): number {
@@ -863,10 +1101,12 @@ export class HazardField {
       this.dummy.updateMatrix();
       mesh.setMatrixAt(count, this.dummy.matrix);
       // The gap pit and the beam keep their baked colours (a dark hole, a hot glow);
-      // everything else gets a per-instance shade so a row never reads as clones.
+      // everything else gets a per-instance shade so a row never reads as clones,
+      // folded with the biome weathering so the object belongs to its stretch.
       if (h.kind !== 'gap' && h.kind !== 'beam') {
         const shade = 0.8 + this.hv(h.forward, 4) * 0.38;
-        this.tint.setRGB(shade, shade, shade);
+        this.weatherAt(state.seed, h.forward);
+        this.tint.setRGB(shade * this.wr, shade * this.wg, shade * this.wb);
         mesh.setColorAt(count, this.tint);
       }
       if (h.kind === 'rig') rigs += 1;

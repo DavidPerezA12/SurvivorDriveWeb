@@ -141,12 +141,68 @@ export const palette = {
   postLamp: 0x6b5a3a,
   postCollar: 0x5a5048, // weathered junction collar banding the pole
   rock: 0x3b3a3c,
+  rockDark: 0x2d2c2f, // shadowed crevices between the stones
+  rockLight: 0x4b4a4e, // lit top facets
   husk: 0x33302e,
   huskGlass: 0x22282a,
   huskDoor: 0x2b2825, // a door hanging off its hinge, a shade off the body
   barrier: 0x55504a,
   barrierPaint: 0x837c6f, // worn, peeling hazard paint — neutral, never warm
   barrierCore: 0x3f3b35, // exposed concrete where a corner has spalled away
+
+  // Act I city street furniture — the day-one Outbreak verge. All decoration
+  // tier: desaturated, dim, never token-bright, never a threat silhouette
+  // (docs/DESIGN.md → readability). The dead signal lenses are deliberately murky
+  // so they never read as live lights or warm threats.
+  signalHousing: 0x23262b, // dead traffic-signal housings and light bars
+  trafficDeadRed: 0x4a211c, // unlit lenses — dim, never the hot threat red
+  trafficDeadAmber: 0x4d3d1c,
+  trafficDeadGreen: 0x21392b,
+  policeBlueDead: 0x262e48, // the dead blue half of a cruiser light bar
+  dumpsterBody: 0x3c4a44, // municipal steel, muted green-grey
+  dumpsterLid: 0x2c3833,
+  trashBag: 0x24262b, // knotted garbage bags
+  sandbagBody: 0x6a5c44, // dusty burlap of a quarantine emplacement
+  sandbagShade: 0x4c4230,
+  taxiSign: 0x8a7a4e, // faded livery band + roof sign of a dead cab
+  signStop: 0x5c2822, // a fallen stop sign — dim, weathered, not threat-red
+  signPlate: 0x878c90, // grey route-sign plate
+  glassShatter: 0x6b7c84, // pooled shattered storefront glass
+  suitcaseTan: 0x5c4a38, // burst evacuation luggage
+  suitcaseBlue: 0x3c4454,
+  coneShell: 0x7c4e3a, // toppled traffic cones — dusty terracotta, never threat-orange
+  coneBand: 0x9a948a, // the faded reflective band
+  hydrantBody: 0x6b5148, // oxidized kerbside hydrant, decoration-dim
+  hydrantCap: 0x4c3a34,
+  utilityBox: 0x49524b, // street utility / signal-control cabinet
+  mattress: 0x8a8274, // a dumped, stained mattress
+  tvDark: 0x1b1f24, // dead CRT face
+
+  // Biome roadside dressing — each geographic band re-skins the verge (snow,
+  // desert, tunnel, bridge, lava). All decoration tier: desaturated masses, never
+  // token-bright, never mimicking an interactive silhouette (docs/DESIGN.md →
+  // readability). Snow is pale but dim (a drift, not a glowing pickup).
+  snowBody: 0xb6c2cd, // settled snow mass, shadowed
+  snowLit: 0xd8e1e9, // the wind-lit crust catching the key light
+  iceGlaze: 0x8ba4b4, // blue-grey glaze on frozen rock
+  pineTrunk: 0x37302b, // cold dead conifer trunk
+  pineBough: 0x2f3a33, // frost-dead needles under the snow load
+  cactusBody: 0x4c5f3a, // dusty saguaro green (muted, never pickup-green)
+  cactusRib: 0x39482c, // shadowed rib grooves
+  sandDune: 0x8a7146, // banked desert sand, brighter than the wasteland dirt
+  sandShade: 0x604d2e, // the dune's shadowed lee side
+  sunRock: 0x7d7264, // sun-bleached desert stone
+  sunRockShade: 0x57503f,
+  tunnelLampDead: 0x4a4f42, // a dead sodium lamp head (no glow — the tunnel is dark)
+  bridgeSteel: 0x515d68, // cold marine truss steel
+  bridgeSteelDark: 0x333c45,
+  bridgeCable: 0x272e35, // snapped suspension cable drooping to the deck
+  seaFoam: 0x9fb9c6, // whitecap streaks on the water below the broken deck
+  basaltDark: 0x211f24, // cooled volcanic columns
+  basaltCool: 0x393641, // the lighter fractured faces
+  emberVein: 0xd8551e, // molten seams veining the cooled crust (dim hot, not neon)
+  lavaPool: 0xff7a2e, // an open molten pool off the road (self-lit read)
+  lavaPoolDeep: 0xb03c12,
 
   // Roadside crash barrier: a galvanized W-beam guardrail on rusted posts,
   // collapsed in stretches. Cool, weathered steel — structure, not threat

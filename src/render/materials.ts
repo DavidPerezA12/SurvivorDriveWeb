@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 /**
  * One shared, flat-shaded, vertex-colored material backs almost every prop, so
@@ -70,6 +71,23 @@ export function nonIndexed(geometry: THREE.BufferGeometry): THREE.BufferGeometry
   return geometry.index ? geometry.toNonIndexed() : geometry;
 }
 
+/**
+ * Merge parts into one geometry, tolerating a mix of indexed (box, cylinder) and
+ * non-indexed (`rockChunk` icosahedron) inputs: `mergeGeometries` refuses a mixed
+ * set, so everything is expanded to non-indexed first. Disposes the inputs (and
+ * any expanded copies) once merged.
+ */
+export function merged(parts: THREE.BufferGeometry[]): THREE.BufferGeometry {
+  const flat = parts.map(nonIndexed);
+  const geo = mergeGeometries(flat, false);
+  for (let i = 0; i < parts.length; i += 1) {
+    if (flat[i] !== parts[i]) flat[i].dispose();
+    parts[i].dispose();
+  }
+  if (!geo) throw new Error('Failed to merge geometry');
+  return geo;
+}
+
 /** A vertex-colored box. */
 export function box(
   w: number,
@@ -89,4 +107,42 @@ export function wheel(radius: number, width: number, color: THREE.ColorRepresent
   const geo = new THREE.CylinderGeometry(radius, radius, width, 24);
   geo.rotateZ(Math.PI / 2);
   return paint(geo, color, 0.5);
+}
+
+/**
+ * One craggy stone: a low-detail icosahedron whose vertices are pushed in and out
+ * along their own radius so it reads as faceted rock, never a smooth ball or a
+ * stacked box. The push is hashed from each vertex's (quantized) position, so the
+ * duplicated verts a non-indexed icosahedron shares along every edge move
+ * together and the facets stay welded (no cracks). `flatten` squashes it
+ * vertically into a mound; flat per-face normals make each facet a single shade
+ * under `paint`, the low-poly stone read. 20 faces, so a cluster still merges
+ * cheap. With a low `amount` and a hard `flatten` the same helper reads as an
+ * organic mound (a dune lobe, a snow drift) instead of stone.
+ */
+export function rockChunk(
+  radius: number,
+  flatten: number,
+  amount: number,
+  color: THREE.ColorRepresentation,
+  ao: number,
+): THREE.BufferGeometry {
+  const geo = new THREE.IcosahedronGeometry(radius, 0);
+  const pos = geo.getAttribute('position');
+  for (let i = 0; i < pos.count; i += 1) {
+    const x = pos.getX(i);
+    const y = pos.getY(i);
+    const z = pos.getZ(i);
+    const qx = Math.round(x * 256);
+    const qy = Math.round(y * 256);
+    const qz = Math.round(z * 256);
+    let h = (Math.imul(qx, 374761393) ^ Math.imul(qy, 668265263) ^ Math.imul(qz, 1274126177)) >>> 0;
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+    const r = ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+    const m = 1 + (r - 0.5) * amount;
+    pos.setXYZ(i, x * m, y * m * flatten, z * m);
+  }
+  pos.needsUpdate = true;
+  geo.computeVertexNormals();
+  return paint(geo, color, ao);
 }

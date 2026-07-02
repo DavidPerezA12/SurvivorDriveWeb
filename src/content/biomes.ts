@@ -229,8 +229,10 @@ const HIGHWAY = BIOMES[0];
 
 /** Meters one biome band spans before the next is rolled. */
 export const BIOME_BAND_M = 2500;
-/** Meters at a band's start over which the previous biome blends into the new one. */
-const BIOME_TRANSITION_M = 400;
+/** Meters at a band's start over which the previous biome blends into the new one.
+ *  Exported so the render-side dressing (decor, ground scatter) rebuilds the verge
+ *  slot by slot over the same stretch the look and handling blend across. */
+export const BIOME_TRANSITION_M = 400;
 
 /** Deterministic 0..1 hash of a band index for a seed (a small integer mixer). */
 function bandHash(seed: number, band: number): number {
