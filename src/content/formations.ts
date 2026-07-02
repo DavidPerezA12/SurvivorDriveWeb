@@ -766,6 +766,149 @@ export const FORMATIONS: readonly Formation[] = [
       { off: -1, z: 0.05, role: 'ammo', bonus: true },
     ],
   },
+  // Rockslide: a hillside shed onto the road — jumpable boulders staggered down the
+  // threat lane in a weave, a lift up front so the hop is always loaded, and a coin
+  // trail threaded through the stones as the greed line (hold the boulder lane for
+  // the money, or take the clean safe line and earn nothing).
+  {
+    id: 'rockslide',
+    hardness: 0.38,
+    acts: [0, 4, 3, 3, 2, 1],
+    cells: [
+      { off: 1, z: 0.08, role: 'lift' },
+      { off: -1, z: 0.08, role: 'lift' },
+      { off: 1, z: 0.28, role: 'boulder', xf: -0.7 },
+      { off: -1, z: 0.28, role: 'boulder', xf: -0.7 },
+      { off: 1, z: 0.5, role: 'boulder', xf: 0.7 },
+      { off: -1, z: 0.5, role: 'boulder', xf: 0.7 },
+      { off: 1, z: 0.72, role: 'boulder', xf: -0.6 },
+      { off: -1, z: 0.72, role: 'boulder', xf: -0.6 },
+      { off: 1, z: 0.6, role: 'coin' },
+      { off: -1, z: 0.6, role: 'coin' },
+    ],
+  },
+  // Spike slalom: shred strips alternating across the threat lane — jump each or
+  // stay safe. The lift keeps the jump honest and the cache past the last strip
+  // pays the line that held the lane through all three.
+  {
+    id: 'spike-slalom',
+    hardness: 0.58,
+    acts: [0, 0, 2, 3, 2, 2],
+    cells: [
+      { off: 1, z: 0.06, role: 'lift' },
+      { off: -1, z: 0.06, role: 'lift' },
+      { off: 1, z: 0.26, role: 'spikes', xf: -0.6 },
+      { off: -1, z: 0.26, role: 'spikes', xf: -0.6 },
+      { off: 1, z: 0.5, role: 'spikes', xf: 0.6 },
+      { off: -1, z: 0.5, role: 'spikes', xf: 0.6 },
+      { off: 1, z: 0.74, role: 'spikes', xf: -0.5 },
+      { off: -1, z: 0.74, role: 'spikes', xf: -0.5 },
+      { off: 1, z: 0.92, role: 'scrap' },
+      { off: -1, z: 0.92, role: 'scrap' },
+    ],
+  },
+  // Abandoned checkpoint: the quarantine line that did not hold. Two barricades
+  // seal the threat lane with the abandoned cruiser parked right behind them, so
+  // barging the line (the cheap tap) still demands the flick around the car —
+  // or pop the trestles with the gun and thread clean. The post's looted cache
+  // waits past it. Act I signature: the city's failed response as a road beat.
+  {
+    id: 'checkpoint',
+    hardness: 0.3,
+    acts: [4, 2, 1, 0, 0, 0],
+    cells: [
+      { off: 1, z: 0.08, role: 'ammo', bonus: true },
+      { off: -1, z: 0.08, role: 'ammo', bonus: true },
+      { off: 1, z: 0.4, role: 'barricade', xf: -0.6 },
+      { off: -1, z: 0.4, role: 'barricade', xf: -0.6 },
+      { off: 1, z: 0.4, role: 'barricade', xf: 0.6 },
+      { off: -1, z: 0.4, role: 'barricade', xf: 0.6 },
+      { off: 1, z: 0.56, role: 'wreck' },
+      { off: -1, z: 0.56, role: 'wreck' },
+      { off: 1, z: 0.8, role: 'scrap' },
+      { off: -1, z: 0.8, role: 'scrap' },
+    ],
+  },
+  // Pile-up: the intersection crash knot. A cordon barricade fronts three wrecks
+  // shunted into each other at staggered angles — a tight cluster to read as one
+  // shape and thread in one commitment, denser than any single-file weave. Health
+  // waits past the knot for the line that held through it.
+  {
+    id: 'pileup',
+    hardness: 0.42,
+    acts: [4, 3, 1, 0, 0, 0],
+    cells: [
+      { off: 1, z: 0.2, role: 'barricade', xf: 0 },
+      { off: -1, z: 0.2, role: 'barricade', xf: 0 },
+      { off: 1, z: 0.45, role: 'wreck', xf: -0.6 },
+      { off: -1, z: 0.45, role: 'wreck', xf: -0.6 },
+      { off: 1, z: 0.54, role: 'wreck', xf: 0.5 },
+      { off: -1, z: 0.54, role: 'wreck', xf: 0.5 },
+      { off: 1, z: 0.63, role: 'wreck', xf: -0.15 },
+      { off: -1, z: 0.63, role: 'wreck', xf: -0.15 },
+      { off: 1, z: 0.9, role: 'health', bonus: true },
+      { off: -1, z: 0.9, role: 'health', bonus: true },
+    ],
+  },
+  // Rush hour: the street died mid-commute. A three-beat weave of stalled cars
+  // tightening into the stalled city bus walling the lane's end — dodge the weave,
+  // then commit around the coach. The hardest pure-traffic beat the opening draws.
+  {
+    id: 'rush-hour',
+    hardness: 0.55,
+    acts: [3, 2, 1, 0, 0, 0],
+    cells: [
+      { off: 1, z: 0.05, role: 'ammo', bonus: true },
+      { off: -1, z: 0.05, role: 'ammo', bonus: true },
+      { off: 1, z: 0.18, role: 'wreck', xf: -0.8 },
+      { off: -1, z: 0.18, role: 'wreck', xf: -0.8 },
+      { off: 1, z: 0.34, role: 'wreck', xf: 0.1 },
+      { off: -1, z: 0.34, role: 'wreck', xf: 0.1 },
+      { off: 1, z: 0.5, role: 'wreck', xf: 0.8 },
+      { off: -1, z: 0.5, role: 'wreck', xf: 0.8 },
+      { off: 1, z: 0.78, role: 'bus' },
+      { off: -1, z: 0.78, role: 'bus' },
+    ],
+  },
+  // Dead convoy: a supply column died in its lane — a flimsy tail barricade, a
+  // stalled wreck, then the coach itself. Three reads in one line (barge / steer or
+  // hop / jump big or bail), each verb telegraphed by the object language.
+  {
+    id: 'convoy',
+    hardness: 0.5,
+    acts: [3, 3, 2, 2, 1, 1],
+    cells: [
+      { off: 1, z: 0.05, role: 'ammo', bonus: true },
+      { off: -1, z: 0.05, role: 'ammo', bonus: true },
+      { off: 1, z: 0.22, role: 'barricade', xf: 0.3 },
+      { off: -1, z: 0.22, role: 'barricade', xf: 0.3 },
+      { off: 1, z: 0.48, role: 'wreck', xf: -0.6 },
+      { off: -1, z: 0.48, role: 'wreck', xf: -0.6 },
+      { off: 1, z: 0.78, role: 'bus' },
+      { off: -1, z: 0.78, role: 'bus' },
+    ],
+  },
+  // Drum run: a mixed dump of chemical and fuel drums staggered across the threat
+  // lane, coins threaded down it as the bait. The red drum is the tool (pop it
+  // early for a clean line), the green ones are the trap (rupture and they deny
+  // the lane you are being paid to hold). Ammo up front funds the choice.
+  {
+    id: 'drum-run',
+    hardness: 0.45,
+    acts: [0, 2, 4, 3, 1, 1],
+    cells: [
+      { off: 1, z: 0.05, role: 'ammo' },
+      { off: -1, z: 0.05, role: 'ammo' },
+      { off: 1, z: 0.28, role: 'toxbarrel', xf: -0.6 },
+      { off: -1, z: 0.28, role: 'toxbarrel', xf: -0.6 },
+      { off: 1, z: 0.5, role: 'barrel', xf: 0.55 },
+      { off: -1, z: 0.5, role: 'barrel', xf: 0.55 },
+      { off: 1, z: 0.72, role: 'toxbarrel', xf: -0.4 },
+      { off: -1, z: 0.72, role: 'toxbarrel', xf: -0.4 },
+      { off: 1, z: 0.6, role: 'coin' },
+      { off: -1, z: 0.6, role: 'coin' },
+    ],
+  },
 ];
 
 /**
