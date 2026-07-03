@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createSim, step, NO_INTENT, chunkAt, type SimState } from '../src/sim';
+import { createSim, step, NO_INTENT, chunkAt, safeLane, type SimState } from '../src/sim';
 import {
   resolveCollisions,
   resolveGas,
@@ -7,6 +7,8 @@ import {
   updateClingers,
 } from '../src/sim/collision';
 import { laneCenterX, SHIELD_TUNING, GAS_TUNING } from '../src/content/tuning';
+
+const TEST_LANE = 1;
 
 /**
  * The shield power-up (docs/DESIGN.md → power-ups: risky lanes only, short,
@@ -27,11 +29,11 @@ function approaching(lane: number, speed: number, health = 1): SimState {
 
 describe('shield pickup', () => {
   it('grabbing it arms the bubble for the tuned duration', () => {
-    const s = approaching(2, 50);
+    const s = approaching(TEST_LANE, 50);
     s.pickups.push({
       kind: 'shield',
-      lane: 2,
-      x: laneCenterX(2),
+      lane: TEST_LANE,
+      x: laneCenterX(TEST_LANE),
       forward: 8,
       phase: 0.5,
       taken: false,
@@ -55,10 +57,16 @@ describe('shield pickup', () => {
 
 describe('shielded damage', () => {
   it('a crash costs no hull but still bites momentum and breaks the streak', () => {
-    const s = approaching(2, 50);
+    const s = approaching(TEST_LANE, 50);
     s.car.shieldTicks = 100;
     s.combo = 5;
-    s.hazards.push({ kind: 'wreck', lane: 2, x: laneCenterX(2), forward: 8, hit: false });
+    s.hazards.push({
+      kind: 'wreck',
+      lane: TEST_LANE,
+      x: laneCenterX(TEST_LANE),
+      forward: 8,
+      hit: false,
+    });
     resolveCollisions(s);
     expect(s.hazards[0].hit).toBe(true);
     expect(s.car.health).toBe(1);
@@ -67,9 +75,15 @@ describe('shielded damage', () => {
   });
 
   it('a square rig hit that would end the run is survived (with a near-stop)', () => {
-    const s = approaching(2, 70);
+    const s = approaching(TEST_LANE, 70);
     s.car.shieldTicks = 100;
-    s.hazards.push({ kind: 'rig', lane: 2, x: laneCenterX(2), forward: 8, hit: false });
+    s.hazards.push({
+      kind: 'rig',
+      lane: TEST_LANE,
+      x: laneCenterX(TEST_LANE),
+      forward: 8,
+      hit: false,
+    });
     resolveCollisions(s);
     expect(s.car.health).toBe(1);
     expect(s.dead).toBe(false);
@@ -78,9 +92,15 @@ describe('shielded damage', () => {
 
   it('lethal ground traps still kill: a bubble does not fill a hole', () => {
     for (const kind of ['gap', 'spikes', 'livewire'] as const) {
-      const s = approaching(2, 50);
+      const s = approaching(TEST_LANE, 50);
       s.car.shieldTicks = 100;
-      s.hazards.push({ kind, lane: 2, x: laneCenterX(2), forward: 8, hit: false });
+      s.hazards.push({
+        kind,
+        lane: TEST_LANE,
+        x: laneCenterX(TEST_LANE),
+        forward: 8,
+        hit: false,
+      });
       resolveCollisions(s);
       expect(s.dead).toBe(true);
       expect(s.deathCause).toBe(kind);
@@ -88,11 +108,11 @@ describe('shielded damage', () => {
   });
 
   it('absorbs the gas cloud drain and the clinger drain', () => {
-    const s = approaching(2, 50);
+    const s = approaching(TEST_LANE, 50);
     s.car.shieldTicks = 100;
     s.gas.push({
-      x: laneCenterX(2),
-      lane: 2,
+      x: laneCenterX(TEST_LANE),
+      lane: TEST_LANE,
       forward: 8,
       life: GAS_TUNING.lifeTicks,
       maxLife: GAS_TUNING.lifeTicks,
@@ -106,9 +126,15 @@ describe('shielded damage', () => {
   });
 
   it('the same crash chews hull again once the bubble is gone', () => {
-    const s = approaching(2, 50);
+    const s = approaching(TEST_LANE, 50);
     s.car.shieldTicks = 0;
-    s.hazards.push({ kind: 'wreck', lane: 2, x: laneCenterX(2), forward: 8, hit: false });
+    s.hazards.push({
+      kind: 'wreck',
+      lane: TEST_LANE,
+      x: laneCenterX(TEST_LANE),
+      forward: 8,
+      hit: false,
+    });
     resolveCollisions(s);
     expect(s.car.health).toBeLessThan(1);
   });
@@ -118,8 +144,13 @@ describe('world generation', () => {
   it('eventually lays shield pickups, off the safe lane like every pickup', () => {
     let shields = 0;
     for (let i = 0; i < 800; i += 1) {
-      for (const spawn of chunkAt(123, i).spawns) {
-        if (spawn.kind === 'shield') shields += 1;
+      const chunk = chunkAt(123, i);
+      const safe = safeLane(123, i);
+      for (const spawn of chunk.spawns) {
+        if (spawn.kind === 'shield') {
+          shields += 1;
+          expect(spawn.lane).not.toBe(safe);
+        }
       }
     }
     expect(shields).toBeGreaterThan(0);
