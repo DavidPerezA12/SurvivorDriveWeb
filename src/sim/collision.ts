@@ -4,6 +4,7 @@ import { chunkAt } from './world';
 import {
   BARREL_TUNING,
   GAS_TUNING,
+  SHIELD_TUNING,
   BEAM_TUNING,
   BRUTE_TUNING,
   JUMPER_TUNING,
@@ -57,6 +58,13 @@ const BARRICADE_HALF_LENGTH = 0.5;
 // leaves a little more room to thread, but it is still squarely in the lane.
 const BOULDER_HALF_WIDTH = 0.85;
 const BOULDER_HALF_LENGTH = 0.95;
+// The downed utility pole lies across its whole lane (half the 4.8 m lane width,
+// minus a hair so the tip never reaches the safe line): no within-lane dodge.
+const POLE_HALF_WIDTH = 2.3;
+const POLE_HALF_LENGTH = 0.45;
+// The live wire snakes across its whole lane like the pole, slightly deeper.
+const LIVEWIRE_HALF_WIDTH = 2.25;
+const LIVEWIRE_HALF_LENGTH = 0.6;
 // A barrel is a slim drum, the smallest footprint of any blocker.
 const BARREL_HALF_WIDTH = 0.6;
 const BARREL_HALF_LENGTH = 0.6;
@@ -94,11 +102,13 @@ const JUMP_CLEARANCE = 0.7;
 const WRECK_CLEAR = 0.9; // crushed sedan/van husk, and the drifting wreck
 const BARRICADE_CLEAR = 0.65; // a low trestle: jumpable, or just barge through it
 const BOULDER_CLEAR = 0.6; // low rubble mound, the teaching jump
+const POLE_CLEAR = 0.55; // a downed pole: an easy hop, but it spans the lane
+const LIVEWIRE_CLEAR = 0.4; // a cable flat on the deck, arcing
 const BARREL_CLEAR = 0.95; // a standing drum, the hardest thing to hop
 // The bus keeps its tall mesh but a deliberately low hitbox so a well-timed jump
 // clears it (David's call): the hitbox, not the model, is what a hop has to beat.
 const BUS_CLEAR = 0.95;
-const SPIKES_CLEAR = 0.35; // a flat strip on the deck
+const SPIKES_CLEAR = 0.5; // the blade bed: a low hop still clears it
 const GAP_CLEAR = 0.5; // a hole: just be clearly off the ground
 const BEAM_CLEAR = 0.45; // a thin light strip across the lane
 const PRUNE_BEHIND = 14;
@@ -135,9 +145,11 @@ export function materializeSpawns(state: SimState): void {
         spawn.kind === 'health' ||
         spawn.kind === 'ammo' ||
         spawn.kind === 'scrap' ||
-        spawn.kind === 'coin'
+        spawn.kind === 'coin' ||
+        spawn.kind === 'shield'
       ) {
-        // The on-ground collectibles (lift / health / ammo / scrap cache / coin).
+        // The on-ground collectibles (lift / health / ammo / scrap cache / coin /
+        // shield).
         state.pickups.push({
           kind: spawn.kind,
           lane: spawn.lane,
@@ -356,6 +368,9 @@ export function resolveCollisions(state: SimState): void {
     const bus = h.kind === 'bus';
     const barricade = h.kind === 'barricade';
     const boulder = h.kind === 'boulder';
+    // The downed pole: ground-class and jumpable like the boulder, but it spans
+    // its whole lane, so the only outs are the hop or the lane change.
+    const pole = h.kind === 'pole';
     const barrel = h.kind === 'barrel';
     // The toxic drum is a survivable, jumpable blocker like the explosive barrel
     // (same slim footprint and hull cost), but ramming it ruptures a lingering gas
@@ -369,6 +384,9 @@ export function resolveCollisions(state: SimState): void {
     const meteor = h.kind === 'meteor' || h.kind === 'stomp' || h.kind === 'shell';
     const gap = h.kind === 'gap';
     const spikes = h.kind === 'spikes';
+    // The live wire: a downed cable still arcing, a lethal ground trap as wide as
+    // its lane. Grounded contact is death; a jump clears it.
+    const livewire = h.kind === 'livewire';
     const beam = h.kind === 'beam';
     // Lethal walls (rig, concrete barrier, landed meteor/stomp) are too
     // tall/solid to jump: the only out is a lane change. The crashed bus is the
@@ -378,7 +396,7 @@ export function resolveCollisions(state: SimState): void {
     const tall = rig || barrier || meteor;
     // A road gap and a spike strip are lethal ground traps: not things you ram but
     // things you must not be on while grounded (jump or change lane, or die).
-    const lethalTrap = gap || spikes;
+    const lethalTrap = gap || spikes || livewire;
     const halfWidth = rig
       ? RIG_HALF_WIDTH
       : barrier
@@ -389,17 +407,21 @@ export function resolveCollisions(state: SimState): void {
             ? BARRICADE_HALF_WIDTH
             : boulder
               ? BOULDER_HALF_WIDTH
-              : barrelLike
-                ? BARREL_HALF_WIDTH
-                : meteor
-                  ? METEOR_HALF_WIDTH
-                  : gap
-                    ? GAP_HALF_WIDTH
-                    : spikes
-                      ? SPIKES_HALF_WIDTH
-                      : beam
-                        ? BEAM_HALF_WIDTH
-                        : HAZARD_HALF_WIDTH;
+              : pole
+                ? POLE_HALF_WIDTH
+                : barrelLike
+                  ? BARREL_HALF_WIDTH
+                  : meteor
+                    ? METEOR_HALF_WIDTH
+                    : gap
+                      ? GAP_HALF_WIDTH
+                      : spikes
+                        ? SPIKES_HALF_WIDTH
+                        : livewire
+                          ? LIVEWIRE_HALF_WIDTH
+                          : beam
+                            ? BEAM_HALF_WIDTH
+                            : HAZARD_HALF_WIDTH;
     const halfLength = rig
       ? RIG_HALF_LENGTH
       : barrier
@@ -410,17 +432,21 @@ export function resolveCollisions(state: SimState): void {
             ? BARRICADE_HALF_LENGTH
             : boulder
               ? BOULDER_HALF_LENGTH
-              : barrelLike
-                ? BARREL_HALF_LENGTH
-                : meteor
-                  ? METEOR_HALF_LENGTH
-                  : gap
-                    ? GAP_HALF_LENGTH
-                    : spikes
-                      ? SPIKES_HALF_LENGTH
-                      : beam
-                        ? BEAM_HALF_LENGTH
-                        : HAZARD_HALF_LENGTH;
+              : pole
+                ? POLE_HALF_LENGTH
+                : barrelLike
+                  ? BARREL_HALF_LENGTH
+                  : meteor
+                    ? METEOR_HALF_LENGTH
+                    : gap
+                      ? GAP_HALF_LENGTH
+                      : spikes
+                        ? SPIKES_HALF_LENGTH
+                        : livewire
+                          ? LIVEWIRE_HALF_LENGTH
+                          : beam
+                            ? BEAM_HALF_LENGTH
+                            : HAZARD_HALF_LENGTH;
 
     // Forward overlap: car spans [distance - CAR_LENGTH, distance].
     const forwardOverlap =
@@ -440,17 +466,21 @@ export function resolveCollisions(state: SimState): void {
       ? BARRICADE_CLEAR
       : boulder
         ? BOULDER_CLEAR
-        : barrelLike
-          ? BARREL_CLEAR
-          : bus
-            ? BUS_CLEAR
-            : spikes
-              ? SPIKES_CLEAR
-              : gap
-                ? GAP_CLEAR
-                : beam
-                  ? BEAM_CLEAR
-                  : WRECK_CLEAR; // wreck + drifter
+        : pole
+          ? POLE_CLEAR
+          : barrelLike
+            ? BARREL_CLEAR
+            : bus
+              ? BUS_CLEAR
+              : spikes
+                ? SPIKES_CLEAR
+                : livewire
+                  ? LIVEWIRE_CLEAR
+                  : gap
+                    ? GAP_CLEAR
+                    : beam
+                      ? BEAM_CLEAR
+                      : WRECK_CLEAR; // wreck + drifter
     if (!tall && car.height >= clearHeight) continue;
 
     h.hit = true;
@@ -468,7 +498,7 @@ export function resolveCollisions(state: SimState): void {
       state.comboTicks = 0;
       if (!state.dead) {
         state.dead = true;
-        state.deathCause = gap ? 'gap' : 'spikes';
+        state.deathCause = gap ? 'gap' : spikes ? 'spikes' : 'livewire';
         state.events.push({ type: 'died' });
       }
       continue;
@@ -490,13 +520,15 @@ export function resolveCollisions(state: SimState): void {
             ? CRASH_TUNING.barricadeDamageMul
             : boulder
               ? CRASH_TUNING.boulderDamageMul
-              : barrelLike
-                ? CRASH_TUNING.barrelDamageMul
-                : meteor
-                  ? CRASH_TUNING.meteorDamageMul
-                  : beam
-                    ? CRASH_TUNING.beamDamageMul
-                    : 1;
+              : pole
+                ? CRASH_TUNING.poleDamageMul
+                : barrelLike
+                  ? CRASH_TUNING.barrelDamageMul
+                  : meteor
+                    ? CRASH_TUNING.meteorDamageMul
+                    : beam
+                      ? CRASH_TUNING.beamDamageMul
+                      : 1;
     applyCrash(car, impact, glancing, state.events, state.loadout.damageMul * hazardMul);
     // The frenazo: a square hit bites momentum, a clip less so; a square wall hit
     // (rig, barrier, bus, meteor) stops the car near-dead, a boulder less than a
@@ -513,13 +545,15 @@ export function resolveCollisions(state: SimState): void {
               ? CRASH_TUNING.barricadeSpeedKeep
               : boulder
                 ? CRASH_TUNING.boulderSpeedKeep
-                : barrelLike
-                  ? CRASH_TUNING.barrelSpeedKeep
-                  : meteor
-                    ? CRASH_TUNING.meteorSpeedKeep
-                    : beam
-                      ? CRASH_TUNING.beamSpeedKeep
-                      : CRASH_TUNING.frontalSpeedKeep;
+                : pole
+                  ? CRASH_TUNING.poleSpeedKeep
+                  : barrelLike
+                    ? CRASH_TUNING.barrelSpeedKeep
+                    : meteor
+                      ? CRASH_TUNING.meteorSpeedKeep
+                      : beam
+                        ? CRASH_TUNING.beamSpeedKeep
+                        : CRASH_TUNING.frontalSpeedKeep;
     // Taking a hull hit breaks the streak. Greed has a cost (docs/DESIGN.md).
     state.combo = 0;
     state.comboTicks = 0;
@@ -604,15 +638,19 @@ export function resolveGas(state: SimState): void {
         state.distance >= g.forward - GAS_TUNING.halfLength &&
         state.distance - CAR_LENGTH <= g.forward + GAS_TUNING.halfLength;
       if (forwardOverlap && Math.abs(car.lateralX - g.x) < CAR_HALF_WIDTH + GAS_TUNING.halfWidth) {
-        const before = car.health;
-        car.health = Math.max(0, before - GAS_TUNING.drainPerTick * state.loadout.damageMul);
-        if (car.health <= 0 && !state.dead) {
-          state.events.push({ type: 'hullDamaged', amount: before, destroyed: true });
-          state.combo = 0;
-          state.comboTicks = 0;
-          state.dead = true;
-          state.deathCause = 'toxbarrel';
-          state.events.push({ type: 'died' });
+        // The shield absorbs the gas the same way it absorbs a crash's hull cost,
+        // but the cloud keeps ageing in place and can still hurt once it expires.
+        if (car.shieldTicks <= 0) {
+          const before = car.health;
+          car.health = Math.max(0, before - GAS_TUNING.drainPerTick * state.loadout.damageMul);
+          if (car.health <= 0 && !state.dead) {
+            state.events.push({ type: 'hullDamaged', amount: before, destroyed: true });
+            state.combo = 0;
+            state.comboTicks = 0;
+            state.dead = true;
+            state.deathCause = 'toxbarrel';
+            state.events.push({ type: 'died' });
+          }
         }
       }
     }
@@ -923,6 +961,8 @@ function shedClingers(state: SimState, count: number): void {
 export function updateClingers(state: SimState): void {
   const car = state.car;
   if (car.clinging <= 0 || state.dead) return;
+  // The shield absorbs the clingers' drain; they still ride (shed them as usual).
+  if (car.shieldTicks > 0) return;
   const before = car.health;
   car.health = Math.max(0, before - JUMPER_TUNING.drainPerTick * car.clinging);
   if (car.health <= 0) {
@@ -971,6 +1011,10 @@ export function resolvePickups(state: SimState): void {
       // One coin of a money trail: a small scrap nugget. Grab the whole trail by
       // riding the risky lane it lures you down.
       state.scrap += PICKUP_TUNING.coinValue;
+    } else if (p.kind === 'shield') {
+      // The shield bubble: a short window where hull costs are absorbed. A fresh
+      // grab restarts the clock (it does not stack).
+      car.shieldTicks = SHIELD_TUNING.durationTicks;
     } else {
       const cap = weaponStats(state.loadout.weaponLevel).maxAmmo;
       car.ammo = Math.min(car.ammo + PICKUP_TUNING.ammoRestore, cap);

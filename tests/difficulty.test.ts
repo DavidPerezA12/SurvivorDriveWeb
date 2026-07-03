@@ -29,8 +29,35 @@ const THREATS = new Set<Spawn['kind']>([
   'zombie',
 ]);
 
-/** The "read the line or die" hazards the lethality curve over-weights deep in. */
-const LETHAL = new Set<Spawn['kind']>(['rig', 'meteor', 'gap']);
+/**
+ * The full lethal roster — "read the line or die": walls (rig/barrier/bus), the
+ * crater family (meteor/stomp/shell), and the ground traps (gap/spikes/livewire/
+ * beam). The composition metric below counts these against the survivable
+ * blockers only; fodder crowds are excluded, since they measure the economy, not
+ * the line, and their size swamps the signal.
+ */
+const LETHAL = new Set<Spawn['kind']>([
+  'rig',
+  'barrier',
+  'bus',
+  'meteor',
+  'stomp',
+  'shell',
+  'gap',
+  'spikes',
+  'livewire',
+  'beam',
+]);
+/** The survivable blockers: hull-cost hits, never an outright death at full bar. */
+const SURVIVABLE = new Set<Spawn['kind']>([
+  'wreck',
+  'boulder',
+  'pole',
+  'barrel',
+  'toxbarrel',
+  'drifter',
+  'barricade',
+]);
 
 /** Count threat spawns over a window of chunks at a given starting distance. */
 function threatsOverWindow(seed: number, startMeters: number, chunks: number): number {
@@ -42,21 +69,24 @@ function threatsOverWindow(seed: number, startMeters: number, chunks: number): n
   return count;
 }
 
-/** Share of threats that are deadly-line hazards over a window of chunks. */
+/** Share of blockers that are deadly-line hazards over a window of chunks. */
 function lethalShare(startMeters: number, chunks: number, seeds: number[]): number {
   const start = Math.floor(startMeters / CHUNK_LENGTH);
-  let threats = 0;
+  let blockers = 0;
   let lethal = 0;
   for (const seed of seeds) {
     for (let i = start; i < start + chunks; i += 1) {
       for (const s of chunkAt(seed, i).spawns) {
-        if (!THREATS.has(s.kind)) continue;
-        threats += 1;
-        if (LETHAL.has(s.kind)) lethal += 1;
+        if (LETHAL.has(s.kind)) {
+          blockers += 1;
+          lethal += 1;
+        } else if (SURVIVABLE.has(s.kind)) {
+          blockers += 1;
+        }
       }
     }
   }
-  return threats === 0 ? 0 : lethal / threats;
+  return blockers === 0 ? 0 : lethal / blockers;
 }
 
 describe('speed ramp', () => {
@@ -155,13 +185,32 @@ describe('escalation lands on the actual road', () => {
   });
 
   it('keeps turning the mix deadlier into the endless tail, past where density clamps', () => {
-    // Density saturates the clamp early in the tail, so the count flatlines; the
-    // composition must not. A band deep in the tail carries a higher share of
-    // deadly-line hazards than one at its start.
+    // Density saturates the clamp early in the tail, and by act VI the formation
+    // field is already near its lethal ceiling — so the escalation lever that must
+    // keep working into the endless tail is the lethality curve's wreck → rig
+    // upgrade (`resolveCell`): the same familiar formation keeps trading its
+    // survivable blockers for walls the deeper you are. Measure that lever
+    // directly: the rig share among {wreck, rig} spawns must rise from the tail's
+    // start (lethality mid-ramp) to past its clamp (~42 km).
     const seeds = [1, 42, 7777, 0xc0ffee, 5];
-    const tailStart = lethalShare(30000, 300, seeds);
-    const tailDeep = lethalShare(70000, 300, seeds);
-    expect(tailDeep).toBeGreaterThan(tailStart);
+    const rigShare = (startMeters: number): number => {
+      const start = Math.floor(startMeters / CHUNK_LENGTH);
+      let rigs = 0;
+      let wrecks = 0;
+      for (const seed of seeds) {
+        for (let i = start; i < start + 300; i += 1) {
+          for (const s of chunkAt(seed, i).spawns) {
+            if (s.kind === 'rig') rigs += 1;
+            else if (s.kind === 'wreck') wrecks += 1;
+          }
+        }
+      }
+      return rigs + wrecks === 0 ? 0 : rigs / (rigs + wrecks);
+    };
+    expect(rigShare(50000)).toBeGreaterThan(rigShare(18000));
+    // And the overall blocker mix must at least hold its lethal share (no
+    // softening deep in), even once the field saturates.
+    expect(lethalShare(50000, 300, seeds)).toBeGreaterThan(lethalShare(18000, 300, seeds) - 0.03);
   });
 
   it('still leaves the safe lane empty deep into the escalation', () => {

@@ -90,6 +90,13 @@ export function step(state: SimState, intent: Intent): SimState {
     if (state.comboTicks === 0) state.combo = 0;
   }
 
+  // The shield bubble burns down one tick at a time; a grab this tick starts
+  // counting from the next, so the full duration is always honoured.
+  if (state.car.shieldTicks > 0) {
+    state.car.shieldTicks -= 1;
+    if (state.car.shieldTicks === 0) state.events.push({ type: 'shieldExpired' });
+  }
+
   materializeSpawns(state);
 
   // The car always reaches full cruising speed — a battered hull never slows it

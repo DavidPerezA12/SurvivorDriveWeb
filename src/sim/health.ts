@@ -31,6 +31,11 @@ export function applyCrash(
   out: FrameEvent[],
   damageMul = 1,
 ): void {
+  // An active shield absorbs the hull cost outright — the crash still happened
+  // (the caller applies the frenazo and breaks the streak), but the bar is
+  // untouched. Lethal ground traps never route through here, so a bubble still
+  // cannot save you from a hole (docs/DESIGN.md → power-ups).
+  if (car.shieldTicks > 0) return;
   const t = CRASH_TUNING;
   const severity = Math.min(impact / t.fullDamageSpeed, 1);
   const loss = severity * (glancing ? t.glancingHealthLoss : t.frontalHealthLoss) * damageMul;

@@ -132,6 +132,31 @@ function coinGeometry(): THREE.BufferGeometry {
   return merge([disc, faceFront, faceBack], 'coin');
 }
 
+/**
+ * The shield pickup — a faceted pale-ice bubble held over an emitter ring
+ * (docs/DESIGN.md → power-ups: risky lanes only, short, earned). Cool by the
+ * readability rule; the dome silhouette says "bubble" on its own, distinct from
+ * the lift chevron and the health cross at the spawn horizon.
+ */
+function shieldGeometry(): THREE.BufferGeometry {
+  const parts = [
+    box(0.78, 0.08, 0.78, palette.shieldBase, 0.6).translate(0, 0.05, 0),
+    // The emitter ring, and the bubble it projects.
+    paint(new THREE.CylinderGeometry(0.36, 0.4, 0.12, 8), palette.shieldTokenDark, 0.4).translate(
+      0,
+      0.15,
+      0,
+    ),
+    paint(new THREE.SphereGeometry(0.3, 8, 6), palette.shieldToken, 0.25).translate(0, 0.5, 0),
+    // Four emitter studs around the ring.
+    box(0.08, 0.12, 0.08, palette.shieldTokenDark, 0.35).translate(0.3, 0.16, 0),
+    box(0.08, 0.12, 0.08, palette.shieldTokenDark, 0.35).translate(-0.3, 0.16, 0),
+    box(0.08, 0.12, 0.08, palette.shieldTokenDark, 0.35).translate(0, 0.16, 0.3),
+    box(0.08, 0.12, 0.08, palette.shieldTokenDark, 0.35).translate(0, 0.16, -0.3),
+  ];
+  return merge(parts, 'shield');
+}
+
 function merge(parts: THREE.BufferGeometry[], name: string): THREE.BufferGeometry {
   const geo = mergeGeometries(parts, false);
   for (const p of parts) p.dispose();
@@ -195,6 +220,7 @@ export class PickupField {
   private readonly ammo: KindLayer;
   private readonly scrap: KindLayer;
   private readonly coin: KindLayer;
+  private readonly shield: KindLayer;
   private readonly sparks: ParticlePool;
   private clock = 0;
 
@@ -204,6 +230,7 @@ export class PickupField {
     this.ammo = new KindLayer(scene, ammoGeometry());
     this.scrap = new KindLayer(scene, scrapGeometry());
     this.coin = new KindLayer(scene, coinGeometry(), MAX_COINS);
+    this.shield = new KindLayer(scene, shieldGeometry());
 
     // A cool upward puff when anything is gathered — the "you got it" read,
     // legible with sound off.
@@ -232,6 +259,7 @@ export class PickupField {
     this.ammo.begin();
     this.scrap.begin();
     this.coin.begin();
+    this.shield.begin();
     for (const p of state.pickups) {
       if (p.taken) continue;
       const z = state.distance - p.forward;
@@ -244,13 +272,16 @@ export class PickupField {
               ? this.scrap
               : p.kind === 'coin'
                 ? this.coin
-                : this.ammo;
+                : p.kind === 'shield'
+                  ? this.shield
+                  : this.ammo;
       layer.place(p.x, z, this.clock, p.phase, elevation.yAt(p.forward, state.distance));
     }
     this.lift.commit();
     this.health.commit();
     this.ammo.commit();
     this.scrap.commit();
+    this.shield.commit();
     this.coin.commit();
     this.sparks.update(state.distance, dt);
   }

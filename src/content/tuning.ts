@@ -217,6 +217,15 @@ export const CRASH_TUNING = {
   boulderSpeedKeep: 0.62,
 
   /**
+   * The downed pole is the boulder's wide sibling: it spans its whole lane, so
+   * the dodge that saves you from a boulder does not exist — hop it or leave the
+   * lane. Ramming it is a heavy timber hit: costlier than the boulder, still far
+   * from lethal, and it scrubs real speed (the pole rolls under the car).
+   */
+  poleDamageMul: 0.8,
+  poleSpeedKeep: 0.5,
+
+  /**
    * Ramming an explosive barrel is the worst non-rig crash: the drum goes off in
    * your face. Its hull cost is scaled up (above a wreck, below the lethal rig)
    * and it stops the car hard. The smart play is to shoot it from a distance;
@@ -347,6 +356,16 @@ export const BARREL_TUNING = {
  * before you arrive, or jump it (you are above the cloud), or just steer wide. A pure
  * trap, lane-focused, not the explosive barrel's wide blast. First-pass numbers.
  */
+/**
+ * The shield power-up (docs/DESIGN.md → power-ups: risky lanes only, short,
+ * earned). While up, hull costs are absorbed; the frenazo still lands and the
+ * lethal ground traps still kill (a bubble does not fill a hole).
+ */
+export const SHIELD_TUNING = {
+  /** Ticks the bubble lasts from the grab (~300 / 60 = 5 s). */
+  durationTicks: 300,
+};
+
 export const GAS_TUNING = {
   /** Ticks the cloud lingers before it clears (~120 / 60 = 2 s). */
   lifeTicks: 120,

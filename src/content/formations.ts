@@ -28,9 +28,11 @@ export type FormationRole =
   | 'bus' // long crashed bus, a wall along the lane (lethal)
   | 'barricade' // flimsy road trestle: shoot it, ram it cheap, or steer (soft)
   | 'boulder' // jump-clears, small ram (survivable)
+  | 'pole' // a downed pole spanning its whole lane: hop it or leave the lane (survivable)
   | 'barrel' // shoot to clear (and the crowd around it)
   | 'toxbarrel' // shoot/ram to rupture; leaves a lingering toxic cloud denying its lane
   | 'spikes' // a spike strip on the road; jump it or change lane (lethal trap)
+  | 'livewire' // a downed cable arcing across its whole lane; jump it or die (lethal trap)
   | 'drifter' // sweeps laterally within its own lane as it nears
   | 'beam' // a UFO beam strip that sweeps within the threat lane
   | 'meteor' // falls onto its lane, then lethal
@@ -45,6 +47,7 @@ export type FormationRole =
   | 'jumper' // a leaper that latches onto the hood and drains hull; shoot or crash it off
   | 'ammo'
   | 'health'
+  | 'shield' // a short shield bubble: hull costs absorbed while it lasts (traps still kill)
   | 'lift' // jump-charge refill
   | 'scrap' // a salvage cache: instant scrap, a pure greed grab with no fight
   | 'coin'; // a money trail: a line of small scrap nuggets luring a line down a risky lane
@@ -805,6 +808,100 @@ export const FORMATIONS: readonly Formation[] = [
       { off: -1, z: 0.74, role: 'spikes', xf: -0.5 },
       { off: 1, z: 0.92, role: 'scrap' },
       { off: -1, z: 0.92, role: 'scrap' },
+    ],
+  },
+  // Shield run: the power-up beat. The bubble sits on the threat lane with a rig
+  // sealing it right behind — grab it and you can plow the wall that would end
+  // the run (the frenazo still nearly stops you), then mow the payout crowd while
+  // the clock runs. Skip the grab and it is just a wall: take the safe line.
+  {
+    id: 'shield-run',
+    hardness: 0.68,
+    acts: [0, 0, 2, 3, 0, 0],
+    cells: [
+      { off: 1, z: 0.08, role: 'shield' },
+      { off: -1, z: 0.08, role: 'shield' },
+      { off: 1, z: 0.35, role: 'rig' },
+      { off: -1, z: 0.35, role: 'rig' },
+      { off: 1, z: 0.6, role: 'loot' },
+      { off: -1, z: 0.6, role: 'loot' },
+      { off: 1, z: 0.92, role: 'health', bonus: true },
+      { off: -1, z: 0.92, role: 'health', bonus: true },
+    ],
+  },
+  // Bubble run: the gentler shield beat. Grab the bubble, eat the drum blast for
+  // free, mow the crowd behind it, and clear out before the clock dies — a whole
+  // greed line bought by one pickup. Without it, the same lane is a barrel trap.
+  {
+    id: 'bubble-run',
+    hardness: 0.55,
+    acts: [0, 1, 3, 3, 0, 0],
+    cells: [
+      { off: 1, z: 0.06, role: 'shield' },
+      { off: -1, z: 0.06, role: 'shield' },
+      { off: 1, z: 0.35, role: 'barrel' },
+      { off: -1, z: 0.35, role: 'barrel' },
+      { off: 1, z: 0.55, role: 'loot' },
+      { off: -1, z: 0.55, role: 'loot' },
+      { off: 1, z: 0.85, role: 'scrap', bonus: true },
+      { off: -1, z: 0.85, role: 'scrap', bonus: true },
+    ],
+  },
+  // Downed line: a felled utility pole lying across the whole threat lane — the
+  // first lane-spanning blocker. Unlike the boulder there is no dodge within the
+  // lane: hop it (lift laid up front) or take the safe line and skip the cache
+  // past it. Teaches "wide and low means jump" in the opening acts.
+  {
+    id: 'downed-line',
+    hardness: 0.36,
+    acts: [3, 3, 2, 1, 0, 0],
+    cells: [
+      { off: 1, z: 0.1, role: 'lift' },
+      { off: -1, z: 0.1, role: 'lift' },
+      { off: 1, z: 0.45, role: 'pole' },
+      { off: -1, z: 0.45, role: 'pole' },
+      { off: 1, z: 0.75, role: 'scrap' },
+      { off: -1, z: 0.75, role: 'scrap' },
+    ],
+  },
+  // Live wire: the grid came down with the pole and the cable is still hot. Two
+  // arcing wires span the threat lane with the money trail laid between them —
+  // hold the lane and clear both on the hop for the cash, or take the safe line
+  // and keep your fillings. The spark glow is the telegraph.
+  {
+    id: 'live-wire',
+    hardness: 0.58,
+    acts: [0, 2, 3, 2, 0, 0],
+    cells: [
+      { off: 1, z: 0.06, role: 'lift' },
+      { off: -1, z: 0.06, role: 'lift' },
+      { off: 1, z: 0.32, role: 'livewire' },
+      { off: -1, z: 0.32, role: 'livewire' },
+      { off: 1, z: 0.5, role: 'coin' },
+      { off: -1, z: 0.5, role: 'coin' },
+      { off: 1, z: 0.72, role: 'livewire' },
+      { off: -1, z: 0.72, role: 'livewire' },
+    ],
+  },
+  // Storm damage: the block where the grid fell over the road. A downed pole to
+  // hop, the stalled car that hit it, then the live cable still arcing at the
+  // tail — three beats in one lane, each asking a different verb (jump, steer,
+  // jump-or-bail). Health past the mess for the line that held it.
+  {
+    id: 'storm-damage',
+    hardness: 0.52,
+    acts: [0, 3, 3, 2, 0, 0],
+    cells: [
+      { off: 1, z: 0.06, role: 'lift' },
+      { off: -1, z: 0.06, role: 'lift' },
+      { off: 1, z: 0.25, role: 'pole' },
+      { off: -1, z: 0.25, role: 'pole' },
+      { off: 1, z: 0.5, role: 'wreck', xf: 0.6 },
+      { off: -1, z: 0.5, role: 'wreck', xf: 0.6 },
+      { off: 1, z: 0.75, role: 'livewire' },
+      { off: -1, z: 0.75, role: 'livewire' },
+      { off: 1, z: 0.95, role: 'health', bonus: true },
+      { off: -1, z: 0.95, role: 'health', bonus: true },
     ],
   },
   // Abandoned checkpoint: the quarantine line that did not hold. Two barricades

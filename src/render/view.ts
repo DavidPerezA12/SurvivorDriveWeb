@@ -18,6 +18,7 @@ import { ShellField, MechaSilhouette } from './mecha';
 import { MeteorStreaks } from './storm';
 import { ZombieField } from './zombies';
 import { ClingerField } from './clingers';
+import { ShieldBubble } from './shield';
 import { GasField } from './gas';
 import { PickupField } from './pickups';
 import { MowFx } from './mowFx';
@@ -96,6 +97,7 @@ export class GameView {
   private readonly storm: MeteorStreaks;
   private readonly zombies: ZombieField;
   private readonly clingers: ClingerField;
+  private readonly shield: ShieldBubble;
   private readonly gas: GasField;
   private readonly pickups: PickupField;
   private readonly mowFx: MowFx;
@@ -144,10 +146,13 @@ export class GameView {
     this.explosionFx = new ExplosionFx(this.stage.scene);
     this.damageSmoke = new DamageSmoke(this.stage.scene);
     this.groundFx = new GroundFx(this.stage.scene);
+    this.shield = new ShieldBubble();
     this.car = createChassis(this.chassisId);
     this.stage.scene.add(this.car);
     // Jumpers ride the hero car, so the clingers parent onto it (re-attached on swap).
     this.clingers.attach(this.car);
+    // The shield bubble wraps the hero car the same way.
+    this.shield.attach(this.car);
   }
 
   /**
@@ -175,9 +180,10 @@ export class GameView {
 
   /** Dispose and rebuild the car body for the current chassis + paint. */
   private rebuildCar(): void {
-    // Clingers persist across body swaps. Detach them before traversing the old car,
-    // otherwise its disposal pass also frees the shared hood-passenger geometry.
+    // Clingers and the shield bubble persist across body swaps. Detach them before
+    // traversing the old car, otherwise its disposal pass also frees their geometry.
     this.clingers.detach();
+    this.shield.detach();
     this.stage.scene.remove(this.car);
     this.car.traverse((o) => {
       if (o instanceof THREE.Mesh) o.geometry.dispose();
@@ -187,8 +193,9 @@ export class GameView {
     this.damageTier = 0;
     this.car = createChassis(this.chassisId, this.paintColor);
     this.stage.scene.add(this.car);
-    // The car group was rebuilt, so re-parent the hood clingers onto the new one.
+    // The car group was rebuilt, so re-parent the hood clingers and the bubble.
     this.clingers.attach(this.car);
+    this.shield.attach(this.car);
   }
 
   /**
@@ -249,6 +256,8 @@ export class GameView {
     this.mecha.setReducedMotion(reducedMotion);
     this.storm.setReducedMotion(reducedMotion);
     this.clingers.setReducedMotion(reducedMotion);
+    this.shield.setReducedMotion(reducedMotion);
+    this.hazards.setReducedMotion(reducedMotion);
     this.gas.setReducedMotion(reducedMotion);
     this.mowFx.setReducedMotion(reducedMotion);
     this.gunFx.setReducedMotion(reducedMotion);
@@ -399,6 +408,7 @@ export class GameView {
     this.storm.update(curr, dt);
     this.zombies.update(curr, dt, this.elevation);
     this.clingers.update(curr.car.clinging, dt);
+    this.shield.update(curr.car.shieldTicks, dt);
     this.gas.update(curr, dt, this.elevation);
     this.pickups.update(curr, dt, this.elevation);
     // Hull wear: swap the dent/scorch overlay on threshold crossings, and trail

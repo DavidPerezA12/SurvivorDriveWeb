@@ -67,6 +67,7 @@ export function makeCar(loadout: Loadout): CarState {
     ammo: weaponStats(loadout.weaponLevel).startAmmo,
     fireCooldown: 0,
     clinging: 0,
+    shieldTicks: 0,
   };
 }
 

@@ -65,9 +65,11 @@ export type SpawnKind =
   | 'bus'
   | 'barricade'
   | 'boulder'
+  | 'pole'
   | 'barrel'
   | 'toxbarrel'
   | 'spikes'
+  | 'livewire'
   | 'drifter'
   | 'meteor'
   | 'stomp'
@@ -80,7 +82,8 @@ export type SpawnKind =
   | 'health'
   | 'ammo'
   | 'scrap'
-  | 'coin';
+  | 'coin'
+  | 'shield';
 
 /**
  * The objects spawned with a plain `{lane, z}` shape (everything but the
@@ -96,9 +99,11 @@ export type StaticHazardKind =
   | 'bus'
   | 'barricade'
   | 'boulder'
+  | 'pole'
   | 'barrel'
   | 'toxbarrel'
   | 'spikes'
+  | 'livewire'
   | 'meteor'
   | 'stomp'
   | 'shell'
@@ -109,16 +114,19 @@ export type StaticHazardKind =
  * The damaging on-road blockers, shared by `Spawn` and `Hazard`, in three
  * readability classes (docs/DESIGN.md → readability):
  *
- * - Ground-class survivable: `wreck`, `boulder`, `barrel`, `toxbarrel`, `drifter`. A
- *   jump sails over them and a hit only chews hull. The `barrel` is the one the gun
- *   can detonate (`detonateBarrel`) for a wide chain-clear; the `toxbarrel` ruptures
- *   (shot or rammed) into a lingering `GasCloud` that denies its lane; the `drifter`
- *   slides one lane over as it nears.
+ * - Ground-class survivable: `wreck`, `boulder`, `pole`, `barrel`, `toxbarrel`,
+ *   `drifter`. A jump sails over them and a hit only chews hull. The `barrel` is the
+ *   one the gun can detonate (`detonateBarrel`) for a wide chain-clear; the
+ *   `toxbarrel` ruptures (shot or rammed) into a lingering `GasCloud` that denies its
+ *   lane; the `drifter` slides one lane over as it nears. The `pole` (a downed
+ *   utility pole) is the wide one: it spans its whole lane, so there is no
+ *   within-lane dodge — hop it or leave the lane.
  * - Lethal walls: `rig`, `barrier`, `bus`, and a landed `meteor`. Too tall/solid
  *   to clear (the only out is a lane change); a square hit at speed ends the run.
- * - Lethal ground traps: the `gap` (a hole), the `spikes` strip, and the `beam`.
- *   Not things you ram but things you must not be on while grounded: jump them or
- *   change lane, or die (the road is the boss).
+ * - Lethal ground traps: the `gap` (a hole), the `spikes` strip, the `livewire`
+ *   (a downed cable still arcing, as wide as its lane), and the `beam`. Not things
+ *   you ram but things you must not be on while grounded: jump them or change
+ *   lane, or die (the road is the boss).
  * - The lone friendly object: the `ramp` (collapsed-building rubble). Driving onto
  *   it grounded launches the car over the debris beyond, no hull cost. It lives in
  *   the hazard list only to share the spawn/prune/render plumbing.
@@ -132,7 +140,7 @@ export type HazardKind = StaticHazardKind | 'drifter' | 'beam';
  * risky lane so the money lures the car off the safe line). All spawn off the safe
  * lane, so every refill and every grab is a greed reward (docs/DESIGN.md → Pillar 3).
  */
-export type PickupKind = 'jump' | 'health' | 'ammo' | 'scrap' | 'coin';
+export type PickupKind = 'jump' | 'health' | 'ammo' | 'scrap' | 'coin' | 'shield';
 
 export type Spawn =
   | {
@@ -262,6 +270,15 @@ export interface CarState {
    * the car drives clean. Never touches the controls (docs/DESIGN.md → Pillar 2).
    */
   clinging: number;
+  /**
+   * Ticks of shield left (0 = no shield). While up, hull costs are absorbed —
+   * crashes, wall hits, gas, and clinger drain chew the bubble's time instead of
+   * the bar — but momentum costs (the frenazo) still land in full, and the
+   * lethal ground traps (gap, spikes, live wire) still kill: a bubble does not
+   * fill a hole. The shield pickup grants it (docs/DESIGN.md → power-ups: risky
+   * lanes only, short, earned). Never touches the controls.
+   */
+  shieldTicks: number;
 }
 
 /**
@@ -483,4 +500,5 @@ export type FrameEvent =
   | { type: 'jumperLatched'; x: number }
   | { type: 'jumperShed'; count: number }
   | { type: 'gasReleased'; x: number; forward: number }
+  | { type: 'shieldExpired' }
   | { type: 'died' };

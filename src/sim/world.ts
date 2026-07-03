@@ -179,6 +179,12 @@ function resolveCell(
     case 'ramp':
       spawns.push({ kind: cell.role, lane, z, dx });
       break;
+    case 'pole':
+    case 'livewire':
+      // Lane-spanning obstacles: always laid on the lane center with no lateral
+      // stagger — an `xf` offset would push their span across the safe line.
+      spawns.push({ kind: cell.role, lane, z });
+      break;
     case 'crackgap':
       // A quake gap: a `gap` that starts as a harmless crack and tears open later.
       spawns.push({ kind: 'gap', lane, z, opening: true });
@@ -234,6 +240,7 @@ function resolveCell(
       break;
     case 'ammo':
     case 'health':
+    case 'shield':
     case 'lift': {
       // Bonus pickups (the generous extras, not the one that makes the formation
       // fair) thin out as the economy tightens deep in.

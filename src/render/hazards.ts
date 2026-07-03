@@ -17,6 +17,19 @@ import type { Elevation } from './elevation';
 const MAX_INSTANCES = 48;
 
 /**
+ * One shared material for everything that kills on contact and announces it with
+ * light: the lethal walls' danger lights, the live wire's arcs, the quake-crack
+ * fissure, and the spike bed's warning strip. Unlit and fogged like the
+ * silhouette material, but its `color` is pulsed each frame (from the sim tick,
+ * so it is deterministic) — every death-light on the road breathes in sync, the
+ * one rhythm that always means "do not touch". Held steady under reduced motion.
+ */
+const dangerPulseMaterial = new THREE.MeshBasicMaterial({
+  vertexColors: true,
+  fog: true,
+});
+
+/**
  * Per-biome weathering, as RGB multipliers folded into each instance tint: frost
  * whitens a wreck on the ice fields, dust warms it on the flats, tunnel grime
  * darkens it, sea air cools it, and the lava plain chars it. The silhouette and
@@ -292,20 +305,22 @@ function wreckTruckGeometry(): THREE.BufferGeometry {
 function rigGeometry(): THREE.BufferGeometry {
   const p = palette;
   const parts = [
-    // Tall box trailer along the lane, on a dark underframe.
-    box(2.05, 0.42, 5.4, p.rigDark, 0.4).translate(0, 0.36, -0.6),
-    box(2.0, 2.4, 5.0, p.rigBody, 0.5).translate(0, 1.55, -0.6),
+    // Tall box trailer along the lane, on a dark underframe. Sized to FILL the
+    // lethal hitbox and then some vertically: the one-hit killers must read
+    // massive at the spawn horizon (docs/DESIGN.md → lethal looks lethal).
+    box(2.35, 0.42, 5.4, p.rigDark, 0.4).translate(0, 0.36, -0.6),
+    box(2.3, 3.1, 5.0, p.rigBody, 0.5).translate(0, 1.95, -0.6),
     // The trailer's top and bottom chords, a shade darker, framing the box.
-    box(2.06, 0.16, 5.04, p.rigDark, 0.4).translate(0, 2.72, -0.6),
-    box(2.06, 0.14, 5.04, p.rigDark, 0.45).translate(0, 0.62, -0.6),
-    // Rear doors facing the car: framed, hinged, with three amber hazard chevrons,
-    // a door bar, and dead marker lamps at the corners.
-    box(2.0, 2.3, 0.18, p.rigDark, 0.45).translate(0, 1.55, 1.95),
-    box(0.5, 2.0, 0.22, p.rigHazard, 0.2).translate(-0.6, 1.55, 2.0),
-    box(0.5, 2.0, 0.22, p.rigDark, 0.2).translate(0.0, 1.55, 2.0),
-    box(0.5, 2.0, 0.22, p.rigHazard, 0.2).translate(0.6, 1.55, 2.0),
-    box(0.08, 1.9, 0.26, p.rigCab, 0.3).translate(-0.06, 1.5, 2.02), // lock bar
-    box(0.12, 0.3, 0.24, p.rigCab, 0.3).translate(-0.06, 1.2, 2.04), // bar handle
+    box(2.36, 0.18, 5.04, p.rigDark, 0.4).translate(0, 3.55, -0.6),
+    box(2.36, 0.14, 5.04, p.rigDark, 0.45).translate(0, 0.62, -0.6),
+    // Rear doors facing the car: framed, hinged, with three tall amber hazard
+    // chevrons, a door bar, and dead marker lamps at the corners.
+    box(2.3, 2.95, 0.18, p.rigDark, 0.45).translate(0, 1.9, 1.95),
+    box(0.62, 2.6, 0.22, p.rigHazard, 0.2).translate(-0.72, 1.9, 2.0),
+    box(0.62, 2.6, 0.22, p.rigDark, 0.2).translate(0.0, 1.9, 2.0),
+    box(0.62, 2.6, 0.22, p.rigHazard, 0.2).translate(0.72, 1.9, 2.0),
+    box(0.08, 2.4, 0.26, p.rigCab, 0.3).translate(-0.06, 1.8, 2.02), // lock bar
+    box(0.12, 0.3, 0.24, p.rigCab, 0.3).translate(-0.06, 1.3, 2.04), // bar handle
     box(0.3, 0.12, 0.1, p.carTaillightDim, 0.2).translate(-0.8, 0.62, 2.05),
     box(0.3, 0.12, 0.1, p.carTaillightDim, 0.2).translate(0.8, 0.62, 2.05),
     // Rear underride bar and mudflaps under the doors.
@@ -313,11 +328,11 @@ function rigGeometry(): THREE.BufferGeometry {
     box(0.5, 0.4, 0.06, p.rigDark, 0.5).translate(-0.75, 0.22, 1.85),
     box(0.5, 0.4, 0.06, p.rigDark, 0.5).translate(0.75, 0.22, 1.85),
     // Rust eating the trailer flank + a long scrape gouged along it.
-    box(0.8, 0.7, 1.0, p.wreckRust, 0.5).translate(-0.95, 1.7, -0.2),
-    box(0.6, 0.5, 0.8, p.wreckRust, 0.5).translate(0.97, 1.3, -1.4),
-    box(0.1, 0.2, 2.6, p.wreckScorch, 0.3).translate(-1.0, 1.1, -1.0),
+    box(0.8, 0.9, 1.0, p.wreckRust, 0.5).translate(-1.1, 2.1, -0.2),
+    box(0.6, 0.7, 0.8, p.wreckRust, 0.5).translate(1.12, 1.5, -1.4),
+    box(0.1, 0.22, 2.6, p.wreckScorch, 0.3).translate(-1.16, 1.2, -1.0),
     // A torn tarp corner flapped over the top rear edge.
-    box(0.9, 0.08, 0.7, p.rigCab, 0.35).rotateZ(0.14).translate(-0.55, 2.82, 1.4),
+    box(0.9, 0.08, 0.7, p.rigCab, 0.35).rotateZ(0.14).translate(-0.65, 3.62, 1.4),
     // Trailer axle bogie: paired duals each side on a visible axle beam.
     box(2.1, 0.16, 0.16, p.rigDark, 0.3).translate(0, 0.34, 0.9),
     box(2.1, 0.16, 0.16, p.rigDark, 0.3).translate(0, 0.34, -1.9),
@@ -380,37 +395,42 @@ function rigGeometry(): THREE.BufferGeometry {
 function barrierGeometry(): THREE.BufferGeometry {
   const p = palette;
   const parts = [
-    // Wide solid concrete wall, tall enough to read as impassable from far off.
-    box(2.4, 1.9, 0.85, p.barrierConcrete, 0.5).translate(0, 1.05, 0),
+    // A massive slab wall: nearly three meters of solid concrete, unmistakably
+    // impassable from the spawn horizon (docs/DESIGN.md → lethal looks lethal).
+    box(2.5, 2.9, 1.0, p.barrierConcrete, 0.5).translate(0, 1.6, 0),
     // Sloped Jersey foot, wider at the base (the cast-concrete profile).
-    box(2.6, 0.5, 1.15, p.barrierConcreteDark, 0.55).translate(0, 0.25, 0),
+    box(2.7, 0.55, 1.35, p.barrierConcreteDark, 0.55).translate(0, 0.27, 0),
+    // A heavy crown cap along the top.
+    box(2.6, 0.24, 1.1, p.barrierConcreteDark, 0.45).translate(0, 3.06, 0),
     // White hazard bands wrapping the face toward the player.
-    box(2.44, 0.32, 0.06, p.barrierStripe, 0.2).translate(0, 1.55, 0.44),
-    box(2.44, 0.32, 0.06, p.barrierStripe, 0.2).translate(0, 0.78, 0.44),
-    // Red danger chevrons between the bands — the lethal read.
-    box(0.52, 0.32, 0.08, p.barrierDanger, 0.2).translate(-0.72, 1.16, 0.45),
-    box(0.52, 0.32, 0.08, p.barrierDanger, 0.2).translate(0, 1.16, 0.45),
-    box(0.52, 0.32, 0.08, p.barrierDanger, 0.2).translate(0.72, 1.16, 0.45),
-    // Grime streaks down the face + a spalled top corner for craft.
-    box(0.26, 1.3, 0.06, p.barrierGrime, 0.5).translate(-0.95, 1.0, 0.45),
-    box(0.2, 1.1, 0.06, p.barrierGrime, 0.5).translate(0.8, 1.0, 0.45),
+    box(2.54, 0.4, 0.06, p.barrierStripe, 0.2).translate(0, 2.35, 0.52),
+    box(2.54, 0.4, 0.06, p.barrierStripe, 0.2).translate(0, 1.0, 0.52),
+    // Big red danger chevrons between the bands — the lethal read.
+    box(0.62, 0.5, 0.08, p.barrierDanger, 0.2).translate(-0.8, 1.68, 0.53),
+    box(0.62, 0.5, 0.08, p.barrierDanger, 0.2).translate(0, 1.68, 0.53),
+    box(0.62, 0.5, 0.08, p.barrierDanger, 0.2).translate(0.8, 1.68, 0.53),
+    // Grime streaks down the face + a spalled top corner for craft. A hair
+    // prouder than the hazard bands they cross, so the faces never share a
+    // plane (z-fighting flicker).
+    box(0.26, 2.1, 0.08, p.barrierGrime, 0.5).translate(-1.0, 1.5, 0.535),
+    box(0.2, 1.8, 0.08, p.barrierGrime, 0.5).translate(0.85, 1.4, 0.535),
     paint(
-      new THREE.BoxGeometry(0.45, 0.4, 0.5).rotateY(0.4).translate(1.2, 1.85, 0.1),
+      new THREE.BoxGeometry(0.5, 0.45, 0.6).rotateY(0.4).translate(1.2, 2.85, 0.1),
       p.barrierConcreteDark,
       0.55,
     ),
     // Bent rebar clawing out of the spalled corner, and a lift-hook recess.
     paint(
-      new THREE.BoxGeometry(0.06, 0.55, 0.06).rotateZ(0.5).translate(1.15, 2.15, 0.1),
+      new THREE.BoxGeometry(0.06, 0.6, 0.06).rotateZ(0.5).translate(1.18, 3.2, 0.1),
       p.rampRebar,
       0.35,
     ),
     paint(
-      new THREE.BoxGeometry(0.05, 0.4, 0.05).rotateZ(-0.4).translate(0.98, 2.1, 0.2),
+      new THREE.BoxGeometry(0.05, 0.45, 0.05).rotateZ(-0.4).translate(1.0, 3.15, 0.2),
       p.rampRebar,
       0.35,
     ),
-    box(0.3, 0.14, 0.06, p.barrierConcreteDark, 0.4).translate(-0.6, 1.86, 0.44),
+    box(0.3, 0.14, 0.06, p.barrierConcreteDark, 0.4).translate(-0.6, 2.6, 0.52),
     // Chunks of broken rubble spilled at the foot, breaking the clean slab.
     rockChunk(0.3, 0.7, 0.6, p.barrierConcreteDark, 0.5).rotateY(0.6).translate(-1.25, 0.16, 0.7),
     rockChunk(0.22, 0.65, 0.7, p.barrierConcrete, 0.45).rotateY(1.2).translate(-1.0, 0.1, 0.95),
@@ -458,9 +478,9 @@ function busGeometry(): THREE.BufferGeometry {
     // Rear facing the player: dark panel, dead lights, red hazard chevrons, a
     // dented bumper, and the engine grille under the panel.
     box(2.0, 1.5, 0.16, p.busDark, 0.45).translate(0, 1.2, 3.98),
-    box(0.5, 1.1, 0.2, p.busDanger, 0.2).translate(-0.6, 1.2, 4.04),
-    box(0.5, 1.1, 0.2, p.busBody, 0.2).translate(0, 1.2, 4.04),
-    box(0.5, 1.1, 0.2, p.busDanger, 0.2).translate(0.6, 1.2, 4.04),
+    box(0.62, 1.34, 0.2, p.busDanger, 0.2).translate(-0.65, 1.2, 4.04),
+    box(0.62, 1.34, 0.2, p.busBody, 0.2).translate(0, 1.2, 4.04),
+    box(0.62, 1.34, 0.2, p.busDanger, 0.2).translate(0.65, 1.2, 4.04),
     box(0.36, 0.16, 0.1, p.carTaillightDim, 0.2).translate(-0.7, 0.6, 4.06),
     box(0.36, 0.16, 0.1, p.carTaillightDim, 0.2).translate(0.7, 0.6, 4.06),
     box(1.4, 0.3, 0.1, p.carGrille, 0.3).translate(0, 0.42, 4.05), // engine grille
@@ -582,6 +602,120 @@ function boulderGeometry(): THREE.BufferGeometry {
   return geo;
 }
 
+// Self-lit danger lights for the one-hit killers. Each lethal wall gets a twin
+// instanced mesh on the unlit silhouette material, moved in lockstep with its
+// body, so the hot red "touch this and die" read survives any act haze or biome
+// whiteout — painted chevrons wash out under fog and coloured light; a baked
+// light does not (docs/DESIGN.md → lethal looks lethal; Juice as information).
+
+/** Hot marker bars framing the rig's rear doors + clearance lights on the top edge. */
+function rigGlowGeometry(): THREE.BufferGeometry {
+  const g = palette.dangerGlow;
+  return merged([
+    box(0.12, 2.7, 0.12, g, 0).translate(-1.14, 1.9, 2.02),
+    box(0.12, 2.7, 0.12, g, 0).translate(1.14, 1.9, 2.02),
+    box(0.18, 0.18, 0.18, g, 0).translate(-0.9, 3.62, 1.9),
+    box(0.18, 0.18, 0.18, g, 0).translate(-0.3, 3.62, 1.9),
+    box(0.18, 0.18, 0.18, g, 0).translate(0.3, 3.62, 1.9),
+    box(0.18, 0.18, 0.18, g, 0).translate(0.9, 3.62, 1.9),
+  ]);
+}
+
+/** A hot warning band across the barrier's crown + beacon studs on top. */
+function barrierGlowGeometry(): THREE.BufferGeometry {
+  const g = palette.dangerGlow;
+  return merged([
+    box(2.56, 0.2, 0.08, g, 0).translate(0, 2.85, 0.53),
+    box(0.2, 0.2, 0.2, g, 0).translate(-0.95, 3.26, 0),
+    box(0.2, 0.2, 0.2, g, 0).translate(0.95, 3.26, 0),
+  ]);
+}
+
+/** Hot bars framing the bus's rear + a marker strip along its roof edge. */
+function busGlowGeometry(): THREE.BufferGeometry {
+  const g = palette.dangerGlow;
+  return merged([
+    box(0.14, 1.5, 0.12, g, 0).translate(-1.06, 1.2, 4.02),
+    box(0.14, 1.5, 0.12, g, 0).translate(1.06, 1.2, 4.02),
+    box(1.9, 0.12, 0.12, g, 0).translate(0, 2.06, 3.96),
+  ]);
+}
+
+/**
+ * A downed utility pole lying across its whole lane: the wide survivable blocker
+ * (docs/DESIGN.md → roster). Warm split timber, clearly low — the read is "hop
+ * it or leave the lane", never "wall". The crossarm, transformer drum, and
+ * trailing dead wires sell where it came from. One merged geometry, instanced.
+ */
+function poleGeometry(): THREE.BufferGeometry {
+  const p = palette;
+  const timber = (r: number, len: number, c: number, ao: number): THREE.BufferGeometry =>
+    paint(new THREE.CylinderGeometry(r, r, len, 9), c, ao).rotateZ(Math.PI / 2);
+  const parts = [
+    // The pole itself, spanning the lane, resting on its crossarm at one end so
+    // it sits slightly proud of the deck.
+    timber(0.2, 4.5, p.poleWood, 0.5).rotateY(0.04).translate(0, 0.26, 0),
+    // The splintered butt where it snapped: jagged shards past the break.
+    rockChunk(0.2, 0.8, 0.8, p.poleWoodDark, 0.45).translate(-2.3, 0.26, 0.05),
+    box(0.1, 0.3, 0.1, p.poleWoodDark, 0.4).rotateZ(1.2).translate(-2.15, 0.3, -0.12),
+    // The crossarm under the far end, insulator pegs up.
+    box(0.14, 0.14, 1.5, p.poleWood, 0.45).translate(1.7, 0.12, 0),
+    box(0.1, 0.22, 0.1, p.carChrome, 0.35).translate(1.7, 0.32, 0.5),
+    box(0.1, 0.22, 0.1, p.carChrome, 0.35).translate(1.7, 0.32, -0.5),
+    // The transformer drum still bolted on, dented.
+    paint(new THREE.CylinderGeometry(0.32, 0.32, 0.7, 10), p.poleHardware, 0.4)
+      .rotateZ(Math.PI / 2)
+      .translate(0.8, 0.42, 0.2),
+    box(0.2, 0.1, 0.2, p.poleHardware, 0.3).translate(0.45, 0.6, 0.2),
+    // Dead wires trailing off both ends along the deck.
+    box(1.6, 0.04, 0.04, p.wireCable, 0.25).rotateY(0.3).translate(2.6, 0.05, 0.4),
+    box(1.2, 0.04, 0.04, p.wireCable, 0.25).rotateY(-0.4).translate(-2.7, 0.05, -0.3),
+    box(0.9, 0.04, 0.04, p.wireCable, 0.25).rotateY(0.8).translate(2.2, 0.05, -0.5),
+  ];
+  return merged(parts);
+}
+
+/**
+ * A live wire arcing across its whole lane: a lethal ground trap (docs/DESIGN.md →
+ * roster; jump it or change lane). Near-black cable with baked hot spark bursts —
+ * drawn on the unlit silhouette material so the arcs read as actual light through
+ * any act haze, the telegraph that keeps it fair. One merged geometry, instanced.
+ */
+function livewireGeometry(): THREE.BufferGeometry {
+  const p = palette;
+  const parts: THREE.BufferGeometry[] = [
+    // A fat transmission cable snaking across the lane in kinked runs — heavy
+    // industrial line, not a stray string.
+    box(1.75, 0.16, 0.16, p.wireCable, 0).rotateY(0.18).translate(-1.5, 0.09, -0.18),
+    box(1.65, 0.16, 0.16, p.wireCable, 0).rotateY(-0.3).translate(0, 0.09, 0.18),
+    box(1.75, 0.16, 0.16, p.wireCable, 0).rotateY(0.22).translate(1.5, 0.09, -0.12),
+    // The frayed tail curled at one end.
+    box(0.8, 0.14, 0.14, p.wireCable, 0).rotateY(1.1).translate(2.35, 0.08, 0.3),
+    // The torn stub posts it ripped from, dropped at both ends, tips still hot.
+    box(0.22, 0.6, 0.22, p.wireCable, 0).rotateZ(1.25).translate(-2.3, 0.16, 0.25),
+    box(0.2, 0.2, 0.2, p.wireSpark, 0).translate(-2.55, 0.3, 0.3),
+    box(0.2, 0.5, 0.2, p.wireCable, 0).rotateZ(-1.3).translate(2.5, 0.14, -0.2),
+    box(0.18, 0.18, 0.18, p.wireSpark, 0).translate(2.72, 0.24, -0.22),
+    // Scorch chewed wide into the asphalt under the arc points.
+    box(1.3, 0.02, 0.9, p.wireScorch, 0).rotateY(0.3).translate(-0.8, 0.012, 0),
+    box(1.1, 0.02, 0.8, p.wireScorch, 0).rotateY(-0.5).translate(0.9, 0.012, 0.05),
+  ];
+  // Big spark bursts at three arc points: a hot white core with wide warm
+  // cross-flares — the death read, sized to be seen from the spawn horizon.
+  for (const [sx, sz] of [
+    [-0.8, -0.05],
+    [0.15, 0.15],
+    [1.1, -0.1],
+  ] as const) {
+    parts.push(box(0.26, 0.26, 0.26, p.wireSparkCore, 0).translate(sx, 0.18, sz));
+    parts.push(box(0.95, 0.09, 0.09, p.wireSpark, 0).rotateY(0.5).translate(sx, 0.18, sz));
+    parts.push(box(0.09, 0.6, 0.09, p.wireSpark, 0).translate(sx, 0.32, sz));
+    parts.push(box(0.09, 0.09, 0.8, p.wireSpark, 0).rotateY(0.2).translate(sx, 0.18, sz));
+    parts.push(box(0.5, 0.07, 0.07, p.wireSpark, 0).rotateY(-0.7).rotateZ(0.5).translate(sx, 0.24, sz));
+  }
+  return merged(parts);
+}
+
 /**
  * An explosive barrel blocking a lane. The red body, yellow band, and round
  * silhouette keep it distinct from wrecks, boulders, and decorative drums. One
@@ -665,40 +799,57 @@ function toxBarrelGeometry(): THREE.BufferGeometry {
  */
 function spikesGeometry(): THREE.BufferGeometry {
   const p = palette;
-  const tooth = (x: number): THREE.BufferGeometry =>
-    paint(new THREE.ConeGeometry(0.16, 0.5, 6).translate(x, 0.34, 0), p.spikesTeeth, 0.55);
   const parts: THREE.BufferGeometry[] = [
-    // The dark base rail bolted across the lane, in two hinged segments.
-    box(2.6, 0.16, 0.7, p.spikesBar, 0.4).translate(0, 0.08, 0),
-    box(0.08, 0.2, 0.72, p.spikesBar, 0.3).translate(0, 0.1, 0), // the hinge knuckle
-    // Red do-not-cross paint on the near and far edges of the base.
-    box(2.6, 0.06, 0.14, p.spikesDanger, 0.1).translate(0, 0.17, 0.26),
-    box(2.6, 0.06, 0.14, p.spikesDanger, 0.1).translate(0, 0.17, -0.26),
-    // Anchor plates bolted to the asphalt at each end.
-    box(0.34, 0.06, 0.86, p.spikesBar, 0.3).translate(-1.42, 0.03, 0),
-    box(0.34, 0.06, 0.86, p.spikesBar, 0.3).translate(1.42, 0.03, 0),
-    box(0.08, 0.1, 0.08, p.spikesTeeth, 0.4).translate(-1.42, 0.07, 0.3),
-    box(0.08, 0.1, 0.08, p.spikesTeeth, 0.4).translate(-1.42, 0.07, -0.3),
-    box(0.08, 0.1, 0.08, p.spikesTeeth, 0.4).translate(1.42, 0.07, 0.3),
-    box(0.08, 0.1, 0.08, p.spikesTeeth, 0.4).translate(1.42, 0.07, -0.3),
-    // A red warning plate wired to one anchor, knocked askew.
+    // A heavy welded bed bolted across the lane — mass first, so it can never be
+    // mistaken for roadside litter (docs/DESIGN.md → lethal looks lethal).
+    box(2.7, 0.3, 0.95, p.spikesBar, 0.45).translate(0, 0.16, 0),
+    box(2.85, 0.12, 1.15, p.spikesBar, 0.5).translate(0, 0.05, 0), // ground plate
+    // Chunky anchor blocks at both ends, bolted down.
+    box(0.45, 0.46, 1.05, p.spikesBar, 0.4).translate(-1.5, 0.23, 0),
+    box(0.45, 0.46, 1.05, p.spikesBar, 0.4).translate(1.5, 0.23, 0),
+    box(0.12, 0.12, 0.12, p.spikesTeeth, 0.4).translate(-1.5, 0.5, 0.35),
+    box(0.12, 0.12, 0.12, p.spikesTeeth, 0.4).translate(1.5, 0.5, -0.35),
+    // Red do-not-cross paint banding the whole bed face.
+    box(2.72, 0.14, 0.99, p.spikesDanger, 0.15).translate(0, 0.34, 0),
+    // A big red warning plate wired to one anchor, knocked askew.
     paint(
-      new THREE.BoxGeometry(0.05, 0.32, 0.34).rotateZ(-0.2).rotateY(0.3).translate(-1.5, 0.28, 0.1),
+      new THREE.BoxGeometry(0.06, 0.5, 0.55).rotateZ(-0.2).rotateY(0.3).translate(-1.62, 0.55, 0.1),
       p.spikesDanger,
       0.2,
     ),
   ];
-  // A row of steel teeth across the strip — one already bent flat by a strike.
-  for (let i = 0; i < 9; i += 1) {
-    if (i === 3) {
-      parts.push(
-        paint(new THREE.ConeGeometry(0.16, 0.5, 6).rotateX(1.2).translate(-1.12 + i * 0.28, 0.2, 0.2), p.spikesTeeth, 0.55),
-      );
-    } else {
-      parts.push(tooth(-1.12 + i * 0.28));
-    }
+  // Two staggered rows of big shark-fin blades leaning into the oncoming car —
+  // shredders, not caltrops.
+  const blade = (x: number, dz: number, h: number): THREE.BufferGeometry =>
+    paint(new THREE.ConeGeometry(0.2, h, 4), p.spikesTeeth, 0.5)
+      .rotateY(Math.PI / 4)
+      .rotateX(-0.28)
+      .translate(x, 0.28 + h * 0.42, dz);
+  for (let i = 0; i < 7; i += 1) {
+    const x = -1.2 + i * 0.4;
+    parts.push(blade(x, 0.3, 0.8));
+    if (i < 6) parts.push(blade(x + 0.2, -0.26, 0.62));
   }
+  // One blade bent flat by a strike that did not end well.
+  parts.push(
+    paint(
+      new THREE.ConeGeometry(0.2, 0.8, 4).rotateY(Math.PI / 4).rotateX(1.35).translate(0.2, 0.44, 0.62),
+      p.spikesTeeth,
+      0.5,
+    ),
+  );
   return merged(parts);
+}
+
+/** The spike bed's death-light: a hot strip along the bed face and beacon studs
+ *  on the anchors, pulsing on the shared danger material. */
+function spikesGlowGeometry(): THREE.BufferGeometry {
+  const g = palette.dangerGlow;
+  return merged([
+    box(2.74, 0.1, 0.1, g, 0).translate(0, 0.34, 0.5),
+    box(0.16, 0.16, 0.16, g, 0).translate(-1.5, 0.52, 0),
+    box(0.16, 0.16, 0.16, g, 0).translate(1.5, 0.52, 0),
+  ]);
 }
 
 /**
@@ -752,15 +903,19 @@ function gapGeometry(): THREE.BufferGeometry {
 // the unlit silhouette material so it reads as a hot seam of light against the dark
 // asphalt, warning the lane is about to tear open. Replaced by the gap pit once it
 // opens (`updateQuakes`).
-const CRACK_GLOW = 0xff5a1e;
+const CRACK_GLOW = 0xff6224;
+const CRACK_CORE = 0xffb066;
 function quakeCrackGeometry(): THREE.BufferGeometry {
   const parts = [
-    box(0.32, 0.06, 3.0, CRACK_GLOW, 0).translate(0, 0.05, 1.7),
-    box(0.27, 0.06, 2.4, CRACK_GLOW, 0).rotateY(0.2).translate(0.14, 0.05, -0.7),
-    box(0.22, 0.06, 1.9, CRACK_GLOW, 0).rotateY(-0.24).translate(-0.16, 0.05, -2.7),
-    // A couple of branch fractures so the seam reads as torn, not a painted stripe.
-    box(0.16, 0.06, 1.0, CRACK_GLOW, 0).rotateY(1.0).translate(0.5, 0.05, 0.8),
-    box(0.14, 0.06, 0.9, CRACK_GLOW, 0).rotateY(-1.1).translate(-0.5, 0.05, -1.8),
+    box(0.5, 0.1, 3.0, CRACK_GLOW, 0).translate(0, 0.06, 1.7),
+    box(0.42, 0.1, 2.4, CRACK_GLOW, 0).rotateY(0.2).translate(0.2, 0.06, -0.7),
+    box(0.36, 0.1, 1.9, CRACK_GLOW, 0).rotateY(-0.24).translate(-0.24, 0.06, -2.7),
+    // A hotter core line down the main seam.
+    box(0.18, 0.12, 2.6, CRACK_CORE, 0).translate(0, 0.08, 1.6),
+    // Branch fractures so the seam reads as torn, not a painted stripe.
+    box(0.24, 0.1, 1.4, CRACK_GLOW, 0).rotateY(1.0).translate(0.7, 0.06, 0.8),
+    box(0.2, 0.1, 1.2, CRACK_GLOW, 0).rotateY(-1.1).translate(-0.7, 0.06, -1.8),
+    box(0.16, 0.1, 0.9, CRACK_GLOW, 0).rotateY(0.7).translate(-0.5, 0.06, 2.6),
   ];
   const geo = mergeGeometries(parts, false);
   for (const part of parts) part.dispose();
@@ -885,10 +1040,18 @@ export class HazardField {
   private readonly wreckVanMesh: THREE.InstancedMesh;
   private readonly wreckTruckMesh: THREE.InstancedMesh;
   private readonly rigMesh: THREE.InstancedMesh;
+  private readonly rigGlowMesh: THREE.InstancedMesh;
   private readonly barrierMesh: THREE.InstancedMesh;
+  private readonly barrierGlowMesh: THREE.InstancedMesh;
   private readonly busMesh: THREE.InstancedMesh;
+  private readonly busGlowMesh: THREE.InstancedMesh;
   private readonly barricadeMesh: THREE.InstancedMesh;
   private readonly boulderMesh: THREE.InstancedMesh;
+  private readonly poleMesh: THREE.InstancedMesh;
+  private readonly livewireMesh: THREE.InstancedMesh;
+  private readonly spikesGlowMesh: THREE.InstancedMesh;
+  /** Deterministic clock for the shared danger-light pulse (driven by sim ticks). */
+  private reduced = false;
   private readonly barrelMesh: THREE.InstancedMesh;
   private readonly toxBarrelMesh: THREE.InstancedMesh;
   private readonly spikesMesh: THREE.InstancedMesh;
@@ -946,22 +1109,54 @@ export class HazardField {
     this.rigMesh = new THREE.InstancedMesh(rigGeometry(), propMaterial, MAX_INSTANCES);
     this.barrierMesh = new THREE.InstancedMesh(barrierGeometry(), propMaterial, MAX_INSTANCES);
     this.busMesh = new THREE.InstancedMesh(busGeometry(), propMaterial, MAX_INSTANCES);
+    // The lethal walls' self-lit danger lights: twin instanced meshes on the
+    // shared pulsing danger material, driven with the same matrices as their
+    // bodies. Everything that kills on contact breathes with the same light.
+    this.rigGlowMesh = new THREE.InstancedMesh(
+      rigGlowGeometry(),
+      dangerPulseMaterial,
+      MAX_INSTANCES,
+    );
+    this.barrierGlowMesh = new THREE.InstancedMesh(
+      barrierGlowGeometry(),
+      dangerPulseMaterial,
+      MAX_INSTANCES,
+    );
+    this.busGlowMesh = new THREE.InstancedMesh(
+      busGlowGeometry(),
+      dangerPulseMaterial,
+      MAX_INSTANCES,
+    );
+    this.spikesGlowMesh = new THREE.InstancedMesh(
+      spikesGlowGeometry(),
+      dangerPulseMaterial,
+      MAX_INSTANCES,
+    );
     this.barricadeMesh = new THREE.InstancedMesh(barricadeGeometry(), propMaterial, MAX_INSTANCES);
     this.boulderMesh = new THREE.InstancedMesh(boulderGeometry(), propMaterial, MAX_INSTANCES);
+    this.poleMesh = new THREE.InstancedMesh(poleGeometry(), propMaterial, MAX_INSTANCES);
+    // On the pulsing danger material: the arcs breathe with every other
+    // death-light (the near-black cable barely registers the pulse).
+    this.livewireMesh = new THREE.InstancedMesh(
+      livewireGeometry(),
+      dangerPulseMaterial,
+      MAX_INSTANCES,
+    );
     this.barrelMesh = new THREE.InstancedMesh(barrelGeometry(), propMaterial, MAX_INSTANCES);
     this.toxBarrelMesh = new THREE.InstancedMesh(toxBarrelGeometry(), propMaterial, MAX_INSTANCES);
     this.spikesMesh = new THREE.InstancedMesh(spikesGeometry(), propMaterial, MAX_INSTANCES);
     // Unlit material so the void stays black under any act light (a lit dark
     // surface gets washed pale and reads as a slab, not a hole).
     this.gapMesh = new THREE.InstancedMesh(gapGeometry(), silhouetteMaterial, MAX_INSTANCES);
-    // The pre-open crack telegraph; unlit so its baked glow reads as hot light.
+    // The pre-open crack telegraph; on the pulsing danger material so the fissure
+    // throbs — the ground is about to tear here.
     this.crackMesh = new THREE.InstancedMesh(
       quakeCrackGeometry(),
-      silhouetteMaterial,
+      dangerPulseMaterial,
       MAX_INSTANCES,
     );
-    // Unlit so the beam's baked glow reads as hot light against any act lighting.
-    this.beamMesh = new THREE.InstancedMesh(beamGeometry(), silhouetteMaterial, MAX_INSTANCES);
+    // The beam pulses with the rest of the death-lights.
+    this.beamMesh = new THREE.InstancedMesh(beamGeometry(), dangerPulseMaterial, MAX_INSTANCES);
     // The collapse ramp: lit like the solid props (it is dusty rubble, not a glow).
     this.rampMesh = new THREE.InstancedMesh(rampGeometry(), propMaterial, MAX_INSTANCES);
     for (const mesh of [
@@ -969,13 +1164,19 @@ export class HazardField {
       this.wreckVanMesh,
       this.wreckTruckMesh,
       this.rigMesh,
+      this.rigGlowMesh,
       this.barrierMesh,
+      this.barrierGlowMesh,
       this.busMesh,
+      this.busGlowMesh,
       this.barricadeMesh,
       this.boulderMesh,
+      this.poleMesh,
+      this.livewireMesh,
       this.barrelMesh,
       this.toxBarrelMesh,
       this.spikesMesh,
+      this.spikesGlowMesh,
       this.gapMesh,
       this.crackMesh,
       this.beamMesh,
@@ -988,6 +1189,12 @@ export class HazardField {
     }
   }
 
+  /** Hold the danger-light pulse steady when the player prefers reduced motion. */
+  setReducedMotion(reduced: boolean): void {
+    this.reduced = reduced;
+    if (reduced) dangerPulseMaterial.color.setScalar(1);
+  }
+
   update(state: ReadonlyState, elevation: Elevation): void {
     let wrecks = 0;
     let vans = 0;
@@ -997,6 +1204,8 @@ export class HazardField {
     let buses = 0;
     let barricades = 0;
     let boulders = 0;
+    let poles = 0;
+    let livewires = 0;
     let barrels = 0;
     let toxBarrels = 0;
     let spikes = 0;
@@ -1036,6 +1245,12 @@ export class HazardField {
       } else if (h.kind === 'boulder') {
         mesh = this.boulderMesh;
         count = boulders;
+      } else if (h.kind === 'pole') {
+        mesh = this.poleMesh;
+        count = poles;
+      } else if (h.kind === 'livewire') {
+        mesh = this.livewireMesh;
+        count = livewires;
       } else if (h.kind === 'barrel') {
         mesh = this.barrelMesh;
         count = barrels;
@@ -1100,10 +1315,15 @@ export class HazardField {
       }
       this.dummy.updateMatrix();
       mesh.setMatrixAt(count, this.dummy.matrix);
-      // The gap pit and the beam keep their baked colours (a dark hole, a hot glow);
-      // everything else gets a per-instance shade so a row never reads as clones,
-      // folded with the biome weathering so the object belongs to its stretch.
-      if (h.kind !== 'gap' && h.kind !== 'beam') {
+      // The lethal walls and the spike bed carry their death-lights in lockstep.
+      if (h.kind === 'rig') this.rigGlowMesh.setMatrixAt(count, this.dummy.matrix);
+      else if (h.kind === 'barrier') this.barrierGlowMesh.setMatrixAt(count, this.dummy.matrix);
+      else if (h.kind === 'bus') this.busGlowMesh.setMatrixAt(count, this.dummy.matrix);
+      else if (h.kind === 'spikes') this.spikesGlowMesh.setMatrixAt(count, this.dummy.matrix);
+      // The gap pit, the beam, and the live wire keep their baked colours (a dark
+      // hole, hot glows); everything else gets a per-instance shade so a row never
+      // reads as clones, folded with the biome weathering so it belongs to its stretch.
+      if (h.kind !== 'gap' && h.kind !== 'beam' && h.kind !== 'livewire') {
         const shade = 0.8 + this.hv(h.forward, 4) * 0.38;
         this.weatherAt(state.seed, h.forward);
         this.tint.setRGB(shade * this.wr, shade * this.wg, shade * this.wb);
@@ -1114,6 +1334,8 @@ export class HazardField {
       else if (h.kind === 'bus') buses += 1;
       else if (h.kind === 'barricade') barricades += 1;
       else if (h.kind === 'boulder') boulders += 1;
+      else if (h.kind === 'pole') poles += 1;
+      else if (h.kind === 'livewire') livewires += 1;
       else if (h.kind === 'barrel') barrels += 1;
       else if (h.kind === 'toxbarrel') toxBarrels += 1;
       else if (h.kind === 'spikes') spikes += 1;
@@ -1129,13 +1351,19 @@ export class HazardField {
     this.wreckVanMesh.count = vans;
     this.wreckTruckMesh.count = trucks;
     this.rigMesh.count = rigs;
+    this.rigGlowMesh.count = rigs;
     this.barrierMesh.count = barriers;
+    this.barrierGlowMesh.count = barriers;
     this.busMesh.count = buses;
+    this.busGlowMesh.count = buses;
     this.barricadeMesh.count = barricades;
     this.boulderMesh.count = boulders;
+    this.poleMesh.count = poles;
+    this.livewireMesh.count = livewires;
     this.barrelMesh.count = barrels;
     this.toxBarrelMesh.count = toxBarrels;
     this.spikesMesh.count = spikes;
+    this.spikesGlowMesh.count = spikes;
     this.gapMesh.count = gaps;
     this.crackMesh.count = cracks;
     this.beamMesh.count = beams;
@@ -1145,13 +1373,19 @@ export class HazardField {
       this.wreckVanMesh,
       this.wreckTruckMesh,
       this.rigMesh,
+      this.rigGlowMesh,
       this.barrierMesh,
+      this.barrierGlowMesh,
       this.busMesh,
+      this.busGlowMesh,
       this.barricadeMesh,
       this.boulderMesh,
+      this.poleMesh,
+      this.livewireMesh,
       this.barrelMesh,
       this.toxBarrelMesh,
       this.spikesMesh,
+      this.spikesGlowMesh,
       this.gapMesh,
       this.crackMesh,
       this.beamMesh,
@@ -1159,6 +1393,14 @@ export class HazardField {
     ]) {
       mesh.instanceMatrix.needsUpdate = true;
       if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    }
+
+    // Every death-light on the road breathes in sync — one rhythm that always
+    // means "do not touch". Driven from the sim tick, so it is deterministic;
+    // held at full under reduced motion.
+    if (!this.reduced) {
+      const pulse = 0.82 + 0.18 * Math.sin(state.tick * 0.14);
+      dangerPulseMaterial.color.setScalar(pulse);
     }
   }
 

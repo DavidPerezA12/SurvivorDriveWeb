@@ -31,9 +31,11 @@ export type DeathCause =
   | 'bus'
   | 'barricade'
   | 'boulder'
+  | 'pole'
   | 'barrel'
   | 'toxbarrel'
   | 'spikes'
+  | 'livewire'
   | 'drifter'
   | 'meteor'
   | 'stomp'
@@ -52,9 +54,11 @@ export const DEATH_CAUSES: readonly DeathCause[] = [
   'bus',
   'barricade',
   'boulder',
+  'pole',
   'barrel',
   'toxbarrel',
   'spikes',
+  'livewire',
   'drifter',
   'meteor',
   'stomp',
@@ -269,6 +273,20 @@ const TEMPLATES: Record<DeathCause, readonly string[]> = {
     'Should Have Jumped the Spikes',
     'Deflated by {adj} Caltrops',
     'Ran the Strip {finale}',
+  ],
+  pole: [
+    'Clotheslined by a {adj} Pole',
+    'Timber {finale}',
+    'Should Have Hopped the Line',
+    'Met a {adj} Utility Pole',
+    'High-Centered on the Grid {finale}',
+  ],
+  livewire: [
+    'Grounded by a {adj} Live Wire',
+    'Fully Charged {finale}',
+    'Should Have Jumped the Cable',
+    'Lit Up by the {adj} Grid',
+    'Conducted Business {finale}',
   ],
   gap: [
     'Found the Hole in the {adj} Plan',

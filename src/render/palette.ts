@@ -178,6 +178,11 @@ export const palette = {
   mattress: 0x8a8274, // a dumped, stained mattress
   tvDark: 0x1b1f24, // dead CRT face
 
+  // Act II suburbia dressing — the Rust act's abandoned yards. Decoration-dim.
+  tentCanvas: 0x6e6a58, // a collapsed tent, canvas bleached stiff
+  camperBody: 0x8a857a, // a dead caravan shell, once white
+  camperStripe: 0x5c6a72, // its faded livery stripe
+
   // Biome roadside dressing — each geographic band re-skins the verge (snow,
   // desert, tunnel, bridge, lava). All decoration tier: desaturated masses, never
   // token-bright, never mimicking an interactive silhouette (docs/DESIGN.md →
@@ -232,6 +237,22 @@ export const palette = {
   rigCab: 0x8a5a36,
   rigDark: 0x241b16,
   rigHazard: 0xf0b22e, // bright amber chevrons — the danger read
+
+  // Downed utility pole — the lane-spanning survivable blocker. Warm split
+  // timber (threats warm) with a dark transformer drum and trailing dead wires,
+  // clearly wood and clearly LOW, so the read is "hop it", never "wall".
+  poleWood: 0x8a6238,
+  poleWoodDark: 0x54391f, // shadowed underside, the splintered butt
+  poleHardware: 0x2e2c31, // crossarm brackets, the transformer drum
+
+  // Live wire — the downed cable still arcing, a lethal ground trap. The cable
+  // itself is near-black rubber; the danger read is the baked spark glow (hot
+  // warm-white, self-lit on the silhouette material) and the scorch it chews
+  // into the asphalt around it.
+  wireCable: 0x0d0e10,
+  wireSpark: 0xffd27a, // arcing spark bursts — hot, warm, unmistakably live
+  wireSparkCore: 0xfff3cd, // the white heart of each arc
+  wireScorch: 0x121013, // burnt asphalt under the arc points
 
   // Boulder — the low rubble mound you jump. Warm sandstone, deliberately a shade
   // of the wasteland (so it reads as fallen rock, not metal) yet warmer and
@@ -297,6 +318,12 @@ export const palette = {
   mechaSteelDark: 0x282d34, // shadowed steel / the looming silhouette
   mechaShell: 0x5a4733, // the artillery shell casing
   shellCrater: 0x140d0a, // scorched ground after a shell impact
+
+  // The lethal-wall danger light: a hot, self-lit red baked onto every one-hit
+  // killer (rig, barrier, bus) via the unlit silhouette material, so the "touch
+  // this and die" read survives any act haze or biome whiteout — painted
+  // chevrons wash out, a light does not.
+  dangerGlow: 0xff2f1d,
 
   // Lethal walls share a language: a heavy, solid mass plus a RED danger marking
   // (red = death, distinct from the amber "caution" of barrels and rig chevrons),
@@ -409,6 +436,15 @@ export const palette = {
   healthToken: 0x6fe0a0,
   healthTokenDark: 0x2f8f5f,
   healthBase: 0x21493a,
+
+  // Shield pickup — a short damage-absorbing bubble (docs/DESIGN.md → power-ups).
+  // Cool by the readability rule, but pale electric ice-white so it reads apart
+  // from scrap-cyan, lift-blue, and health-green at the spawn horizon. The same
+  // tone drives the translucent bubble around the shielded car.
+  shieldToken: 0xbfe8ff,
+  shieldTokenDark: 0x5c9cd6,
+  shieldBase: 0x25455e,
+  shieldGlow: 0x9fd4ff, // the active bubble's shell
 
   // Ammo box — refills the gun. A stout crate with a warm amber band (the gun's
   // signature colour from the HUD) on a muted brass body, so it reads as the gun's

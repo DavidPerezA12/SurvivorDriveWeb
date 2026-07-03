@@ -257,21 +257,27 @@ tier. Upgrades render on the car, so the build is legible at a glance.
 | Concrete barrier | Lethal wall | Steer only; the safe lane is always open |
 | Crashed bus | Long blocker with a low hitbox; lethal but jumpable | Jump it (the hitbox is low), or steer; a square hit ends the run |
 | Boulder / rubble | Low obstacle; makes the jump load-bearing | Jump, or steer; ramming costs hull |
+| Downed pole | Low blocker as wide as its lane; no dodge within the lane | Jump it or change lane; ramming is a heavy timber hit |
 | Light barricade | Soft blocker | Shoot, ram, or steer |
 | Explosive barrel | Trap and tool | Shoot to detonate (clears lanes, chains); ramming is a big hit; a jump clears it |
 | Spike strip | Lethal ground trap | Jump it or change lane; on it grounded ends the run |
+| Live wire | Lethal ground trap as wide as its lane; the arcing sparks are the telegraph | Jump it or change lane; touching it grounded ends the run |
 | Sky meteor | Falling killer | Change lanes; the descending rock is the telegraph |
 | Drifting wreck | Moving threat that slides across its lane | Read its telegraphed slide, then steer clear |
 | Road crack / gap | Gap in the surface | Jump, or be in another lane; falling in ends the run |
 | Collapsed section | Wide gap | Jump, or detour to a standing lane |
 | Collapse ramp | Rubble route over the debris | Drive onto it to vault the wreckage; a free launch, no charge |
 | Scrap / lift / ammo / health | Pickups | Grab; clustered off the safe lane |
+| Shield bubble | Timed power-up: hull costs are absorbed for a few seconds | Grab it on a risky lane. Crashes and even walls cost no hull while it lasts, though they still kill your momentum. Holes, spikes and live wires still kill: a bubble does not fill a hole |
 
 Lethal walls (rig, barrier, landed meteor) all share the same read: a tall
 solid mass you steer around, never jump. The crashed bus is the one exception: it
 still hits like a wall (a square hit ends the run), but its hitbox is low enough that
-a well-timed jump clears it. Survivable blockers (wreck, boulder, barrel) stay low
-and only cost hull. The brute is the one piece of fodder that is also an obstacle:
+a well-timed jump clears it. Survivable blockers (wreck, boulder, pole, barrel) stay
+low and only cost hull. The downed pole and the live wire are the wide pair: each
+spans its whole lane, so the within-lane dodge that beats a boulder does not exist.
+One costs hull, the other ends the run, and the spark glow is what tells them apart
+at speed. The brute is the one piece of fodder that is also an obstacle:
 ram it and you take the crash, so the gun or a dodge is the play.
 
 **Counterplay-verb coverage.** Every control verb must be required by at least one
