@@ -14,11 +14,27 @@ const SHELL_REST_Y = 0.3;
 function shellBodyGeometry(): THREE.BufferGeometry {
   const p = palette;
   const parts: THREE.BufferGeometry[] = [
-    box(0.4, 0.4, 1.0, p.mechaShell, 0.3), // casing
-    box(0.28, 0.28, 0.5, p.mechaShell, 0.25).translate(0, 0, 0.65), // tapered nose
-    // Tail fins.
-    box(0.62, 0.08, 0.3, p.mechaSteelDark, 0.2).translate(0, 0, -0.45),
-    box(0.08, 0.62, 0.3, p.mechaSteelDark, 0.2).translate(0, 0, -0.45),
+    // A real round: cylindrical casing, ogive nose, copper driving band at the
+    // base, and a cross of four fins. Built along +z (placeShell noses it down).
+    paint(new THREE.CylinderGeometry(0.24, 0.26, 1.0, 10).rotateX(Math.PI / 2), p.mechaShell, 0.3),
+    paint(new THREE.ConeGeometry(0.24, 0.6, 10).rotateX(Math.PI / 2), p.mechaShell, 0.22).translate(
+      0,
+      0,
+      0.8,
+    ),
+    paint(
+      new THREE.CylinderGeometry(0.275, 0.275, 0.12, 10).rotateX(Math.PI / 2),
+      palette.ammoTip,
+      0.2,
+    ).translate(0, 0, -0.3),
+    // The fin cross and its boat-tail collar.
+    box(0.78, 0.09, 0.42, p.mechaSteelDark, 0.2).translate(0, 0, -0.52),
+    box(0.09, 0.78, 0.42, p.mechaSteelDark, 0.2).translate(0, 0, -0.52),
+    paint(
+      new THREE.CylinderGeometry(0.18, 0.24, 0.24, 10).rotateX(Math.PI / 2),
+      p.mechaSteelDark,
+      0.25,
+    ).translate(0, 0, -0.6),
   ];
   const geo = mergeGeometries(parts, false);
   for (const part of parts) part.dispose();
@@ -146,26 +162,50 @@ export class ShellField {
   }
 }
 
-/** The looming bipedal mecha: torso, visor, two legs, two arm cannons. */
+/** The looming bipedal mecha: an armoured walking battery, not four boxes. */
 function mechaBodyGeometry(): THREE.BufferGeometry {
   const p = palette;
   const parts: THREE.BufferGeometry[] = [
-    // Torso block and a chest vent.
+    // Torso block with proud bolted chest plates and an intake vent.
     box(3.0, 2.8, 2.0, p.mechaSteelDark, 0.25).translate(0, 5.4, 0),
     box(2.0, 1.2, 0.4, p.mechaSteel, 0.2).translate(0, 5.6, 1.05),
-    // Head with a wide visor slit (the glow is a separate self-lit mesh in the class).
+    box(1.2, 0.9, 0.16, p.mechaSteel, 0.22).translate(-0.85, 4.7, 1.05),
+    box(0.16, 2.2, 1.6, p.mechaSteel, 0.22).translate(1.56, 5.4, -0.1), // flank plate
+    box(0.16, 2.2, 1.6, p.mechaSteel, 0.22).translate(-1.56, 5.4, -0.1),
+    // A dorsal radiator stack and twin exhausts over the back.
+    box(1.6, 1.0, 0.6, p.mechaSteel, 0.2).translate(0, 6.4, -1.2),
+    box(0.34, 1.3, 0.34, p.mechaSteelDark, 0.2).translate(0.5, 7.2, -1.2),
+    box(0.34, 1.1, 0.34, p.mechaSteelDark, 0.2).translate(-0.5, 7.1, -1.2),
+    // Head: armoured cowl over the visor, a sensor mast off one side.
     box(1.4, 1.0, 1.2, p.mechaSteel, 0.2).translate(0, 7.2, 0.1),
-    // Hip and two heavy legs (thigh + shin) with footpads.
+    box(1.5, 0.3, 1.0, p.mechaSteelDark, 0.2).translate(0, 7.78, -0.05),
+    box(0.1, 0.9, 0.1, p.mechaSteelDark, 0.2).translate(0.8, 8.1, -0.2),
+    // Hip girdle with piston struts down into the thighs.
     box(2.4, 1.0, 1.8, p.mechaSteelDark, 0.2).translate(0, 3.9, 0),
+    box(0.18, 1.2, 0.18, p.mechaSteel, 0.18).rotateZ(0.25).translate(0.55, 3.3, 0.6),
+    box(0.18, 1.2, 0.18, p.mechaSteel, 0.18).rotateZ(-0.25).translate(-0.55, 3.3, 0.6),
+    // Two heavy legs: thigh, armoured knee cap, shin, splayed footpad with toes.
     box(1.0, 2.0, 1.1, p.mechaSteel, 0.2).translate(0.9, 2.7, 0),
     box(1.0, 2.0, 1.1, p.mechaSteel, 0.2).translate(-0.9, 2.7, 0),
+    box(1.15, 0.6, 0.5, p.mechaSteelDark, 0.18).translate(0.9, 1.95, 0.5),
+    box(1.15, 0.6, 0.5, p.mechaSteelDark, 0.18).translate(-0.9, 1.95, 0.5),
     box(1.1, 1.8, 1.2, p.mechaSteelDark, 0.2).translate(0.9, 1.0, 0.1),
     box(1.1, 1.8, 1.2, p.mechaSteelDark, 0.2).translate(-0.9, 1.0, 0.1),
     box(1.3, 0.5, 1.7, p.mechaSteel, 0.2).translate(0.9, 0.25, 0.25),
     box(1.3, 0.5, 1.7, p.mechaSteel, 0.2).translate(-0.9, 0.25, 0.25),
-    // Shoulder-mounted arm cannons, angled forward.
+    box(0.35, 0.3, 0.5, p.mechaSteelDark, 0.2).translate(0.55, 0.15, 1.15),
+    box(0.35, 0.3, 0.5, p.mechaSteelDark, 0.2).translate(1.25, 0.15, 1.15),
+    box(0.35, 0.3, 0.5, p.mechaSteelDark, 0.2).translate(-0.55, 0.15, 1.15),
+    box(0.35, 0.3, 0.5, p.mechaSteelDark, 0.2).translate(-1.25, 0.15, 1.15),
+    // Shoulder pauldrons over the arm cannons, barrels ribbed at the muzzle.
+    box(1.2, 1.3, 1.4, p.mechaSteel, 0.22).translate(1.9, 6.3, -0.1),
+    box(1.2, 1.3, 1.4, p.mechaSteel, 0.22).translate(-1.9, 6.3, -0.1),
     box(0.9, 0.9, 2.6, p.mechaSteelDark, 0.2).translate(1.9, 5.7, 0.7),
     box(0.9, 0.9, 2.6, p.mechaSteelDark, 0.2).translate(-1.9, 5.7, 0.7),
+    box(1.0, 1.0, 0.3, p.mechaSteel, 0.18).translate(1.9, 5.7, 1.75),
+    box(1.0, 1.0, 0.3, p.mechaSteel, 0.18).translate(-1.9, 5.7, 1.75),
+    // An ammunition belt feeding the left cannon from the hip.
+    box(0.24, 1.8, 0.24, p.mechaShell, 0.2).rotateZ(0.5).translate(-1.5, 4.7, 0.5),
   ];
   const geo = mergeGeometries(parts, false);
   for (const part of parts) part.dispose();
@@ -245,7 +285,9 @@ export class MechaSilhouette {
     const z = state.distance - (nearestForward + 8);
     const ground = elevation.yAt(nearestForward + 8, state.distance);
     const bob = this.reduced ? 0 : Math.abs(Math.sin(this.stride)) * 0.7;
-    this.group.position.set(side * 17, ground - 0.5 + bob, z);
+    // Close enough to the shoulder that the machine and its shellfire read as one
+    // attacker, not a backdrop plus some craters.
+    this.group.position.set(side * 13.5, ground - 0.5 + bob, z);
     // Face across the road toward the car, with a slow mechanical sway.
     this.group.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2;
     this.group.rotation.z = this.reduced ? 0 : Math.sin(this.stride * 0.5) * 0.03;

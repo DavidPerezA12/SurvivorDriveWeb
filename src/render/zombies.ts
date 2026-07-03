@@ -24,27 +24,38 @@ function zombieGeometry(): THREE.BufferGeometry {
   const bone = palette.zombieBone;
 
   const parts = [
-    // Legs — a straight back leg and a shorter, bent front one (a broken gait).
+    // Legs — a straight back leg and a shorter, bent front one (a broken gait) —
+    // over bare, blackened feet.
     box(0.22, 0.72, 0.26, rag).translate(-0.16, 0.36, -0.05),
     box(0.22, 0.6, 0.26, rag).translate(0.16, 0.3, 0.12),
+    box(0.2, 0.09, 0.34, dark).translate(-0.16, 0.045, 0.02),
+    box(0.2, 0.09, 0.34, dark).translate(0.16, 0.045, 0.2),
     box(0.52, 0.3, 0.34, rag).translate(0, 0.82, 0.02),
-    // A torn rag flap hanging off the hip.
+    // Torn rag flaps hanging off the hip and trailing from the shirt hem.
     box(0.12, 0.42, 0.1, rag).rotateZ(0.3).translate(-0.22, 0.74, 0.18),
+    box(0.1, 0.3, 0.08, shirt).rotateX(0.2).translate(0.18, 0.78, 0.3),
     // Torso + shoulders, hunched forward over the legs, with an upper-back hump.
     box(0.56, 0.74, 0.36, shirt).rotateX(0.4).translate(0, 1.2, 0.16),
     box(0.46, 0.28, 0.32, shirt).rotateX(0.4).translate(0, 1.48, 0.06),
     box(0.62, 0.26, 0.36, flesh).rotateX(0.4).translate(0, 1.52, 0.34),
-    // Exposed ribs through a split in the shirt.
+    // Exposed ribs through a split in the shirt, and a bitten-out shoulder wound.
     box(0.3, 0.32, 0.12, bone).rotateX(0.4).translate(0, 1.12, 0.42),
-    // Head, lowered and jutting forward — the stoop — with a slack, dark jaw.
+    box(0.2, 0.14, 0.14, dark).rotateX(0.4).translate(0.26, 1.56, 0.4),
+    // Head, lowered and jutting forward — the stoop — with a slack, dark jaw and
+    // a ragged scalp patch.
     box(0.3, 0.32, 0.3, flesh).translate(0, 1.58, 0.5),
+    box(0.32, 0.1, 0.26, dark).translate(0, 1.73, 0.46),
     box(0.24, 0.12, 0.22, flesh).translate(0, 1.45, 0.56),
     box(0.2, 0.06, 0.14, dark).translate(0, 1.51, 0.58),
-    // Reaching arm + splayed clawed hand, the signature forward grab.
-    box(0.18, 0.18, 0.72, flesh).rotateX(-0.35).translate(0.34, 1.34, 0.62),
-    box(0.26, 0.12, 0.22, dark).translate(0.36, 1.18, 0.98),
-    // Trailing arm, hanging at the side.
+    // Reaching arm in two bent segments + splayed clawed fingers, the signature grab.
+    box(0.18, 0.18, 0.44, flesh).rotateX(-0.2).translate(0.34, 1.42, 0.42),
+    box(0.15, 0.15, 0.4, flesh).rotateX(-0.55).translate(0.36, 1.26, 0.82),
+    box(0.26, 0.1, 0.2, dark).translate(0.36, 1.12, 1.02),
+    box(0.05, 0.05, 0.14, dark).translate(0.28, 1.1, 1.14),
+    box(0.05, 0.05, 0.14, dark).translate(0.44, 1.1, 1.14),
+    // Trailing arm, hanging at the side, knuckles low.
     box(0.17, 0.62, 0.18, flesh).rotateX(-0.12).translate(-0.34, 1.12, -0.04),
+    box(0.18, 0.14, 0.16, dark).translate(-0.35, 0.76, 0.02),
   ];
   const geo = mergeGeometries(parts, false);
   for (const p of parts) p.dispose();
@@ -68,26 +79,36 @@ function zombieGeometryB(): THREE.BufferGeometry {
   const bone = palette.zombieBone;
 
   const parts = [
-    // Legs — stiffer and straighter than the hunched shambler, one stepping out.
+    // Legs — stiffer and straighter than the hunched shambler, one stepping out —
+    // one shoe left, one bare blackened foot.
     box(0.22, 0.82, 0.26, rag).translate(-0.17, 0.41, 0.0),
     box(0.22, 0.78, 0.26, rag).rotateX(0.18).translate(0.17, 0.4, 0.1),
+    box(0.22, 0.1, 0.36, palette.zombieRag).translate(-0.17, 0.05, 0.06),
+    box(0.19, 0.09, 0.32, dark).translate(0.17, 0.045, 0.24),
     box(0.5, 0.28, 0.34, rag).translate(0, 0.92, 0.04),
-    // A torn trouser flap off the shin.
+    // A torn trouser flap off the shin and a belt still holding on.
     box(0.1, 0.36, 0.1, rag).rotateZ(-0.25).translate(0.24, 0.5, 0.16),
+    box(0.52, 0.07, 0.36, dark).translate(0, 1.04, 0.05),
     // Torso, only slightly stooped — the upright stalker stance.
     box(0.54, 0.8, 0.34, shirt).rotateX(0.16).translate(0, 1.34, 0.06),
     box(0.46, 0.26, 0.3, shirt).rotateX(0.16).translate(0, 1.7, 0.0),
-    // Exposed sternum/ribs through the split shirt.
+    // Exposed sternum/ribs through the split shirt, and a torn collar.
     box(0.26, 0.34, 0.12, bone).rotateX(0.16).translate(0, 1.28, 0.26),
-    // Head lolled hard to one side on a slack neck — the signature tilt.
+    box(0.4, 0.08, 0.3, rag).rotateX(0.16).translate(0, 1.85, 0.04),
+    // Head lolled hard to one side on a slack neck — the signature tilt — with a
+    // dark matted-scalp cap and a hollow eye socket.
     box(0.3, 0.32, 0.3, flesh).rotateZ(0.5).translate(0.12, 1.82, 0.16),
+    box(0.3, 0.1, 0.26, dark).rotateZ(0.5).translate(0.05, 1.96, 0.14),
+    box(0.07, 0.07, 0.05, dark).rotateZ(0.5).translate(0.16, 1.88, 0.32),
     box(0.22, 0.1, 0.2, dark).rotateZ(0.5).translate(0.2, 1.74, 0.24),
-    // One arm thrown up overhead.
-    box(0.16, 0.66, 0.18, flesh).rotateZ(-0.5).translate(-0.34, 1.66, 0.02),
-    box(0.2, 0.22, 0.16, dark).rotateZ(-0.5).translate(-0.6, 1.96, 0.02),
-    // The other arm crossed low over the belly.
+    // One arm thrown up overhead — the forearm gone past the elbow, bone jutting.
+    box(0.16, 0.44, 0.18, flesh).rotateZ(-0.5).translate(-0.3, 1.6, 0.02),
+    box(0.09, 0.2, 0.09, bone).rotateZ(-0.5).translate(-0.46, 1.84, 0.02),
+    // The other arm crossed low over the belly, fingers splayed.
     box(0.16, 0.16, 0.5, flesh).rotateX(-0.2).rotateY(0.6).translate(0.28, 1.16, 0.28),
     box(0.22, 0.12, 0.2, dark).translate(0.04, 1.12, 0.42),
+    box(0.05, 0.05, 0.12, dark).translate(-0.04, 1.1, 0.52),
+    box(0.05, 0.05, 0.12, dark).translate(0.1, 1.1, 0.54),
   ];
   const geo = mergeGeometries(parts, false);
   for (const p of parts) p.dispose();
@@ -109,25 +130,37 @@ function bruteGeometry(): THREE.BufferGeometry {
   const scar = palette.bruteScar;
 
   const parts = [
-    // Thick, planted legs.
+    // Thick, planted legs over splayed heavy feet.
     box(0.36, 0.78, 0.42, rag).translate(-0.26, 0.4, 0),
     box(0.36, 0.74, 0.42, rag).translate(0.26, 0.38, 0.06),
-    // A broad, barrel torso hunched forward — the signature heavy mass.
+    box(0.34, 0.12, 0.54, dark).translate(-0.26, 0.06, 0.1),
+    box(0.34, 0.12, 0.54, dark).translate(0.26, 0.06, 0.16),
+    // A broad, barrel torso hunched forward — the signature heavy mass — with a
+    // slack belly overhanging the waistband.
     box(1.0, 0.6, 0.6, dark).translate(0, 0.95, 0.04),
+    box(0.74, 0.3, 0.5, flesh).rotateX(-0.15).translate(0, 0.8, 0.28),
     box(1.12, 0.86, 0.7, flesh).rotateX(0.22).translate(0, 1.45, 0.12),
-    // A swollen upper back hump.
+    // A swollen upper back hump — with a snapped rebar still buried in it from
+    // whatever it already walked through.
     box(0.8, 0.4, 0.5, flesh).rotateX(0.3).translate(0, 1.86, -0.1),
-    // Raw warm wounds split across the chest and shoulder.
+    box(0.07, 0.5, 0.07, dark).rotateX(-0.5).rotateZ(0.3).translate(0.24, 2.1, -0.2),
+    box(0.3, 0.16, 0.12, scar).translate(0.2, 1.96, -0.24),
+    // Raw warm wounds split across the chest, shoulder, and flank.
     box(0.5, 0.34, 0.14, scar).rotateX(0.22).translate(-0.1, 1.4, 0.5),
     box(0.3, 0.2, 0.12, scar).translate(0.5, 1.7, 0.2),
-    // A small, sunk head between heavy shoulders.
+    box(0.22, 0.4, 0.12, scar).translate(-0.58, 1.2, 0.14),
+    // A small, sunk head between heavy shoulders — heavy brow, slung jaw.
     box(0.36, 0.36, 0.36, flesh).translate(0, 1.92, 0.34),
+    box(0.38, 0.1, 0.14, dark).translate(0, 2.04, 0.46),
     box(0.26, 0.1, 0.2, dark).translate(0, 1.82, 0.46),
-    // Two heavy reaching arms + broad clubbed hands.
-    box(0.28, 0.28, 0.84, flesh).rotateX(-0.4).translate(0.5, 1.46, 0.6),
-    box(0.34, 0.22, 0.3, dark).translate(0.54, 1.24, 1.0),
-    box(0.28, 0.28, 0.78, flesh).rotateX(-0.3).translate(-0.5, 1.44, 0.5),
-    box(0.34, 0.22, 0.3, dark).translate(-0.54, 1.26, 0.86),
+    // Two heavy reaching arms in bent segments + broad clubbed knuckles that
+    // nearly drag.
+    box(0.3, 0.3, 0.56, flesh).rotateX(-0.25).translate(0.52, 1.56, 0.42),
+    box(0.26, 0.26, 0.5, flesh).rotateX(-0.7).translate(0.54, 1.28, 0.82),
+    box(0.36, 0.26, 0.32, dark).translate(0.55, 1.02, 1.02),
+    box(0.3, 0.3, 0.52, flesh).rotateX(-0.2).translate(-0.52, 1.54, 0.36),
+    box(0.26, 0.26, 0.46, flesh).rotateX(-0.6).translate(-0.54, 1.3, 0.7),
+    box(0.36, 0.26, 0.32, dark).translate(-0.55, 1.06, 0.88),
   ];
   const geo = mergeGeometries(parts, false);
   for (const p of parts) p.dispose();
@@ -149,23 +182,38 @@ function jumperGeometry(): THREE.BufferGeometry {
   const accent = palette.jumperAccent;
 
   const parts = [
-    // Gathered, springy legs — deeply bent, knees out, coiled to leap.
+    // Gathered, springy legs — deeply bent, knees out, coiled to leap — up on
+    // clawed toes, heels off the ground.
     box(0.2, 0.46, 0.28, rag).rotateX(0.7).translate(-0.2, 0.34, -0.12),
     box(0.2, 0.46, 0.28, rag).rotateX(0.7).translate(0.2, 0.34, -0.12),
     box(0.2, 0.4, 0.22, dark).rotateX(-0.6).translate(-0.22, 0.5, 0.14),
     box(0.2, 0.4, 0.22, dark).rotateX(-0.6).translate(0.22, 0.5, 0.14),
+    box(0.16, 0.1, 0.3, dark).rotateX(0.3).translate(-0.21, 0.08, -0.26),
+    box(0.16, 0.1, 0.3, dark).rotateX(0.3).translate(0.21, 0.08, -0.26),
     // Low torso pitched hard forward over the legs — the pounce stance.
     box(0.5, 0.6, 0.34, flesh).rotateX(0.85).translate(0, 0.86, 0.2),
-    // A taut, hot-sinew back — the leap telegraph.
+    // The taut, hot-sinew back — the leap telegraph — running down the spine in
+    // three cords, brightest over the shoulders.
     box(0.4, 0.34, 0.16, accent).rotateX(0.85).translate(0, 1.04, 0.02),
-    // Head thrust forward and low, jaw slung open toward the prey.
+    box(0.08, 0.3, 0.1, accent).rotateX(0.85).translate(-0.14, 0.94, -0.18),
+    box(0.08, 0.3, 0.1, accent).rotateX(0.85).translate(0.14, 0.94, -0.18),
+    // Head thrust forward and low, jaw slung open toward the prey, ragged ears.
     box(0.28, 0.28, 0.28, flesh).translate(0, 0.92, 0.6),
+    box(0.26, 0.08, 0.22, dark).translate(0, 1.06, 0.58),
     box(0.22, 0.1, 0.18, dark).translate(0, 0.84, 0.7),
-    // Both arms cocked back, clawed hands ready to grab the hood.
-    box(0.15, 0.15, 0.5, flesh).rotateX(0.5).translate(0.34, 0.96, 0.0),
-    box(0.2, 0.1, 0.18, dark).translate(0.36, 0.78, -0.22),
-    box(0.15, 0.15, 0.5, flesh).rotateX(0.5).translate(-0.34, 0.96, 0.0),
-    box(0.2, 0.1, 0.18, dark).translate(-0.36, 0.78, -0.22),
+    box(0.06, 0.1, 0.06, flesh).translate(-0.17, 1.04, 0.52),
+    box(0.06, 0.1, 0.06, flesh).translate(0.17, 1.04, 0.52),
+    // Both arms cocked back in bent segments, long claws ready to grab the hood.
+    box(0.15, 0.15, 0.38, flesh).rotateX(0.35).translate(0.33, 1.0, 0.1),
+    box(0.13, 0.13, 0.34, flesh).rotateX(0.8).translate(0.35, 0.84, -0.16),
+    box(0.18, 0.1, 0.16, dark).translate(0.36, 0.7, -0.3),
+    box(0.04, 0.04, 0.14, dark).translate(0.31, 0.66, -0.4),
+    box(0.04, 0.04, 0.14, dark).translate(0.41, 0.66, -0.4),
+    box(0.15, 0.15, 0.38, flesh).rotateX(0.35).translate(-0.33, 1.0, 0.1),
+    box(0.13, 0.13, 0.34, flesh).rotateX(0.8).translate(-0.35, 0.84, -0.16),
+    box(0.18, 0.1, 0.16, dark).translate(-0.36, 0.7, -0.3),
+    box(0.04, 0.04, 0.14, dark).translate(-0.31, 0.66, -0.4),
+    box(0.04, 0.04, 0.14, dark).translate(-0.41, 0.66, -0.4),
   ];
   const geo = mergeGeometries(parts, false);
   for (const p of parts) p.dispose();

@@ -1,7 +1,6 @@
 import * as THREE from 'three';
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { ReadonlyState } from '../sim';
-import { box, lightMaterial, paint, propMaterial } from './materials';
+import { box, lightMaterial, merged, paint, propMaterial, rockChunk } from './materials';
 import { palette } from './palette';
 import { METEOR_TUNING } from '../content/tuning';
 import type { Elevation } from './elevation';
@@ -18,16 +17,17 @@ const REST_Y = 0.5;
  */
 function meteorRockGeometry(): THREE.BufferGeometry {
   const p = palette;
-  const parts = [
-    box(1.25, 1.05, 1.15, p.meteorRock, 0.5).rotateY(0.5).rotateZ(0.18),
-    box(0.95, 0.85, 0.95, p.meteorChar, 0.55).rotateY(1.0).translate(0.36, 0.12, -0.2),
-    box(0.7, 0.6, 0.72, p.meteorRock, 0.45).rotateY(0.3).translate(-0.42, -0.08, 0.32),
-    box(0.55, 0.4, 0.5, p.meteorChar, 0.5).rotateY(0.8).translate(0.1, 0.5, 0.3),
-  ];
-  const geo = mergeGeometries(parts, false);
-  for (const part of parts) part.dispose();
-  if (!geo) throw new Error('Failed to merge meteor geometry');
-  return geo;
+  return merged([
+    // The main mass and its shoulders: true craggy facets, not stacked crates.
+    rockChunk(0.85, 0.92, 0.55, p.meteorRock, 0.5).rotateY(0.5).rotateZ(0.18),
+    rockChunk(0.62, 0.95, 0.6, p.meteorChar, 0.55).rotateY(1.0).translate(0.42, 0.14, -0.22),
+    rockChunk(0.48, 0.9, 0.65, p.meteorRock, 0.45).rotateY(0.3).translate(-0.46, -0.1, 0.34),
+    rockChunk(0.36, 0.88, 0.7, p.meteorChar, 0.5).rotateY(0.8).translate(0.12, 0.52, 0.32),
+    // Fragments shearing off the trailing edge — the rock is breaking up as it comes.
+    rockChunk(0.2, 0.8, 0.7, p.meteorChar, 0.45).translate(-0.5, 0.85, -0.55),
+    rockChunk(0.14, 0.8, 0.7, p.meteorRock, 0.4).translate(0.65, 1.05, -0.4),
+    rockChunk(0.1, 0.8, 0.7, p.meteorChar, 0.4).translate(0.1, 1.3, -0.7),
+  ]);
 }
 
 /** A flat disc lying on the road (faces up after the rotate), for shadow/crater. */

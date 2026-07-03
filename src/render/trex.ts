@@ -14,14 +14,24 @@ const FOOT_REST_Y = 0.15;
 function footGeometry(): THREE.BufferGeometry {
   const p = palette;
   const parts: THREE.BufferGeometry[] = [
-    // Ankle and the broad sole.
-    box(0.8, 0.8, 0.8, p.trexSkin, 0.4).translate(0, 0.55, -0.3),
-    box(1.1, 0.45, 1.5, p.trexSkin, 0.4).translate(0, 0.22, 0.15),
+    // The descending leg column, rising out of frame toward the body overhead —
+    // what falls on the lane is a LEG, not a floating boot.
+    box(1.05, 4.5, 1.15, p.trexSkinDark, 0.4).translate(0, 3.2, -0.5),
+    // The ankle haunch flexing forward over the sole.
+    paint(new THREE.BoxGeometry(1.25, 1.5, 1.4).rotateX(0.15).translate(0, 1.3, -0.3), p.trexSkin, 0.4),
+    // Scale plates ridging the shin front, proud of the hide.
+    box(0.32, 0.5, 0.2, p.trexSkin, 0.3).translate(0, 2.3, 0.14),
+    box(0.28, 0.45, 0.2, p.trexSkin, 0.3).translate(0.06, 3.1, 0.14),
+    box(0.26, 0.4, 0.2, p.trexSkin, 0.3).translate(-0.07, 3.9, 0.14),
+    // The broad sole and the dew claw hooked off the heel.
+    box(1.5, 0.5, 2.0, p.trexSkin, 0.4).translate(0, 0.26, 0.2),
+    paint(new THREE.BoxGeometry(0.24, 0.32, 0.44).rotateX(-0.5).translate(0, 0.34, -0.92), p.trexClaw, 0.25),
   ];
-  // Three forward toes, splayed, each capped with a dark claw angled into the ground.
-  for (const tx of [-0.42, 0, 0.42]) {
-    parts.push(box(0.34, 0.34, 0.85, p.trexSkinDark, 0.35).translate(tx, 0.18, 0.7));
-    parts.push(box(0.2, 0.2, 0.36, p.trexClaw, 0.2).rotateX(0.5).translate(tx, 0.08, 1.18));
+  // Three splayed toes: knuckle bulge, toe, and a big claw angled into the ground.
+  for (const tx of [-0.55, 0, 0.55]) {
+    parts.push(box(0.44, 0.5, 0.42, p.trexSkin, 0.32).translate(tx, 0.32, 0.58));
+    parts.push(box(0.4, 0.4, 1.0, p.trexSkinDark, 0.35).translate(tx, 0.2, 0.92));
+    parts.push(box(0.26, 0.26, 0.52, p.trexClaw, 0.2).rotateX(0.45).translate(tx, 0.1, 1.5));
   }
   const geo = mergeGeometries(parts, false);
   for (const part of parts) part.dispose();
@@ -32,6 +42,21 @@ function footGeometry(): THREE.BufferGeometry {
 /** A flat disc lying on the road (faces up after the rotate), for the footprint. */
 function disc(radius: number, color: number): THREE.BufferGeometry {
   return paint(new THREE.CircleGeometry(radius, 14), color, 0).rotateX(-Math.PI / 2);
+}
+
+/** The pressed footprint: the main pad plus three toe prints, so the crater the
+ *  foot leaves matches the foot that made it. */
+function printGeometry(): THREE.BufferGeometry {
+  const parts = [
+    disc(1.3, palette.footprint),
+    disc(0.42, palette.footprint).translate(-0.62, 0.001, 1.35),
+    disc(0.46, palette.footprint).translate(0, 0.001, 1.5),
+    disc(0.42, palette.footprint).translate(0.62, 0.001, 1.35),
+  ];
+  const geo = mergeGeometries(parts, false);
+  for (const part of parts) part.dispose();
+  if (!geo) throw new Error('Failed to merge footprint geometry');
+  return geo;
 }
 
 /**
@@ -50,7 +75,7 @@ export class StompField {
 
   constructor(scene: THREE.Scene) {
     this.foot = new THREE.InstancedMesh(footGeometry(), propMaterial, MAX_FEET);
-    this.print = new THREE.InstancedMesh(disc(1.3, palette.footprint), propMaterial, MAX_FEET);
+    this.print = new THREE.InstancedMesh(printGeometry(), propMaterial, MAX_FEET);
     this.shadow = new THREE.InstancedMesh(disc(1.15, palette.meteorShadow), propMaterial, MAX_FEET);
     for (const mesh of [this.print, this.shadow, this.foot]) {
       mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -123,25 +148,64 @@ export class StompField {
 /** The looming T-Rex body silhouette — the head/neck/torso/tail/legs/tiny arms. */
 function trexBodyGeometry(): THREE.BufferGeometry {
   const p = palette;
+  const bone = palette.zombieBone;
   const parts: THREE.BufferGeometry[] = [
     // Torso and the paler belly.
     box(2.4, 2.6, 4.0, p.trexSkinDark, 0.3).translate(0, 4.6, 0),
     box(2.0, 1.1, 3.4, p.trexBelly, 0.3).translate(0, 3.7, 0.1),
-    // S-neck up to the head.
+    // Old battle scars proud of the hide on both flanks.
+    box(0.16, 0.9, 1.4, p.trexSkin, 0.25).translate(1.24, 4.9, -0.6),
+    box(0.16, 0.7, 1.0, p.trexSkin, 0.25).translate(-1.24, 4.5, 0.8),
+    // S-neck up to the head, the pale throat slung under it.
     box(1.3, 1.6, 1.4, p.trexSkinDark, 0.3).rotateX(-0.5).translate(0, 6.0, 2.0),
-    box(1.5, 1.4, 2.4, p.trexSkin, 0.3).translate(0, 6.7, 3.4), // skull
-    box(1.35, 0.5, 2.0, p.trexSkinDark, 0.25).translate(0, 6.1, 3.6), // lower jaw
-    box(1.0, 0.5, 1.6, p.trexMaw, 0.2).translate(0, 6.4, 3.7), // the red maw between them
-    // Long counterbalancing tail, tapering back.
+    box(0.9, 0.9, 1.0, p.trexBelly, 0.25).rotateX(-0.5).translate(0, 5.45, 2.25),
+    // Skull: cranium, heavy brow ridges over the eyes, the nostril bump.
+    box(1.5, 1.4, 2.4, p.trexSkin, 0.3).translate(0, 6.7, 3.4),
+    box(0.5, 0.28, 0.7, p.trexSkinDark, 0.2).translate(0.56, 7.46, 3.95),
+    box(0.5, 0.28, 0.7, p.trexSkinDark, 0.2).translate(-0.56, 7.46, 3.95),
+    box(0.5, 0.24, 0.5, p.trexSkinDark, 0.2).translate(0, 7.35, 4.5),
+    // Jaw and the red maw between the toothed lips.
+    box(1.35, 0.5, 2.0, p.trexSkinDark, 0.25).translate(0, 6.1, 3.6),
+    box(1.0, 0.5, 1.6, p.trexMaw, 0.2).translate(0, 6.4, 3.7),
+    // Long counterbalancing tail, tapering back to a whip tip.
     box(1.6, 1.7, 2.4, p.trexSkinDark, 0.3).translate(0, 4.4, -3.0),
     box(1.1, 1.2, 2.4, p.trexSkinDark, 0.3).rotateX(0.12).translate(0, 4.0, -5.0),
     box(0.6, 0.7, 2.2, p.trexSkinDark, 0.3).rotateX(0.22).translate(0, 3.6, -6.8),
-    // Thick legs and the tiny arms.
-    box(1.1, 3.2, 1.3, p.trexSkin, 0.3).translate(0.8, 2.0, 0.2),
-    box(1.1, 3.2, 1.3, p.trexSkin, 0.3).translate(-0.8, 2.0, 0.2),
+    box(0.32, 0.4, 1.6, p.trexSkinDark, 0.28).rotateX(0.3).translate(0, 3.2, -8.3),
+    // Legs in real segments: heavy haunch, shin, and a clawed three-toed foot.
+    box(1.25, 2.0, 1.9, p.trexSkin, 0.3).translate(0.85, 3.1, 0.2),
+    box(1.25, 2.0, 1.9, p.trexSkin, 0.3).translate(-0.85, 3.1, 0.2),
+    box(0.75, 1.7, 0.95, p.trexSkin, 0.28).rotateX(0.12).translate(0.85, 1.4, 0.35),
+    box(0.75, 1.7, 0.95, p.trexSkin, 0.28).rotateX(0.12).translate(-0.85, 1.4, 0.35),
+    box(1.05, 0.5, 1.7, p.trexSkinDark, 0.3).translate(0.85, 0.25, 0.75),
+    box(1.05, 0.5, 1.7, p.trexSkinDark, 0.3).translate(-0.85, 0.25, 0.75),
+    // The tiny arms, tipped with claws.
     box(0.3, 1.1, 0.3, p.trexSkinDark, 0.2).rotateX(0.6).translate(0.7, 4.4, 1.9),
     box(0.3, 1.1, 0.3, p.trexSkinDark, 0.2).rotateX(0.6).translate(-0.7, 4.4, 1.9),
+    box(0.12, 0.3, 0.12, p.trexClaw, 0.2).rotateX(0.6).translate(0.7, 3.95, 2.25),
+    box(0.12, 0.3, 0.12, p.trexClaw, 0.2).rotateX(0.6).translate(-0.7, 3.95, 2.25),
   ];
+  // Teeth hanging below the lip line on both sides (proud of the jaw flank, so
+  // they read in the beast's side-on profile) and a front row over the snout tip.
+  for (let i = 0; i < 4; i += 1) {
+    const z = 2.9 + i * 0.42;
+    parts.push(box(0.1, 0.26, 0.1, bone, 0.15).translate(0.72, 5.92, z));
+    parts.push(box(0.1, 0.26, 0.1, bone, 0.15).translate(-0.72, 5.92, z));
+  }
+  parts.push(box(0.1, 0.26, 0.1, bone, 0.15).translate(-0.3, 6.28, 4.66));
+  parts.push(box(0.1, 0.26, 0.1, bone, 0.15).translate(0, 6.26, 4.68));
+  parts.push(box(0.1, 0.26, 0.1, bone, 0.15).translate(0.3, 6.28, 4.66));
+  // A ridge of dorsal plates running the spine down the tail.
+  for (const [pz, py, s] of [
+    [1.2, 6.0, 0.5],
+    [0.1, 6.05, 0.6],
+    [-1.1, 5.95, 0.55],
+    [-2.6, 5.4, 0.45],
+    [-4.4, 4.7, 0.38],
+    [-6.2, 4.05, 0.3],
+  ] as const) {
+    parts.push(box(0.18, s, s * 0.9, p.trexSkin, 0.22).rotateX(0.2).translate(0, py, pz));
+  }
   const geo = mergeGeometries(parts, false);
   for (const part of parts) part.dispose();
   if (!geo) throw new Error('Failed to merge T-Rex body geometry');
@@ -218,7 +282,9 @@ export class TrexSilhouette {
     const z = state.distance - (nearestForward + 6);
     const ground = elevation.yAt(nearestForward + 6, state.distance);
     const bob = this.reduced ? 0 : Math.sin(this.gait) * 0.6;
-    this.group.position.set(side * 15, ground - 0.5 + bob, z);
+    // Close enough to the shoulder that the beast and its foot-slams read as one
+    // hunter, not a backdrop plus some craters.
+    this.group.position.set(side * 11.5, ground - 0.5 + bob, z);
     // Face across the road, leaning toward the car; a slight sway in the gait.
     this.group.rotation.y = side > 0 ? -Math.PI / 2 - 0.3 : Math.PI / 2 + 0.3;
     this.group.rotation.z = this.reduced ? 0 : Math.sin(this.gait * 0.5) * 0.04;
