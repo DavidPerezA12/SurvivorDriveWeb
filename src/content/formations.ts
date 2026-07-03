@@ -453,7 +453,7 @@ export const FORMATIONS: readonly Formation[] = [
   {
     id: 'meteor-volley',
     hardness: 0.7,
-    acts: [0, 0, 0, 4, 3, 4],
+    acts: [0, 0, 2, 4, 3, 4],
     cells: [
       { off: 1, z: 0.3, role: 'meteor', xf: -0.7 },
       { off: -1, z: 0.3, role: 'meteor', xf: -0.7 },
@@ -489,7 +489,7 @@ export const FORMATIONS: readonly Formation[] = [
   {
     id: 'quake-split',
     hardness: 0.72,
-    acts: [0, 0, 0, 3, 4, 4],
+    acts: [0, 0, 3, 3, 4, 4],
     cells: [
       { off: 1, z: 0.06, role: 'lift' },
       { off: -1, z: 0.06, role: 'lift' },
@@ -679,7 +679,7 @@ export const FORMATIONS: readonly Formation[] = [
   {
     id: 'trex-rampage',
     hardness: 0.84,
-    acts: [0, 0, 0, 2, 4, 4],
+    acts: [0, 0, 2, 3, 4, 4],
     cells: [
       { off: 1, z: 0.04, role: 'lift', bonus: true },
       { off: -1, z: 0.04, role: 'lift', bonus: true },
@@ -703,7 +703,7 @@ export const FORMATIONS: readonly Formation[] = [
   {
     id: 'mecha-barrage',
     hardness: 0.86,
-    acts: [0, 0, 0, 2, 4, 4],
+    acts: [0, 0, 0, 3, 4, 4],
     cells: [
       { off: -1, z: 0.04, role: 'ammo', bonus: true },
       { off: 1, z: 0.04, role: 'ammo', bonus: true },

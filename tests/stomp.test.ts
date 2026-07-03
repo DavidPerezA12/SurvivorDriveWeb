@@ -20,6 +20,51 @@ describe('T-Rex stomp', () => {
     expect(usesDedicatedCraterField('wreck')).toBe(false);
   });
 
+  it('hunts: locks onto the car when the telegraph begins, once, inside its lane', () => {
+    const s = createSim(1);
+    const LANE_WIDTH = laneCenterX(1) - laneCenterX(0);
+    // Car parked off-centre inside the threat lane; the foot must find it.
+    s.car.lateralX = laneCenterX(1) + 0.9;
+    s.hazards.push({
+      kind: 'stomp',
+      lane: 1,
+      x: laneCenterX(1),
+      forward: 1000,
+      hit: false,
+      landed: false,
+    });
+    // Beyond the telegraph: still on its pre-laid line, no lock yet.
+    s.distance = 1000 - METEOR_TUNING.telegraphGap - 10;
+    updateMeteors(s);
+    expect(s.hazards[0].aimed).toBeUndefined();
+    expect(s.hazards[0].x).toBeCloseTo(laneCenterX(1), 5);
+    // Telegraph begins: the shadow locks onto the car's position.
+    s.distance = 1000 - METEOR_TUNING.telegraphGap + 1;
+    updateMeteors(s);
+    expect(s.hazards[0].aimed).toBe(true);
+    expect(s.hazards[0].x).toBeCloseTo(laneCenterX(1) + 0.9, 5);
+    // The lock is once: dodging afterwards does not drag the shadow along.
+    s.car.lateralX = laneCenterX(1) - 1.2;
+    s.distance += 30;
+    updateMeteors(s);
+    expect(s.hazards[0].x).toBeCloseTo(laneCenterX(1) + 0.9, 5);
+    // And the clamp holds the body inside its lane: a car parked on the far side
+    // of the road never pulls the foot across the safe line.
+    const s2 = createSim(1);
+    s2.car.lateralX = laneCenterX(0) - 2; // far side, beyond the safe lane
+    s2.hazards.push({
+      kind: 'stomp',
+      lane: 1,
+      x: laneCenterX(1),
+      forward: 1000,
+      hit: false,
+      landed: false,
+    });
+    s2.distance = 1000 - METEOR_TUNING.telegraphGap + 1;
+    updateMeteors(s2);
+    expect(Math.abs(s2.hazards[0].x - laneCenterX(1))).toBeLessThanOrEqual(LANE_WIDTH / 2);
+  });
+
   it('is harmless while the foot is still falling (collisions skip an un-landed stomp)', () => {
     const s = createSim(1);
     s.hazards.push({
@@ -122,15 +167,17 @@ describe('T-Rex stomp', () => {
 });
 
 describe('T-Rex rampage in the world', () => {
-  it('only appears from the Visitors act on, and never stomps the safe lane', () => {
+  it('only appears from the Swarm act on, and never stomps the safe lane', () => {
+    // The rex is act III's headline now (docs/DESIGN.md → Acts: the spectacle
+    // starts in Swarm), so this gate moved up one act.
     let early = 0;
     let late = 0;
-    const actIVStart = Math.floor((3 * ACT_SPAN_M) / CHUNK_LENGTH);
+    const actIIIStart = Math.floor((2 * ACT_SPAN_M) / CHUNK_LENGTH);
     for (const seed of [1, 7, 42, 123]) {
-      for (let i = 0; i < actIVStart; i += 1) {
+      for (let i = 0; i < actIIIStart; i += 1) {
         for (const sp of chunkAt(seed, i).spawns) if (sp.kind === 'stomp') early += 1;
       }
-      for (let i = actIVStart; i < actIVStart + 400; i += 1) {
+      for (let i = actIIIStart; i < actIIIStart + 400; i += 1) {
         const safe = safeLane(seed, i);
         for (const sp of chunkAt(seed, i).spawns) {
           if (sp.kind !== 'stomp') continue;

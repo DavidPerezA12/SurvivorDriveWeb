@@ -62,7 +62,7 @@ export const CAR_TUNING = {
   /** Extra cruising speed the slow late ramp adds on top, fully gained by `lateRampDistance`. */
   lateGain: 13,
   /** Distance (m), measured from the start, by which the late ramp is fully gained. */
-  lateRampDistance: 50000,
+  lateRampDistance: 30000,
   /** Forward acceleration toward the current cruising speed. */
   accel: 20,
 

@@ -183,7 +183,7 @@ describe('the mow loop in real play', () => {
   it('mows zombies and banks scrap across many seeds', () => {
     for (const seed of [1, 2, 42, 7777, 0xc0ffee]) {
       // Drive well into the horde acts: the opening Outbreak band is deliberately
-      // calm (sparse infected), so at 6000 m/act we sweep past it into Rust/Swarm
+      // calm (sparse infected), so at 3500 m/act we sweep past it into Rust/Swarm
       // where the dense clusters guarantee the generate→mow→pay chain fires.
       const s = driveSweeping(seed, 14000);
       expect(s.zombiesMowed).toBeGreaterThan(0);

@@ -65,9 +65,11 @@ describe('biome layer', () => {
 
   it('holds the deep biomes (bridge, lava) out of the opening bands', () => {
     // Bridge/lava have a `minBand`, so the opening stays the intact teaching ground
-    // (and the early-acts-gap-free invariant in gap.test holds).
+    // (and the early-acts-gap-free invariant in gap.test holds). With the compressed
+    // pacing (bands of 1800 m, bridge from band 4 = 7.2 km) the guarded opening is
+    // bands 0-3: acts I-II, before the act III spectacle starts.
     for (const seed of [1, 7, 42, 123, 2024, 0xc0ffee]) {
-      for (let band = 0; band < 5; band += 1) {
+      for (let band = 0; band < 4; band += 1) {
         const id = biomeForBand(seed, band).id;
         expect(id).not.toBe('bridge');
         expect(id).not.toBe('lava');

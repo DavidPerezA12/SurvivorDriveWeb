@@ -99,10 +99,12 @@ export const ACTS: readonly ActMood[] = [
   mood('Static', 0x0c0c0f, 0x2d2d32, 0x252529, 0xb6b6bc, 0x494950, 0.2, 0xd6d6da, 0xc6c6cc, 0x131315, 0x2a2a30, 0.34, 0x3a3a42, 0.22),
 ];
 
-/** Meters of road per act band. Crossing one is the landmark "somewhere worse". */
-export const ACT_SPAN = 6000;
-/** Meters of crossfade folded into the end of each band, so shifts feel earned. */
-export const TRANSITION = 550;
+/** Meters of road per act band. Crossing one is the landmark "somewhere worse".
+ *  Lock-step with `ACT_SPAN_M` (compressed 6000 → 3500 for the tighter pacing). */
+export const ACT_SPAN = 3500;
+/** Meters of crossfade folded into the end of each band, so shifts feel earned.
+ *  Shortened with the tighter acts so each still reads distinct. */
+export const TRANSITION = 400;
 
 export interface ActBlend {
   a: ActMood;

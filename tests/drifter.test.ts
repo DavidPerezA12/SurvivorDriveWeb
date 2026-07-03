@@ -94,11 +94,12 @@ describe('drifting wreck', () => {
     // both sweep endpoints and that they differ (it sweeps, it is not static).
     const s: SimState = createSim(123);
     let found = false;
-    // Drifters first appear in Swarm (act III ≈ 12000 m+ at 6000 m/act), so drive
+    // Drifters first appear in Swarm (act III, 7000 m+ at 3500 m/act), so drive
     // well past it (the car cruises ~66 m/s, ~1.1 m per 60 Hz step). Which formation
-    // each chunk draws depends on the whole formation library's weights, so this seed
-    // happens to roll its first live (non-degraded) drifter around step 19.5k.
-    for (let i = 0; i < 26000 && !found; i += 1) {
+    // each chunk draws depends on the whole formation library's weights, so where
+    // this seed rolls its first live (non-degraded) drifter shifts whenever the
+    // library grows; give it a generous horizon rather than a tuned one.
+    for (let i = 0; i < 45000 && !found; i += 1) {
       step(s, NO_INTENT);
       // Keep the run alive long enough to stream plenty of world.
       s.car.health = 1;

@@ -212,7 +212,7 @@ export const BIOMES: readonly Biome[] = [
       fogFarMul: 1.0,
     },
     jumpBias: 4,
-    minBand: 5,
+    minBand: 4,
     weight: 2,
   },
   // Lava field: the road crosses a molten plain, cracked open in chasms you jump (same
@@ -236,15 +236,16 @@ export const BIOMES: readonly Biome[] = [
       fogFarMul: 0.8,
     },
     jumpBias: 4,
-    minBand: 6,
+    minBand: 5,
     weight: 2,
   },
 ];
 
 const HIGHWAY = BIOMES[0];
 
-/** Meters one biome band spans before the next is rolled. */
-export const BIOME_BAND_M = 2500;
+/** Meters one biome band spans before the next is rolled. Compressed with the
+ *  act pacing (2500 → 1800): a new place roughly every half minute at cruise. */
+export const BIOME_BAND_M = 1800;
 /** Meters at a band's start over which the previous biome blends into the new one.
  *  Exported so the render-side dressing (decor, ground scatter) rebuilds the verge
  *  slot by slot over the same stretch the look and handling blend across. */

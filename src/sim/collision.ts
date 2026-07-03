@@ -261,10 +261,34 @@ export function updateBeams(state: SimState): void {
  * gap) and allocation-free. Runs before collisions so a landing this tick can hit.
  */
 export function updateMeteors(state: SimState): void {
+  const car = state.car;
   for (const h of state.hazards) {
     if ((h.kind !== 'meteor' && h.kind !== 'stomp' && h.kind !== 'shell') || h.landed || h.hit)
       continue;
-    if (h.forward - state.distance <= METEOR_TUNING.impactGap) {
+    const gap = h.forward - state.distance;
+    // The rex hunts and the mecha leads (docs/DESIGN.md → the spectacle is the
+    // enemy, not decoration): the moment its telegraph begins, a stomp locks onto
+    // the car's lateral position, and a shell onto where the car is *heading*
+    // (position led by lateral velocity over the time to impact). Both are
+    // clamped inside their own lane, so the safe line is never struck — parked on
+    // the safe lane the foot slams down right beside you, never on you. The lock
+    // happens exactly once, at the start of the full telegraph window, so the
+    // dodge is always fair: the shadow appears under you and you have the whole
+    // fall to not be there. Deterministic (a pure function of seed + inputs).
+    // Plain sky meteors stay dumb rocks on their pre-laid lines.
+    if (
+      h.aimed === undefined &&
+      (h.kind === 'stomp' || h.kind === 'shell') &&
+      gap <= METEOR_TUNING.telegraphGap
+    ) {
+      h.aimed = true;
+      const reach = LANE_WIDTH / 2 - METEOR_HALF_WIDTH; // the body stays inside its lane
+      const center = laneCenterX(h.lane);
+      const lead = h.kind === 'shell' ? car.lateralVel * (gap / Math.max(car.speed, 1)) : 0;
+      const target = car.lateralX + lead;
+      h.x = Math.min(center + reach, Math.max(center - reach, target));
+    }
+    if (gap <= METEOR_TUNING.impactGap) {
       h.landed = true;
       state.events.push({ type: 'exploded', x: h.x, forward: h.forward });
     }

@@ -65,6 +65,30 @@ describe('mecha shell', () => {
     expect(typeof title).toBe('string');
     expect(title.length).toBeGreaterThan(0);
   });
+
+  it('leads the car: the shell locks onto where the car is heading, inside its lane', () => {
+    const s = createSim(1);
+    // The car sits at the lane centre but is sliding right; the shell must land
+    // ahead of that slide, not on the current position.
+    s.car.lateralX = laneCenterX(1);
+    s.car.lateralVel = 6;
+    s.car.speed = 60;
+    s.hazards.push({
+      kind: 'shell',
+      lane: 1,
+      x: laneCenterX(1) - 1,
+      forward: 1000,
+      hit: false,
+      landed: false,
+    });
+    s.distance = 1000 - METEOR_TUNING.telegraphGap + 1;
+    updateMeteors(s);
+    expect(s.hazards[0].aimed).toBe(true);
+    expect(s.hazards[0].x).toBeGreaterThan(laneCenterX(1));
+    // Still clamped inside its own lane, whatever the lead says.
+    const laneWidth = laneCenterX(1) - laneCenterX(0);
+    expect(Math.abs(s.hazards[0].x - laneCenterX(1))).toBeLessThanOrEqual(laneWidth / 2);
+  });
 });
 
 describe('mecha barrage in the world', () => {

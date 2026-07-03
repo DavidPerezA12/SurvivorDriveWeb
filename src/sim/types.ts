@@ -292,6 +292,14 @@ export interface Hazard {
    */
   landed?: boolean;
   /**
+   * Set on a `stomp`/`shell` the moment its telegraph begins: the T-Rex foot has
+   * locked onto the car's lateral position (and the mecha shell onto where the
+   * car is heading), clamped inside its own lane so the safe line is never
+   * struck. Locked exactly once — the shadow then holds, and the telegraph
+   * window is the time to get out from under it (`updateMeteors`).
+   */
+  aimed?: boolean;
+  /**
    * Set only on a quake-event `gap`: `false` while it is just a telegraph crack
    * (harmless, collisions skip it), flipped `true` by `updateQuakes` the moment it
    * tears open into a lethal hole. Undefined on a plain static gap, which is lethal

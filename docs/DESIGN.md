@@ -99,9 +99,9 @@ event, and music layer. Acts give runs shape and deaths an address.
 | --- | --- | --- | --- |
 | I | Outbreak | Dusk over a living, lit city | Stalled cars, first stray infected, open road. Teaches the controls |
 | II | Rust | Sick orange haze, suburbia | Static hazards, lone zombies, first scripted collapse |
-| III | Swarm | Dust-brown outskirts | Horde surges, barrels, denser ruins |
-| IV | Visitors | Green aurora, downtown canyons | UFO strafes, compound events begin |
-| V | Colossus | Deep red, skyline silhouettes | The Big One rains down, quake splits, overlap |
+| III | Swarm | Dust-brown outskirts | Horde surges, barrels, denser ruins. The spectacle starts here: the first quake splits, the first meteors, a rampaging tyrannosaur |
+| IV | Visitors | Green aurora, downtown canyons | UFO strafes, the walking war machine, compound events begin |
+| V | Colossus | Deep red, skyline silhouettes | The Big One rains down, everything overlaps |
 | VI+ | Static | Reality fraying, desaturating | All events, max frequency, leaderboard land |
 
 - Transitions are landmark moments: a sky shift, a Radio line, a music
@@ -238,6 +238,12 @@ tier. Upgrades render on the car, so the build is legible at a glance.
   events at least 2 s.
 - Spectacle lives in the background and sky; the road surface stays legible. If a
   player dies because the T-Rex was too interesting, the event needs restaging.
+- The bosses attack the player, not the road plan. When its telegraph begins, a
+  T-Rex stomp locks onto the car's position and a mecha shell onto where the car
+  is heading. The lock happens once, at the start of the full telegraph window, so
+  the dodge is always fair, and it is clamped inside the attack's own lane, so the
+  safe line is never struck. Sky meteors stay dumb rocks. Parked on the safe lane,
+  the foot slams down beside you; the safe lane is the refuge you earn by moving.
 
 ## Object roster (MVP)
 

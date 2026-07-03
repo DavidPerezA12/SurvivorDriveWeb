@@ -15,7 +15,10 @@
  * stay in lock-step with `ACT_SPAN` in `src/render/mood.ts` so gameplay and
  * scenery change place together.
  */
-export const ACT_SPAN_M = 6000;
+// 3500 (down from 6000, David 2026-07-03): the world changed too slowly —
+// reaching the act III spectacle took most of ten minutes. An act is now about
+// a minute at cruise, so every stretch brings a different challenge.
+export const ACT_SPAN_M = 3500;
 
 /** Human-readable act names, in order — for death cards and debugging. */
 export const ACT_NAMES = ['Outbreak', 'Rust', 'Swarm', 'Visitors', 'Colossus', 'Static'] as const;
@@ -185,11 +188,11 @@ export const DIFFICULTY_TUNING = {
   /** Formation-hardness bias at distance 0: the opening eases in below neutral. */
   intensityStart: 0.9,
   /** Distance (m) by which intensity has climbed back to neutral (1.0). */
-  intensityWarmup: 4500,
+  intensityWarmup: 2600,
   /** The most intensity ever reaches, deep into the endless tail. */
   intensityMax: 1.55,
   /** Distance (m) by which intensity reaches `intensityMax`. */
-  intensityRampDistance: 60000,
+  intensityRampDistance: 35000,
   /**
    * Pacing: a chunk leaves itself open road (a breather beat) with this chance at
    * the eased-in opening, falling to `openChanceDeep` in the tail. Breathers space
@@ -218,7 +221,7 @@ export const DIFFICULTY_TUNING = {
   /** Pickup frequency multiplier deep in a run (the hull/ammo economy tightens). */
   pickupScaleMin: 0.6,
   /** Distance (m) over which pickup frequency falls from start to min. */
-  pickupScaleDistance: 36000,
+  pickupScaleDistance: 21000,
   /**
    * Formation choice plateaus once the deep acts are drawing their hardest set.
    * The mix keeps escalating past that through this factor: it scales the chance a
@@ -229,7 +232,7 @@ export const DIFFICULTY_TUNING = {
   /** The most the deadly-line hazards are over-weighted, deep in. */
   lethalityMax: 2.3,
   /** Distance (m) by which lethality reaches its max. */
-  lethalityRampDistance: 72000,
+  lethalityRampDistance: 42000,
 } as const;
 
 /** Linear ramp from `a` to `b` as `d` goes 0..`span`, clamped at both ends. */

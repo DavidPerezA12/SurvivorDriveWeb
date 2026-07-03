@@ -63,18 +63,19 @@ describe('quake split', () => {
     expect(s.car.health).toBe(1);
   });
 
-  it('only appears from the Visitors act on, and never on the safe lane', () => {
+  it('only appears from the Swarm act on, and never on the safe lane', () => {
     // Quake gaps carry `open === false` at materialization; the formation that lays
-    // them (quake-split) is gated to Visitors and later, so the intact early acts
-    // stay quake-free. (Plain static gaps are separately barred from acts I–II.)
+    // them (quake-split) is gated to Swarm and later (the spectacle starts in act
+    // III per docs/DESIGN.md → Acts), so the intact opening acts stay quake-free.
+    // (Plain static gaps are separately barred from acts I–II.)
     let earlyQuake = 0;
     let lateQuake = 0;
-    const actIVStart = Math.floor((3 * ACT_SPAN_M) / CHUNK_LENGTH);
+    const actIIIStart = Math.floor((2 * ACT_SPAN_M) / CHUNK_LENGTH);
     for (const seed of [1, 7, 42, 123]) {
-      for (let i = 0; i < actIVStart; i += 1) {
+      for (let i = 0; i < actIIIStart; i += 1) {
         for (const sp of chunkAt(seed, i).spawns) if (sp.kind === 'gap' && sp.opening) earlyQuake += 1;
       }
-      for (let i = actIVStart; i < actIVStart + 300; i += 1) {
+      for (let i = actIIIStart; i < actIIIStart + 300; i += 1) {
         for (const sp of chunkAt(seed, i).spawns) if (sp.kind === 'gap' && sp.opening) lateQuake += 1;
       }
     }
