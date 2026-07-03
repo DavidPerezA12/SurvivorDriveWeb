@@ -8,7 +8,7 @@ import { Garage, type GarageView } from '../ui/garage';
 import { SaveStore } from './save';
 import { qualityPixelCap, reducedMotion, type Settings } from './settings';
 import { isGlobalUpgrade, upgradeDef, upgradePrereq, type UpgradeId } from '../content/upgrades';
-import { runLoadout, type ChassisId } from '../content/chassis';
+import { chassisDef, runLoadout, type ChassisId } from '../content/chassis';
 import { paintBody, type PaintId } from '../content/paint';
 import { runTitle } from '../content/runTitles';
 import { biomeAt } from '../content/biomes';
@@ -293,10 +293,19 @@ export class Game {
     this.carPreview.resize(slot.clientWidth, slot.clientHeight);
   }
 
-  /** Pick the chassis in the CAR tab; persists and updates the live preview + its upgrades. */
+  /**
+   * Pick a chassis in the CAR tab. An owned car selects and persists. A locked
+   * car previews on the turntable first (no spend), and a second click while
+   * affordable buys it with banked scrap — the inspiration's garage, browse then
+   * buy. An unaffordable car stays a preview.
+   */
   private selectChassis(id: ChassisId): void {
+    if (!this.save.ownsChassis(id) && this.selectedChassis === id) {
+      const price = chassisDef(id).price;
+      if (this.save.wallet >= price) this.save.buyCar(id, price);
+    }
+    if (this.save.ownsChassis(id)) this.save.setChassis(id);
     this.selectedChassis = id;
-    this.save.setChassis(id);
     this.carPreview.setChassis(id);
     this.carPreview.setLoadout(this.effectiveOwned());
     this.garage.show(this.garageView());
@@ -312,6 +321,8 @@ export class Game {
 
   /** Leave a pause-opened garage and resume the run in progress. */
   private exitGarageToGame(): void {
+    // Drop a locked-car preview: only an owned selection survives the garage.
+    this.selectedChassis = this.save.chassis;
     this.garage.hide();
     this.carPreview.stop();
     this.resume();
@@ -328,6 +339,7 @@ export class Game {
       wallet: this.save.wallet,
       owned: this.effectiveOwned(),
       chassis: this.selectedChassis,
+      ownedCars: new Set(this.save.ownedChassis()),
       paint: this.selectedPaint,
     };
   }

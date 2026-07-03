@@ -22,6 +22,13 @@ export interface ChassisDef {
   /** One-line character note. */
   readonly blurb: string;
   /**
+   * Scrap price to unlock the car (the Survivor is free). Bodies are bought once
+   * with banked run scrap, the inspiration's garage — but priced to be earned in
+   * a handful of good runs, never a soft paywall (the hill the inspiration died
+   * on, docs/DESIGN.md → Upgrades).
+   */
+  readonly price: number;
+  /**
    * Base loadout modifiers the chassis brings before any upgrade: what makes a
    * buggy hop better and a rig tank hits. Multiplicative dials default to 1, the
    * damage dial < 1 = tougher. Folded into the run loadout alongside upgrades.
@@ -38,30 +45,35 @@ export const CHASSIS: readonly ChassisDef[] = [
     id: 'survivor',
     name: 'Survivor',
     blurb: 'The all-rounder muscle car — the one that made it this far.',
+    price: 0,
     base: { steerOmegaMul: 1, jumpImpulseMul: 1, damageMul: 1 },
   },
   {
     id: 'rig',
     name: 'Wrecker Rig',
     blurb: 'A brute pickup — soaks crashes, but heavy and slow to turn.',
+    price: 400,
     base: { steerOmegaMul: 0.85, jumpImpulseMul: 0.9, damageMul: 0.78 },
   },
   {
     id: 'hauler',
     name: 'Box Hauler',
     blurb: 'A boxy van — armored slab on wheels, no fun in the air.',
+    price: 850,
     base: { steerOmegaMul: 0.8, jumpImpulseMul: 0.82, damageMul: 0.7 },
   },
   {
     id: 'buggy',
     name: 'Dune Buggy',
     blurb: 'A skeletal hopper — darts and flies, but folds on a hard hit.',
+    price: 1500,
     base: { steerOmegaMul: 1.3, jumpImpulseMul: 1.25, damageMul: 1.3 },
   },
   {
     id: 'coupe',
     name: 'Razor Coupe',
     blurb: 'A low sports body — knife-sharp handling, thin skin.',
+    price: 2600,
     base: { steerOmegaMul: 1.25, jumpImpulseMul: 1.05, damageMul: 1.15 },
   },
 ];

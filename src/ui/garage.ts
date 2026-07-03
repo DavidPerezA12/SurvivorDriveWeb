@@ -43,6 +43,8 @@ export interface GarageView {
   wallet: number;
   owned: ReadonlySet<UpgradeId>;
   chassis: ChassisId;
+  /** The chassis bodies bought so far — the rest show locked with a price. */
+  ownedCars: ReadonlySet<ChassisId>;
   paint: PaintId;
 }
 
@@ -95,7 +97,7 @@ const TAB_DEFS: { key: Tab['key']; label: string; soon?: boolean }[] = [
 const DETAIL_HINT: Record<Tab['key'], string> = {
   upgrade: 'Hover an upgrade to see what it does.',
   weapon: 'Hover a gun tier to see what it does.',
-  car: 'Hover a chassis to compare how it drives.',
+  car: 'Hover a chassis to compare. Locked cars unlock with scrap.',
   color: 'Pick a paint job for your car.',
 };
 
@@ -127,9 +129,16 @@ export class Garage {
     wallet: 0,
     owned: new Set(),
     chassis: 'survivor',
+    ownedCars: new Set(['survivor']),
     paint: 'factory',
   };
-  private readonly chassisCards: { id: ChassisId; root: HTMLDivElement; badge: HTMLDivElement }[] = [];
+  private readonly chassisCards: {
+    id: ChassisId;
+    root: HTMLDivElement;
+    badge: HTMLDivElement;
+    pricePlate: HTMLDivElement;
+    priceVal: HTMLDivElement;
+  }[] = [];
   private readonly paintCards: { id: PaintId; root: HTMLDivElement; badge: HTMLDivElement }[] = [];
   private readonly detailName: HTMLDivElement;
   private readonly detailBlurb: HTMLDivElement;
@@ -400,6 +409,11 @@ export class Garage {
     return root;
   }
 
+  /**
+   * A chassis card (the CAR tab): SELECT/SELECTED when owned, or a locked body
+   * with a scrap price plate — click to preview it on the turntable, click again
+   * to buy (the inspiration's garage: cars are bought, not given).
+   */
   private buildChassisCard(ch: { id: ChassisId; name: string }): HTMLDivElement {
     const root = document.createElement('div');
     root.className = 'sdw-garage-chassis-card';
@@ -410,10 +424,20 @@ export class Garage {
     const nm = document.createElement('div');
     nm.textContent = ch.name;
     nm.style.cssText = 'font-size:12px;color:#e4e7ec;text-align:center';
-    root.append(badge, nm);
-    root.addEventListener('click', () => this.cb.onSelectChassis(ch.id));
+    const pricePlate = document.createElement('div');
+    pricePlate.className = 'sdw-garage-card__cost';
+    pricePlate.style.display = 'none'; // shown while the body is locked
+    const priceVal = document.createElement('div');
+    priceVal.style.cssText = `font:800 12px/1 ui-monospace,Menlo,monospace;color:${LCD}`;
+    pricePlate.append(priceVal, coin());
+    root.append(badge, nm, pricePlate);
+    root.addEventListener('click', () => {
+      this.cb.onSelectChassis(ch.id);
+      // The click may have armed or completed a buy — refresh the hover text.
+      this.showChassisDetail(ch.id);
+    });
     root.addEventListener('mouseenter', () => this.showChassisDetail(ch.id));
-    this.chassisCards.push({ id: ch.id, root, badge });
+    this.chassisCards.push({ id: ch.id, root, badge, pricePlate, priceVal });
     return root;
   }
 
@@ -458,9 +482,20 @@ export class Garage {
 
   private showChassisDetail(id: ChassisId): void {
     const c = chassisDef(id);
-    this.detailName.textContent = c.name;
     this.detailName.style.color = ORANGE;
-    this.detailBlurb.textContent = c.blurb;
+    if (this.view.ownedCars.has(id)) {
+      this.detailName.textContent = c.name;
+      this.detailBlurb.textContent = c.blurb;
+      return;
+    }
+    this.detailName.textContent = `${c.name} — LOCKED`;
+    if (this.view.wallet < c.price) {
+      this.detailBlurb.textContent = `${c.blurb}  (${c.price} scrap — keep driving to afford it)`;
+    } else if (this.view.chassis === id) {
+      this.detailBlurb.textContent = `${c.blurb}  Click again to buy for ${c.price} scrap.`;
+    } else {
+      this.detailBlurb.textContent = `${c.blurb}  (${c.price} scrap — click to preview, again to buy)`;
+    }
   }
 
   private showPaintDetail(id: PaintId): void {
@@ -517,9 +552,24 @@ export class Garage {
 
     for (const cc of this.chassisCards) {
       const sel = cc.id === v.chassis;
+      const ownedCar = v.ownedCars.has(cc.id);
+      cc.root.classList.toggle('is-locked', !ownedCar);
       cardHighlight(cc.root, sel);
-      cc.badge.textContent = sel ? 'SELECTED' : 'SELECT';
-      cc.badge.style.color = sel ? '#8fbf6a' : LCD;
+      if (ownedCar) {
+        cc.pricePlate.style.display = 'none';
+        cc.badge.textContent = sel ? 'SELECTED' : 'SELECT';
+        cc.badge.style.color = sel ? '#8fbf6a' : LCD;
+        continue;
+      }
+      // A locked body: price on its own LCD plate (green affordable / red not),
+      // and once previewed the badge arms the buy for the second click.
+      const price = chassisDef(cc.id).price;
+      const afford = v.wallet >= price;
+      cc.pricePlate.style.display = 'flex';
+      cc.priceVal.textContent = `${price}`;
+      cc.priceVal.style.color = afford ? LCD : RED_LCD;
+      cc.badge.textContent = sel && afford ? 'BUY?' : 'LOCKED';
+      cc.badge.style.color = sel && afford ? ORANGE : afford ? DIM : RED_LCD;
     }
 
     for (const pc of this.paintCards) {
@@ -697,7 +747,7 @@ function chassisCss(): string {
     'justify-content:center',
     'gap:5px',
     'width:120px',
-    'height:62px',
+    'min-height:62px',
     'padding:6px',
     'cursor:pointer',
     'background:linear-gradient(160deg,#4c545f 0%,#363c44 46%,#252a30 100%)',

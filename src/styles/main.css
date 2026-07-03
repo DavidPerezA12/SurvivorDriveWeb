@@ -334,6 +334,34 @@ button {
   border-color: rgba(143, 191, 106, 0.6);
 }
 
+/* A locked chassis sits under the tarp: dim, desaturated, and cross-striped
+   until it is bought. Hover lifts the tarp a little; previewing it (is-active)
+   arms the buy. */
+.sdw-garage-chassis-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.sdw-garage-chassis-card.is-locked {
+  filter: saturate(0.5) brightness(0.72);
+}
+
+.sdw-garage-chassis-card.is-locked::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.22) 0 7px, transparent 7px 15px);
+}
+
+.sdw-garage-chassis-card.is-locked:hover {
+  filter: saturate(0.8) brightness(0.95);
+}
+
+.sdw-garage-chassis-card.is-locked.is-active {
+  filter: saturate(0.9) brightness(1);
+}
+
 /* An affordable upgrade breathes so the eye finds the next buy. */
 .sdw-garage-card.is-active {
   animation: sdw-card-pulse 1.7s ease-in-out infinite;

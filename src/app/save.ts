@@ -25,8 +25,10 @@ export interface SaveData {
   settings: Settings;
   /** Banked scrap the garage spends between runs. */
   wallet: number;
-  /** The chassis currently selected to drive. */
+  /** The chassis currently selected to drive (always one of `ownedChassis`). */
   chassis: ChassisId;
+  /** The chassis bodies bought so far. The Survivor is always owned. */
+  ownedChassis: ChassisId[];
   /** The paint job applied to the driven car (cosmetic only). */
   paint: PaintId;
   /** Owned global upgrades (jump charges, the gun), applied on every chassis. */
@@ -45,6 +47,7 @@ function freshSave(): SaveData {
     settings: { ...DEFAULT_SETTINGS },
     wallet: 0,
     chassis: 'survivor',
+    ownedChassis: ['survivor'],
     paint: 'factory',
     globalUpgrades: [],
     chassisUpgrades: {},
@@ -56,7 +59,20 @@ function normalizeWallet(raw: unknown): number {
 }
 
 function normalizeChassis(raw: unknown): ChassisId {
-  return typeof raw === 'string' && CHASSIS_IDS.has(raw as ChassisId) ? (raw as ChassisId) : 'survivor';
+  return typeof raw === 'string' && CHASSIS_IDS.has(raw as ChassisId)
+    ? (raw as ChassisId)
+    : 'survivor';
+}
+
+/** Keep only known chassis ids, de-duplicated; the Survivor is always owned. */
+function normalizeOwnedChassis(raw: unknown): ChassisId[] {
+  const owned = new Set<ChassisId>(['survivor']);
+  if (Array.isArray(raw)) {
+    for (const id of raw) {
+      if (typeof id === 'string' && CHASSIS_IDS.has(id as ChassisId)) owned.add(id as ChassisId);
+    }
+  }
+  return [...owned];
 }
 
 function normalizePaint(raw: unknown): PaintId {
@@ -117,11 +133,21 @@ export function loadSave(store: KeyValueStore | null): SaveData {
       chassisUpgrades = { survivor: cleanIds(parsed.upgrades, 'chassis') };
     }
 
+    let chassis = normalizeChassis(parsed.chassis);
+    let ownedChassis = normalizeOwnedChassis(parsed.ownedChassis);
+    // Migrate a pre-purchase save (every car was selectable): grandfather in the
+    // car being driven and any car with scrap already invested in its upgrades.
+    if (parsed.ownedChassis === undefined) {
+      ownedChassis = normalizeOwnedChassis([chassis, ...Object.keys(chassisUpgrades)]);
+    }
+    if (!ownedChassis.includes(chassis)) chassis = 'survivor';
+
     return {
       schemaVersion: SCHEMA_VERSION,
       settings: normalizeSettings(parsed.settings),
       wallet: normalizeWallet(parsed.wallet),
-      chassis: normalizeChassis(parsed.chassis),
+      chassis,
+      ownedChassis,
       paint: normalizePaint(parsed.paint),
       globalUpgrades,
       chassisUpgrades,
@@ -158,6 +184,16 @@ export class SaveStore {
     return this.data.chassis;
   }
 
+  /** Whether a chassis body has been bought (the Survivor always is). */
+  ownsChassis(id: ChassisId): boolean {
+    return this.data.ownedChassis.includes(id);
+  }
+
+  /** The owned chassis bodies (a fresh copy). */
+  ownedChassis(): ChassisId[] {
+    return [...this.data.ownedChassis];
+  }
+
   /** The paint job applied to the driven car. */
   get paint(): PaintId {
     return this.data.paint;
@@ -184,9 +220,27 @@ export class SaveStore {
     this.schedule();
   }
 
-  /** Select the chassis to drive. */
+  /** Select the chassis to drive. Ignores a car that has not been bought. */
   setChassis(id: ChassisId): void {
+    if (!this.data.ownedChassis.includes(id)) return;
     this.data = { ...this.data, chassis: id };
+    this.schedule();
+  }
+
+  /** Spend `cost` and unlock a chassis body. No-op if it is already owned. */
+  buyCar(id: ChassisId, cost: number): void {
+    if (
+      this.data.ownedChassis.includes(id) ||
+      !Number.isFinite(cost) ||
+      cost < 0 ||
+      this.data.wallet < cost
+    )
+      return;
+    this.data = {
+      ...this.data,
+      wallet: this.data.wallet - cost,
+      ownedChassis: [...this.data.ownedChassis, id],
+    };
     this.schedule();
   }
 
