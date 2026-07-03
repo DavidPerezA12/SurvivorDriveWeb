@@ -260,8 +260,9 @@ export class SaveStore {
     this.schedule();
   }
 
-  /** Spend `cost` and add a per-chassis upgrade to one car (armor, tires, …). */
+  /** Spend `cost` and add a per-chassis upgrade to an owned car (armor, tires, …). */
   buyChassis(chassis: ChassisId, id: UpgradeId, cost: number): void {
+    if (!this.data.ownedChassis.includes(chassis)) return;
     const list = [...(this.data.chassisUpgrades[chassis] ?? []), id];
     this.data = {
       ...this.data,

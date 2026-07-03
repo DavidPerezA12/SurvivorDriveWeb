@@ -88,6 +88,14 @@ describe('garage persistence', () => {
     expect(s.ownsChassis('rig')).toBe(false);
   });
 
+  it('refuses to install a per-chassis upgrade on a locked car', () => {
+    const s = new SaveStore(memoryStore());
+    s.bankScrap(100);
+    s.buyChassis('coupe', 'stickyTires', 40);
+    expect(s.wallet).toBe(100);
+    expect(s.chassisUpgrades('coupe')).toEqual([]);
+  });
+
   it('migrates a pre-purchase save: keeps the driven car and any upgraded car', () => {
     const store = memoryStore();
     // Before ownedChassis existed, every car was selectable; grandfather in the
@@ -125,7 +133,9 @@ describe('garage persistence', () => {
   it('routes a per-chassis buy to its car and a global buy to every car', () => {
     const store = memoryStore();
     const s = new SaveStore(store);
-    s.bankScrap(500);
+    const coupePrice = chassisDef('coupe').price;
+    s.bankScrap(coupePrice + 500);
+    s.buyCar('coupe', coupePrice);
     s.buyChassis('coupe', 'stickyTires', 40); // per-chassis: coupe only
     s.buyGlobal('gunMkII', 55); // global: any car
     expect(s.chassisUpgrades('coupe')).toEqual(['stickyTires']);
