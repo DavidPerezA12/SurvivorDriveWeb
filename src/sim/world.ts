@@ -331,7 +331,7 @@ function generateProps(rng: Rng): Prop[] {
   for (let i = 0; i < DECOR_TUNING.maxPerChunk; i += 1) {
     // Each slot independently rolls whether it dresses the roadside, so density
     // varies chunk to chunk without ever cluttering the road itself.
-    if (nextFloat(rng) > 0.6) continue;
+    if (nextFloat(rng) > 0.75) continue;
 
     const side = nextFloat(rng) < 0.5 ? -1 : 1;
     const kind = pickKind(rng);

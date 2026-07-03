@@ -111,11 +111,12 @@ export const CAR_TUNING = {
 
 /** Roadside decoration generation (docs/DESIGN.md → readability: never on-road). */
 export const DECOR_TUNING = {
-  /** Expected decorative props per chunk (Poisson-ish via per-slot rolls). */
-  maxPerChunk: 4,
+  /** Decorative prop slots per chunk (Poisson-ish via per-slot rolls). Raised
+   *  4 → 7 with the fill chance so the verge reads dressed, not sparse. */
+  maxPerChunk: 7,
   /** How far past the road edge props may sit, in meters. */
   marginMin: 1.5,
-  marginMax: 7,
+  marginMax: 9,
 } as const;
 
 /**

@@ -124,16 +124,28 @@ function barrierGeometry(): THREE.BufferGeometry {
 // → Run structure: the world ends in stages). Decoration tier: desaturated, never
 // warm, never mimicking an interactive silhouette (docs/DESIGN.md → readability).
 
-/** A bare dead tree: a split trunk and a knot of leafless branches (Rust). */
+/** A bare dead tree: a split trunk over a root flare, a knot of leafless
+ *  branches, and the limb it already dropped (Rust). */
 function deadTreeGeometry(): THREE.BufferGeometry {
   const t = palette.post;
   const b = palette.postCollar;
   return merged([
     box(0.3, 3.0, 0.3, t, 0.5).translate(0, 1.5, 0),
+    // Root flare gripping the dirt.
+    box(0.16, 0.5, 0.16, t, 0.55).rotateZ(0.7).translate(0.28, 0.14, 0.05),
+    box(0.14, 0.45, 0.14, t, 0.55).rotateZ(-0.65).translate(-0.26, 0.12, -0.08),
+    box(0.14, 0.4, 0.14, t, 0.55).rotateX(0.7).translate(0.02, 0.1, 0.28),
     box(0.18, 1.6, 0.18, t, 0.5).rotateZ(0.6).translate(-0.55, 2.6, 0),
     box(0.16, 1.3, 0.16, t, 0.5).rotateZ(-0.7).translate(0.5, 2.9, 0.1),
     box(0.12, 1.0, 0.12, b, 0.4).rotateX(0.6).translate(0.1, 3.4, -0.4),
     box(0.1, 0.8, 0.1, b, 0.4).rotateZ(0.9).translate(-0.3, 3.7, 0.2),
+    // A knot where a limb tore off, and that limb dead in the dirt below.
+    box(0.2, 0.16, 0.16, b, 0.4).translate(0.2, 2.1, 0.08),
+    paint(
+      new THREE.BoxGeometry(0.12, 1.4, 0.12).rotateZ(1.5).rotateY(0.4).translate(0.9, 0.07, 0.5),
+      b,
+      0.45,
+    ),
   ]);
 }
 
@@ -161,7 +173,8 @@ function rebarGeometry(): THREE.BufferGeometry {
   ]);
 }
 
-/** A leaning timber fence section, a couple of pickets gone (Rust suburbia). */
+/** A leaning timber fence section: pickets gone, the garden gate hanging off one
+ *  hinge, a picket dead in the dirt (Rust suburbia). */
 function fenceGeometry(): THREE.BufferGeometry {
   const w = palette.husk;
   const r = palette.postCollar;
@@ -171,9 +184,197 @@ function fenceGeometry(): THREE.BufferGeometry {
     box(0.12, 0.9, 0.12, r, 0.4).rotateZ(0.18).translate(1.0, 0.5, 0),
     box(2.3, 0.14, 0.06, w, 0.4).translate(0, 0.85, 0),
     box(2.3, 0.14, 0.06, w, 0.4).translate(0, 0.45, 0),
+    // The gate hanging off its remaining hinge, swung into the dirt.
+    paint(
+      new THREE.BoxGeometry(0.8, 0.9, 0.06).rotateZ(0.35).rotateY(0.5).translate(1.55, 0.42, 0.3),
+      w,
+      0.4,
+    ),
+    box(0.1, 0.1, 0.08, r, 0.3).translate(1.1, 0.75, 0.08), // the hinge
+    // A fallen picket and the sagging wire run off the end post.
+    box(0.1, 0.02, 1.0, w, 0.3).rotateY(0.4).translate(-0.5, 0.02, 0.5),
+    paint(
+      new THREE.BoxGeometry(0.02, 0.02, 1.2).rotateY(-0.3).rotateX(0.12).translate(-1.5, 0.7, 0.4),
+      palette.bridgeCable,
+      0.25,
+    ),
   ];
   for (const px of [-0.8, -0.4, 0.2, 0.6]) parts.push(box(0.1, 1.0, 0.05, w, 0.4).translate(px, 0.55, 0));
   return merged(parts);
+}
+
+// Act II suburbia dressing: the Rust act's abandoned yards. The verge tells the
+// leaving — mailboxes still flagged, laundry left on the line, a swing set gone
+// quiet, camps that moved on. All decoration tier: bleached, desaturated, dim.
+
+/** A rural mailbox on its post — flag still up, door hanging, mail spilled —
+ *  beside a second one knocked flat. */
+function mailboxGeometry(): THREE.BufferGeometry {
+  const wood = palette.postCollar;
+  const shell = palette.signalHousing;
+  return merged([
+    box(0.12, 1.1, 0.12, wood, 0.45).rotateZ(0.08).translate(0, 0.55, 0),
+    box(0.36, 0.28, 0.58, shell, 0.4).translate(0.06, 1.2, 0),
+    paint(
+      new THREE.CylinderGeometry(0.18, 0.18, 0.56, 8).rotateX(Math.PI / 2),
+      shell,
+      0.35,
+    ).translate(0.06, 1.32, 0),
+    // The door hanging open off the front lip.
+    paint(new THREE.BoxGeometry(0.3, 0.26, 0.03).rotateX(-1.2).translate(0.06, 1.1, 0.34), shell, 0.3),
+    // The flag still up — dim, weathered red.
+    box(0.03, 0.16, 0.1, palette.signStop, 0.3).translate(0.25, 1.36, -0.12),
+    // Mail spilled at the foot.
+    box(0.18, 0.015, 0.24, palette.coupeStripe, 0.2).rotateY(0.4).translate(0.28, 0.01, 0.32),
+    box(0.16, 0.015, 0.22, palette.barrierPaint, 0.2).rotateY(-0.5).translate(-0.14, 0.01, 0.36),
+    // The neighbour's box, post snapped, face-down in the dirt.
+    box(0.12, 0.5, 0.12, wood, 0.45).rotateZ(1.3).translate(0.7, 0.1, -0.35),
+    paint(
+      new THREE.BoxGeometry(0.34, 0.26, 0.52).rotateZ(1.25).rotateY(0.3).translate(1.05, 0.18, -0.4),
+      shell,
+      0.4,
+    ),
+  ]);
+}
+
+/** A rusted swing set gone quiet: A-frames, one swing hanging on its chains, the
+ *  other wrapped over the top bar by the last wind. */
+function swingSetGeometry(): THREE.BufferGeometry {
+  const s = palette.railBeam;
+  const chain = palette.bridgeCable;
+  const seat = palette.huskDoor;
+  return merged([
+    paint(new THREE.BoxGeometry(0.09, 2.4, 0.09).rotateX(0.35).translate(-1.1, 1.1, 0.45), s, 0.45),
+    paint(new THREE.BoxGeometry(0.09, 2.4, 0.09).rotateX(-0.35).translate(-1.1, 1.1, -0.45), s, 0.45),
+    paint(new THREE.BoxGeometry(0.09, 2.4, 0.09).rotateX(0.35).translate(1.1, 1.1, 0.45), s, 0.45),
+    paint(new THREE.BoxGeometry(0.09, 2.4, 0.09).rotateX(-0.35).translate(1.1, 1.1, -0.45), s, 0.45),
+    box(2.5, 0.09, 0.09, s, 0.4).translate(0, 2.2, 0),
+    // The hanging swing, drifted slightly off plumb.
+    paint(new THREE.BoxGeometry(0.03, 0.9, 0.03).rotateX(0.12).translate(-0.5, 1.74, 0.05), chain, 0.3),
+    paint(new THREE.BoxGeometry(0.03, 0.9, 0.03).rotateX(0.12).translate(-0.2, 1.74, 0.05), chain, 0.3),
+    box(0.42, 0.05, 0.16, seat, 0.35).translate(-0.35, 1.28, 0.11),
+    // The other wrapped over the bar, seat dangling high.
+    box(0.06, 0.24, 0.06, chain, 0.3).translate(0.45, 2.06, 0),
+    paint(new THREE.BoxGeometry(0.36, 0.05, 0.14).rotateZ(0.5).translate(0.5, 1.88, 0.05), seat, 0.35),
+    // Scuffed bare dirt under the seats.
+    box(0.7, 0.015, 0.4, palette.groundScorch, 0).translate(-0.35, 0.01, 0.1),
+  ]);
+}
+
+/** The clothesline nobody came back for: two T-posts, sagging lines, garments
+ *  bleached stiff, one dropped in the dirt. */
+function clotheslineGeometry(): THREE.BufferGeometry {
+  const wood = palette.post;
+  const line = palette.bridgeCable;
+  return merged([
+    box(0.1, 1.9, 0.1, wood, 0.45).translate(-1.2, 0.95, 0),
+    box(0.8, 0.08, 0.08, wood, 0.4).translate(-1.2, 1.82, 0),
+    paint(new THREE.BoxGeometry(0.1, 1.9, 0.1).rotateZ(-0.12).translate(1.2, 0.9, 0), wood, 0.45),
+    box(0.8, 0.08, 0.08, wood, 0.4).rotateZ(-0.12).translate(1.2, 1.7, 0),
+    // Two line runs, kinked where they sag at midspan.
+    paint(new THREE.BoxGeometry(1.25, 0.02, 0.02).rotateZ(0.06).translate(-0.6, 1.72, 0.3), line, 0.25),
+    paint(new THREE.BoxGeometry(1.25, 0.02, 0.02).rotateZ(-0.05).translate(0.6, 1.68, 0.3), line, 0.25),
+    paint(new THREE.BoxGeometry(1.25, 0.02, 0.02).rotateZ(0.05).translate(-0.6, 1.74, -0.3), line, 0.25),
+    paint(new THREE.BoxGeometry(1.25, 0.02, 0.02).rotateZ(-0.06).translate(0.6, 1.7, -0.3), line, 0.25),
+    // What is still pinned up, bleached stiff.
+    box(0.3, 0.5, 0.03, palette.coupeStripe, 0.3).translate(-0.4, 1.42, 0.3),
+    box(0.26, 0.4, 0.03, palette.barrierPaint, 0.3).translate(0.35, 1.42, 0.3),
+    box(0.2, 0.34, 0.03, palette.suitcaseBlue, 0.3).translate(0.0, 1.5, -0.3),
+    // One garment dropped, half-buried in the dust.
+    box(0.3, 0.02, 0.36, palette.coupeStripe, 0.2).rotateY(0.5).translate(0.7, 0.015, 0.5),
+  ]);
+}
+
+/** A dumped tire pile: a leaning stack, one tire rolled off, one flat with its
+ *  bare hub showing. */
+function tirePileGeometry(): THREE.BufferGeometry {
+  const t = palette.wheel;
+  const tire = (r: number): THREE.BufferGeometry =>
+    paint(new THREE.CylinderGeometry(r, r, 0.24, 10), t, 0.5);
+  return merged([
+    tire(0.34).translate(0, 0.12, 0),
+    tire(0.34).rotateY(0.4).translate(0.06, 0.36, 0.04),
+    tire(0.34).rotateY(0.9).translate(-0.05, 0.6, -0.04),
+    // One leaning against the stack, one rolled clear, flat, hub bare.
+    paint(new THREE.CylinderGeometry(0.34, 0.34, 0.22, 10).rotateX(1.35), t, 0.45).translate(
+      0.62,
+      0.34,
+      0.28,
+    ),
+    tire(0.34).translate(-0.78, 0.12, 0.42),
+    paint(new THREE.CylinderGeometry(0.13, 0.13, 0.26, 8), palette.wheelHub, 0.3).translate(
+      -0.78,
+      0.12,
+      0.42,
+    ),
+  ]);
+}
+
+/** An abandoned camp: the cold fire ring, charred stick ends, the tent collapsed
+ *  onto its one standing pole, a crate and a dropped pot — they moved on. */
+function campGeometry(): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [
+    // The scorched centre of the ring.
+    box(0.44, 0.025, 0.44, palette.groundScorch, 0).rotateY(0.4).translate(0, 0.015, 0),
+    box(0.05, 0.05, 0.5, palette.wreckScorch, 0.3).rotateY(0.5).translate(0.1, 0.05, 0),
+    box(0.05, 0.05, 0.4, palette.wreckScorch, 0.3).rotateY(-0.7).translate(-0.1, 0.05, 0.1),
+    // The tent, collapsed onto its last pole: two canvas slabs draped to ground.
+    paint(
+      new THREE.BoxGeometry(1.3, 0.04, 0.9).rotateZ(0.5).rotateY(0.2).translate(-0.95, 0.3, -0.5),
+      palette.tentCanvas,
+      0.35,
+    ),
+    paint(
+      new THREE.BoxGeometry(1.3, 0.04, 0.8).rotateZ(-0.35).rotateY(0.2).translate(-1.2, 0.2, -0.4),
+      palette.tentCanvas,
+      0.4,
+    ),
+    box(0.06, 0.55, 0.06, palette.pineTrunk, 0.4).rotateZ(0.25).translate(-0.55, 0.28, -0.5),
+    // A supply crate and the pot dropped beside the ring.
+    box(0.3, 0.24, 0.26, palette.husk, 0.45).rotateY(0.6).translate(0.7, 0.12, -0.3),
+    paint(
+      new THREE.CylinderGeometry(0.1, 0.12, 0.12, 8).rotateZ(1.3).translate(0.5, 0.06, 0.38),
+      palette.carChrome,
+      0.4,
+    ),
+  ];
+  // The ring of fire stones.
+  for (let i = 0; i < 5; i += 1) {
+    const a = (i / 5) * Math.PI * 2;
+    parts.push(
+      rockChunk(0.12, 0.7, 0.6, palette.rock, 0.45).translate(Math.cos(a) * 0.42, 0.06, Math.sin(a) * 0.42),
+    );
+  }
+  return merged(parts);
+}
+
+/** A dead caravan on blocks: rounded shell, faded stripe, curtained window, tow
+ *  bar nose-down — the holiday that never left the drive. */
+function camperHuskGeometry(): THREE.BufferGeometry {
+  const b = palette.camperBody;
+  return merged([
+    box(1.7, 1.5, 3.2, b, 0.5).translate(0, 1.05, 0),
+    box(1.5, 0.14, 3.0, palette.barrierPaint, 0.35).translate(0, 1.85, 0), // pale roof cap
+    // Chamfered shoulders so the shell reads rounded, not a crate.
+    paint(new THREE.BoxGeometry(1.7, 0.5, 0.5).rotateX(0.6).translate(0, 1.62, 1.5), b, 0.45),
+    paint(new THREE.BoxGeometry(1.7, 0.5, 0.5).rotateX(-0.6).translate(0, 1.62, -1.5), b, 0.45),
+    // The faded livery stripe along each flank.
+    box(0.03, 0.2, 3.1, palette.camperStripe, 0.35).translate(-0.86, 1.1, 0),
+    box(0.03, 0.2, 3.1, palette.camperStripe, 0.35).translate(0.86, 1.1, 0),
+    // Curtained window and the door.
+    box(0.03, 0.5, 0.8, palette.huskGlass, 0.3).translate(-0.865, 1.4, 0.5),
+    box(0.03, 0.45, 0.38, palette.coupeStripe, 0.3).translate(-0.875, 1.38, 0.66),
+    box(0.04, 1.0, 0.55, palette.huskDoor, 0.4).translate(0.86, 0.95, -0.6),
+    // Roof vent, tow bar and jockey wheel, nose dipped.
+    box(0.4, 0.1, 0.4, palette.postCollar, 0.35).translate(0.2, 1.94, -0.5),
+    box(0.08, 0.08, 0.9, palette.railPost, 0.35).rotateX(0.12).translate(0, 0.48, 2.0),
+    box(0.06, 0.4, 0.06, palette.railPost, 0.35).translate(0.15, 0.28, 1.9),
+    // One wheel left; the other corner propped on a concrete block.
+    wheel(0.3, 0.22, palette.wheel).translate(-0.8, 0.3, -0.2),
+    box(0.4, 0.3, 0.3, palette.barrierCore, 0.4).translate(0.8, 0.15, -0.2),
+    // Rust bleeding down from a window seam.
+    box(0.03, 0.5, 0.28, palette.wreckRust, 0.35).translate(-0.86, 0.75, -1.0),
+  ]);
 }
 
 /** A toppled concrete barrier shattered to its core, with broken chunks and a
@@ -419,11 +620,12 @@ function taxiHuskGeometry(): THREE.BufferGeometry {
     box(0.04, 0.14, 2.7, palette.huskDoor, 0.35).translate(-0.9, 0.6, -0.1),
     box(0.04, 0.14, 2.7, palette.huskDoor, 0.35).translate(0.9, 0.6, -0.1),
   ];
-  // The checker band: alternating pale squares over the rail, both flanks.
+  // The checker band: alternating pale squares clearly proud of the rail (a
+  // real offset, never a coplanar face that would shimmer at distance).
   for (let i = 0; i < 5; i += 1) {
     const pz = -1.15 + i * 0.55;
-    parts.push(box(0.045, 0.13, 0.26, t, 0.3).translate(-0.9, 0.6, pz));
-    parts.push(box(0.045, 0.13, 0.26, t, 0.3).translate(0.9, 0.6, pz));
+    parts.push(box(0.06, 0.13, 0.26, t, 0.3).translate(-0.9, 0.6, pz));
+    parts.push(box(0.06, 0.13, 0.26, t, 0.3).translate(0.9, 0.6, pz));
   }
   return merged(parts);
 }
@@ -654,6 +856,148 @@ function coneClusterGeometry(): THREE.BufferGeometry {
     // The snapped cordon tape trailing between them.
     box(0.5, 0.015, 0.05, band, 0.2).rotateY(0.4).translate(0.25, 0.02, -0.05),
     box(0.4, 0.015, 0.05, band, 0.2).rotateY(-0.6).translate(-0.25, 0.02, 0.25),
+  ]);
+}
+
+// Deep-act dressing (IV Visitors / V Colossus / VI Static). With the compressed
+// pacing these acts arrive in minutes, so they carry variant libraries too.
+
+/** An alien survey beacon: tripod legs, a stem, and a dim glowing node — planted
+ *  at the verge by whoever is up there (Visitors). Glow kept dim, never a token. */
+function beaconGeometry(): THREE.BufferGeometry {
+  const body = palette.crystalBody;
+  const glow = palette.ufoBeam;
+  return merged([
+    paint(new THREE.BoxGeometry(0.1, 1.6, 0.1).rotateZ(0.35).translate(-0.55, 0.75, 0), body, 0.45),
+    paint(new THREE.BoxGeometry(0.1, 1.6, 0.1).rotateZ(-0.35).translate(0.55, 0.75, 0), body, 0.45),
+    paint(new THREE.BoxGeometry(0.1, 1.6, 0.1).rotateX(0.35).translate(0, 0.75, -0.55), body, 0.45),
+    paint(new THREE.CylinderGeometry(0.09, 0.13, 1.4, 6), body, 0.4).translate(0, 2.0, 0),
+    // The node: a faceted head with a dim lit seam ringing it.
+    rockChunk(0.26, 1.0, 0.4, body, 0.35).translate(0, 2.85, 0),
+    paint(new THREE.CylinderGeometry(0.2, 0.2, 0.06, 6), glow, 0.1).translate(0, 2.85, 0),
+    // A cable trailing to a spiked ground probe.
+    box(0.04, 0.04, 0.9, palette.bridgeCable, 0.3).rotateY(0.4).translate(0.5, 0.04, 0.4),
+    paint(new THREE.ConeGeometry(0.09, 0.3, 5), body, 0.35).rotateX(Math.PI).translate(0.9, 0.12, 0.7),
+  ]);
+}
+
+/** A clutch of alien pods swelling out of the dirt, one burst open, their seams
+ *  glowing faintly (Visitors). Organic domes, clearly grown, never rubble. */
+function podClusterGeometry(): THREE.BufferGeometry {
+  const body = palette.crystalBody;
+  const glow = palette.ufoBeam;
+  return merged([
+    rockChunk(0.5, 0.85, 0.3, body, 0.4).translate(0, 0.3, 0),
+    rockChunk(0.36, 0.9, 0.32, body, 0.4).rotateY(0.8).translate(0.62, 0.2, 0.3),
+    rockChunk(0.3, 0.85, 0.34, body, 0.4).rotateY(1.5).translate(-0.55, 0.17, -0.25),
+    // Glowing growth seams veining the big pod.
+    box(0.5, 0.05, 0.07, glow, 0.1).rotateY(0.4).rotateZ(0.3).translate(0.1, 0.45, 0.3),
+    box(0.4, 0.05, 0.06, glow, 0.1).rotateY(-0.6).rotateZ(-0.2).translate(-0.2, 0.4, 0.2),
+    // One pod burst open: a dark split with the glow inside, petals folded back.
+    rockChunk(0.3, 0.6, 0.4, body, 0.45).rotateY(0.3).translate(0.15, 0.12, 0.7),
+    box(0.2, 0.16, 0.2, palette.tvDark, 0.2).translate(0.15, 0.24, 0.7),
+    box(0.12, 0.08, 0.12, glow, 0.1).translate(0.15, 0.3, 0.7),
+  ]);
+}
+
+/** The concrete slab half-melted by something's passing: sagged layers drooping
+ *  off it, the cut edge still faintly hot (Visitors). */
+function meltSlabGeometry(): THREE.BufferGeometry {
+  const c = palette.barrier;
+  const core = palette.barrierCore;
+  return merged([
+    box(1.8, 0.55, 0.7, c, 0.5).rotateZ(0.28).translate(0, 0.35, 0),
+    // The melted end sagging into layered drips.
+    paint(new THREE.BoxGeometry(0.7, 0.3, 0.66).rotateZ(0.6).translate(0.95, 0.28, 0), core, 0.45),
+    paint(new THREE.BoxGeometry(0.5, 0.2, 0.6).rotateZ(0.9).translate(1.25, 0.12, 0.02), core, 0.4),
+    rockChunk(0.28, 0.4, 0.4, core, 0.4).translate(1.5, 0.08, 0.05),
+    // The cut line, faintly hot where it was sheared.
+    box(0.06, 0.5, 0.68, palette.emberVein, 0.1).rotateZ(0.28).translate(0.78, 0.42, 0),
+    rockChunk(0.2, 0.6, 0.7, c, 0.45).rotateY(0.6).translate(-0.9, 0.1, 0.35),
+  ]);
+}
+
+/** A car stomped flat into its own footprint: pressed body, splayed wheels, the
+ *  crater rim shoved up around it (Colossus). */
+function stompedHuskGeometry(): THREE.BufferGeometry {
+  return merged([
+    // The pressed footprint pan and its shoved-up rim.
+    box(2.6, 0.05, 3.6, palette.footprint, 0).translate(0, 0.03, 0),
+    rockChunk(0.3, 0.5, 0.6, palette.rock, 0.5).rotateY(0.4).translate(-1.5, 0.1, 1.2),
+    rockChunk(0.26, 0.5, 0.6, palette.rockDark, 0.5).rotateY(1.1).translate(1.45, 0.09, -1.0),
+    rockChunk(0.22, 0.5, 0.6, palette.rock, 0.45).rotateY(0.8).translate(0.3, 0.08, 1.7),
+    // The car, pancaked: body pressed to a hand's height, roof rippled.
+    box(1.7, 0.22, 3.2, palette.husk, 0.45).translate(0, 0.14, 0),
+    paint(new THREE.BoxGeometry(1.5, 0.12, 1.3).rotateZ(0.05).translate(0, 0.27, -0.2), palette.huskDoor, 0.4),
+    box(1.2, 0.08, 0.7, palette.wreckScorch, 0.25).translate(0.1, 0.28, 0.9),
+    // Wheels burst outward flat, and a door blown clear.
+    paint(new THREE.CylinderGeometry(0.3, 0.3, 0.16, 9).rotateZ(1.5).rotateY(0.7), palette.wheel, 0.4).translate(1.15, 0.09, 1.1),
+    paint(new THREE.CylinderGeometry(0.3, 0.3, 0.16, 9).rotateZ(1.5).rotateY(-0.5), palette.wheel, 0.4).translate(-1.2, 0.09, -0.8),
+    box(0.9, 0.05, 0.5, palette.huskDoor, 0.35).rotateY(0.6).translate(-1.3, 0.05, 0.9),
+    // Glass sprayed out of the pressed cabin.
+    box(0.5, 0.02, 0.4, palette.glassShatter, 0.15).rotateY(0.3).translate(1.0, 0.055, -0.5),
+    box(0.4, 0.02, 0.3, palette.glassShatter, 0.15).rotateY(-0.7).translate(-0.9, 0.055, -1.3),
+  ]);
+}
+
+/** A colossal rib pair arching out of the dirt — something giant died here long
+ *  before you drove past (Colossus). Bleached bone in three-segment arcs. */
+function giantRibGeometry(): THREE.BufferGeometry {
+  const bone = palette.zombieBone;
+  const rib = (xo: number, zo: number, s: number, yaw: number): THREE.BufferGeometry[] => {
+    const parts = [
+      paint(new THREE.BoxGeometry(0.3 * s, 2.2 * s, 0.45 * s).rotateZ(0.5).translate(-0.7 * s, 0.9 * s, 0), bone, 0.4),
+      paint(new THREE.BoxGeometry(0.26 * s, 1.8 * s, 0.4 * s).rotateZ(1.0).translate(0.35 * s, 1.9 * s, 0), bone, 0.35),
+      paint(new THREE.BoxGeometry(0.22 * s, 1.4 * s, 0.34 * s).rotateZ(1.4).translate(1.5 * s, 2.3 * s, 0), bone, 0.3),
+    ];
+    return parts.map((p) => p.rotateY(yaw).translate(xo, 0, zo));
+  };
+  return merged([
+    ...rib(0, 0, 1, 0.15),
+    ...rib(0.3, 1.4, 0.8, 0.05),
+    // A snapped vertebra and a half-buried plate of bone at the root.
+    rockChunk(0.35, 0.7, 0.5, bone, 0.35).translate(-1.1, 0.14, 0.7),
+    box(0.9, 0.14, 0.6, bone, 0.3).rotateY(0.5).translate(0.6, 0.05, -0.6),
+    // Dirt heaped where the ribs erupt.
+    rockChunk(0.5, 0.35, 0.3, palette.groundSand, 0.4).translate(-0.7, 0.06, 0.1),
+  ]);
+}
+
+/** A husk coming apart in sliced, laterally displaced bands — reality is
+ *  de-rendering it (Static). The slices never touch: the gaps are the read. */
+function glitchHuskGeometry(): THREE.BufferGeometry {
+  const a = palette.spireBase;
+  const b = palette.spireHaze;
+  return merged([
+    // Three slices of a car body, each shifted off the true line.
+    box(1.6, 0.75, 1.0, a, 0.4).translate(-0.3, 0.4, 1.15),
+    box(1.6, 0.85, 1.0, b, 0.35).translate(0.25, 0.45, 0),
+    box(1.6, 0.7, 1.0, a, 0.4).translate(-0.15, 0.38, -1.15),
+    // A cabin slice hovering a hand above where it should sit.
+    box(1.2, 0.4, 0.9, b, 0.3).translate(0.1, 1.15, -0.1),
+    // Fragments drifting off the corpse, frozen mid-dissolve.
+    box(0.24, 0.24, 0.24, a, 0.3).translate(1.3, 0.9, 0.5),
+    box(0.18, 0.18, 0.18, b, 0.3).translate(-1.2, 1.2, -0.4),
+    box(0.14, 0.14, 0.14, a, 0.3).translate(0.9, 1.5, -0.8),
+    // One wheel left behind, perfectly intact — the joke of it.
+    wheel(0.32, 0.24, palette.wheel).translate(-1.4, 0.32, 0.9),
+  ]);
+}
+
+/** A pillar of displaced fragments where a pole used to be: stacked shards with
+ *  clean gaps between, frozen mid-glitch (Static). */
+function glitchPillarGeometry(): THREE.BufferGeometry {
+  const a = palette.spireBase;
+  const b = palette.spireHaze;
+  return merged([
+    box(0.4, 0.9, 0.4, a, 0.45).translate(0, 0.45, 0),
+    box(0.36, 0.7, 0.36, b, 0.4).translate(0.18, 1.55, -0.08),
+    box(0.32, 0.8, 0.32, a, 0.4).translate(-0.12, 2.5, 0.1),
+    box(0.26, 0.6, 0.26, b, 0.35).translate(0.08, 3.4, -0.05),
+    // Small shards orbiting the break lines.
+    box(0.12, 0.12, 0.12, b, 0.3).translate(0.45, 1.1, 0.2),
+    box(0.1, 0.1, 0.1, a, 0.3).translate(-0.4, 2.05, -0.15),
+    box(0.09, 0.09, 0.09, b, 0.3).translate(0.35, 3.0, 0.15),
   ]);
 }
 
@@ -1007,7 +1351,20 @@ type DecorKind =
   | 'hydrant'
   | 'utilitybox'
   | 'scaffold'
-  | 'conecluster';
+  | 'conecluster'
+  | 'mailbox'
+  | 'swingset'
+  | 'clothesline'
+  | 'tirepile'
+  | 'camp'
+  | 'camperhusk'
+  | 'beacon'
+  | 'podcluster'
+  | 'meltslab'
+  | 'stompedhusk'
+  | 'giantrib'
+  | 'glitchhusk'
+  | 'glitchpillar';
 
 const GEOMETRY: Record<DecorKind, () => THREE.BufferGeometry> = {
   streetlight: postGeometry,
@@ -1051,6 +1408,19 @@ const GEOMETRY: Record<DecorKind, () => THREE.BufferGeometry> = {
   utilitybox: utilityBoxGeometry,
   scaffold: scaffoldGeometry,
   conecluster: coneClusterGeometry,
+  mailbox: mailboxGeometry,
+  swingset: swingSetGeometry,
+  clothesline: clotheslineGeometry,
+  tirepile: tirePileGeometry,
+  camp: campGeometry,
+  camperhusk: camperHuskGeometry,
+  beacon: beaconGeometry,
+  podcluster: podClusterGeometry,
+  meltslab: meltSlabGeometry,
+  stompedhusk: stompedHuskGeometry,
+  giantrib: giantRibGeometry,
+  glitchhusk: glitchHuskGeometry,
+  glitchpillar: glitchPillarGeometry,
 };
 
 const KINDS = Object.keys(GEOMETRY) as DecorKind[];
@@ -1069,37 +1439,37 @@ const ACT_DECOR: Record<PropKind, readonly (readonly DecorKind[])[]> = {
   post: [
     // I — the working street grid, one piece in six a fallen pole or scaffold bay.
     ['streetlight', 'streetlight', 'trafficlight', 'streetlight', 'trafficlight', 'snappedpole', 'scaffold'],
-    ['deadtree'], // II
+    ['deadtree', 'deadtree', 'clothesline', 'swingset', 'deadtree'], // II — the yards they left
     ['streetlight', 'snappedpole', 'scaffold'], // III — the overrun outskirts, half the grid down
-    ['crystalspur'], // IV
+    ['crystalspur', 'crystalspur', 'beacon'], // IV — the survey the invaders left
     ['rebar'], // V
-    ['rebar'], // VI
+    ['rebar', 'glitchpillar'], // VI — the grid de-rendering
   ],
   barrier: [
     // I — kerbside furniture: barriers, dumpsters, shelters, hydrants, cabinets,
     // and the quarantine sandbags.
     ['barrier', 'dumpster', 'barrier', 'busstop', 'sandbags', 'dumpster', 'hydrant', 'utilitybox'],
-    ['fence'], // II
+    ['fence', 'fence', 'mailbox', 'tirepile'], // II — garden lines and kerb junk
     ['barrier', 'sandbags', 'utilitybox'], // III — the quarantine line, already failed
-    ['slab'], // IV
-    ['slab'], // V
-    ['slab'], // VI
+    ['slab', 'meltslab'], // IV — sheared by something's passing
+    ['slab', 'stompedhusk'], // V — pressed flat by the giants
+    ['slab', 'glitchpillar'], // VI
   ],
   husk: [
     ['husk', 'taxihusk', 'husk', 'policehusk', 'taxihusk'], // I
-    ['husk'], // II
+    ['husk', 'camperhusk', 'husk'], // II — the caravan that never left the drive
     ['husk', 'policehusk'], // III
     ['husk'], // IV
-    ['husk'], // V
-    ['husk'], // VI
+    ['husk', 'stompedhusk'], // V — some of the traffic met a foot
+    ['husk', 'glitchhusk'], // VI — some of it is de-rendering
   ],
   rock: [
     ['rubble', 'trashpile', 'cartcluster', 'rubble', 'trashpile', 'conecluster'], // I
-    ['rock'], // II
+    ['rock', 'camp', 'tirepile', 'rock'], // II — dead camps and dumped junk
     ['rubble', 'trashpile', 'conecluster'], // III
-    ['crystalcluster'], // IV
-    ['rubble'], // V
-    ['shardcluster'], // VI
+    ['crystalcluster', 'crystalcluster', 'podcluster'], // IV — the growth spreading
+    ['rubble', 'giantrib', 'rubble'], // V — something giant died here too
+    ['shardcluster', 'shardcluster', 'glitchhusk'], // VI
   ],
 };
 

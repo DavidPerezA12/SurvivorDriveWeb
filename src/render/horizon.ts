@@ -59,7 +59,15 @@ type SilKind =
   | 'huskWreck'
   | 'barrels'
   | 'container'
-  | 'crystal';
+  | 'crystal'
+  | 'storefront'
+  | 'rowhouses'
+  | 'gasstation'
+  | 'parkinggarage'
+  | 'cranetower'
+  | 'barn'
+  | 'windmill'
+  | 'motel';
 
 const KINDS: readonly SilKind[] = [
   'mesa',
@@ -92,11 +100,19 @@ const KINDS: readonly SilKind[] = [
   'barrels',
   'container',
   'crystal',
+  'storefront',
+  'rowhouses',
+  'gasstation',
+  'parkinggarage',
+  'cranetower',
+  'barn',
+  'windmill',
+  'motel',
 ];
 
 /** Per-kind instance capacity — comfortably above the slots routed to one kind
  *  (a kind like `rubble` can be drawn by the near and mid bands at once). */
-const CAP = 48;
+const CAP = 72;
 /** Hover bob radians per second, for flyers. */
 const BOB_SPEED = 1.1;
 
@@ -145,6 +161,14 @@ const KIND_META: Record<SilKind, KindMeta> = {
   barrels: GROUNDED,
   container: STRETCH,
   crystal: GROUNDED,
+  storefront: STRETCH,
+  rowhouses: STRETCH,
+  gasstation: GROUNDED, // the canopy/totem proportions are the read
+  parkinggarage: STRETCH,
+  cranetower: GROUNDED, // the crane's jib balance would shear badly
+  barn: STRETCH,
+  windmill: GROUNDED, // the rotor must stay round
+  motel: STRETCH,
 };
 
 /** A placement band: where slots sit, independent of which kind fills them. */
@@ -175,7 +199,7 @@ const FAR: Band = {
   scaleMax: 1.32,
   // Dense skyline: it's far enough off the sightline (xMin 75) that packing it in
   // fills the horizon without any building landing on the road.
-  skip: 0.16,
+  skip: 0.1,
   jitterZ: 22,
   lean: 0,
   salt: 0,
@@ -188,7 +212,7 @@ const MID: Band = {
   xMax: 55,
   scaleMin: 0.8,
   scaleMax: 1.3,
-  skip: 0.3, // denser mid-ground so the band to the skyline isn't bare
+  skip: 0.2, // denser mid-ground so the band to the skyline isn't bare
   jitterZ: 10,
   lean: 0.18,
   salt: 1000,
@@ -203,7 +227,7 @@ const NEAR: Band = {
   xMax: 24,
   scaleMin: 0.65,
   scaleMax: 1.15,
-  skip: 0.22, // crowd the shoulder so the roadside never reads bare
+  skip: 0.13, // crowd the shoulder so the roadside never reads bare
   jitterZ: 5,
   lean: 0.28,
   salt: 3000,
@@ -217,7 +241,7 @@ const ACCENT: Band = {
   xMax: 155,
   scaleMin: 0.95,
   scaleMax: 1.34,
-  skip: 0.5, // a few more standout towers/landmarks on the skyline
+  skip: 0.4, // a few more standout towers/landmarks on the skyline
   jitterZ: 30,
   lean: 0.1,
   salt: 2000,
@@ -232,25 +256,25 @@ const ACT_SILHOUETTES: Record<Role, readonly SilKind[]>[] = [
   // water tanks rises close behind (their lit windows read as "power's still on"),
   // and the first stalled cars and toppled drums litter the near band.
   {
-    near: ['huskWreck', 'debris', 'barrels', 'container', 'scrub'],
-    mid: ['house', 'house2', 'lowrise', 'billboard', 'container'],
-    far: ['cityBlock', 'cityBlock2', 'lowrise', 'watertower', 'billboard'],
-    accent: ['skyscraper', 'skyscraper2', 'cityBlock2', 'watertower', 'billboard'],
+    near: ['huskWreck', 'debris', 'barrels', 'container', 'scrub', 'gasstation'],
+    mid: ['house', 'house2', 'lowrise', 'billboard', 'container', 'storefront', 'rowhouses', 'gasstation'],
+    far: ['cityBlock', 'cityBlock2', 'lowrise', 'watertower', 'billboard', 'parkinggarage', 'storefront'],
+    accent: ['skyscraper', 'skyscraper2', 'cityBlock2', 'watertower', 'cranetower', 'billboard'],
   },
   // II Rust — wasteland suburbia: dead trees, abandoned houses, a water tower,
   // mesas and distant mountains.
   {
     near: ['scrub', 'debris', 'snag', 'huskWreck', 'barrels'],
-    mid: ['snag', 'rubble', 'house', 'house2', 'huskWreck'],
-    far: ['mesa', 'mesa2', 'house', 'house2', 'mountain', 'watertower'],
-    accent: ['pylon', 'mountain', 'watertower'],
+    mid: ['snag', 'rubble', 'house', 'house2', 'huskWreck', 'barn', 'motel'],
+    far: ['mesa', 'mesa2', 'house', 'house2', 'mountain', 'watertower', 'barn', 'windmill', 'motel'],
+    accent: ['pylon', 'mountain', 'watertower', 'windmill'],
   },
   // III Swarm — city outskirts: warehouses, silos, low blocks, highway billboards,
   // dumped containers and drums along the shoulder.
   {
     near: ['debris', 'rubble', 'huskWreck', 'barrels', 'container'],
-    mid: ['snag', 'rubble', 'billboard', 'house2', 'container'],
-    far: ['warehouse', 'warehouse2', 'lowrise', 'cityBlock', 'billboard', 'watertower'],
+    mid: ['snag', 'rubble', 'billboard', 'house2', 'container', 'storefront', 'gasstation'],
+    far: ['warehouse', 'warehouse2', 'lowrise', 'cityBlock', 'billboard', 'watertower', 'parkinggarage'],
     accent: ['pylon', 'cityBlock', 'cityBlock2', 'billboard'],
   },
   // IV Visitors — downtown canyons under an invasion sky, wrecks and alien
@@ -552,6 +576,12 @@ function lowriseGeometry(): THREE.BufferGeometry {
       plainBox(11, 12, 10).translate(6.5, 6, -2),
       plainBox(10, 21, 9).translate(-6.0, 10.5, 2),
       plainBox(8, 14, 8).translate(2.5, 7, 4),
+      // Parapet lip, rooftop AC plant, and a whip antenna on the tall block.
+      plainBox(14.4, 0.7, 0.3).translate(0, 16.3, 6.05),
+      plainBox(1.8, 1.3, 1.8).translate(-2, 16.9, -2),
+      plainBox(1.4, 1.1, 1.4).translate(3.5, 16.7, 2),
+      plainCyl(0.3, 0.3, 1.8, 6).translate(1, 16.9, -4),
+      plainBox(0.2, 6, 0.2).translate(-6, 24, 2),
     ],
     [
       ...winSlits(14, 16, 0, 8, 6.05, 4),
@@ -578,21 +608,32 @@ function spireGeometry(): THREE.BufferGeometry {
   );
 }
 
-/** A suburban ranch house with a pitched roof and a chimney. */
+/** A suburban ranch house with a pitched roof, a chimney, a porch, and dark
+ *  window recesses — nobody home. */
 function houseGeometry(): THREE.BufferGeometry {
-  return gradient(
+  const shell = gradient(
     [
       plainBox(8, 4, 6).translate(0, 2, 0),
       plainBox(8.4, 0.3, 6.4).translate(0, 4, 0), // eaves
       plainBox(4.6, 0.4, 6.6).rotateZ(0.5).translate(-2, 5, 0), // roof slopes
       plainBox(4.6, 0.4, 6.6).rotateZ(-0.5).translate(2, 5, 0),
       plainBox(0.9, 2, 0.9).translate(2.6, 5.4, -1.6), // chimney
-      plainBox(2, 2.4, 0.3).translate(0, 1.2, 3.05), // door
+      // The porch: a shallow roof on two posts over the door.
+      plainBox(3, 0.25, 1.6).rotateX(0.25).translate(-1.5, 3.3, 3.7),
+      plainBox(0.25, 2.8, 0.25).translate(-2.6, 1.4, 4.3),
+      plainBox(0.25, 2.8, 0.25).translate(-0.4, 1.4, 4.3),
     ],
     palette.structureBase,
     palette.structureHaze,
     6,
   );
+  return assemble([
+    shell,
+    // Dark door and window recesses — proud of the face so they read at range.
+    box(1.6, 2.4, 0.35, palette.huskGlass, 0.2).translate(-1.5, 1.2, 3.0),
+    box(1.8, 1.3, 0.35, palette.huskGlass, 0.2).translate(2.2, 2.2, 3.0),
+    box(1.2, 1.1, 0.35, palette.huskGlass, 0.2).translate(-3.2, 2.3, -3.0),
+  ]);
 }
 
 /** A water tower on splayed legs with a conical cap. */
@@ -602,18 +643,26 @@ function watertowerGeometry(): THREE.BufferGeometry {
     plainCone(3.6, 2, 12).translate(0, 16, 0), // conical roof
     plainBox(0.4, 3, 0.4).translate(0, 17.5, 0), // finial
     plainCyl(2.6, 3.0, 1.2, 12).translate(0, 10.2, 0), // tapered base of tank
+    // Riveted hoops banding the tank.
+    plainCyl(3.42, 3.42, 0.2, 12).translate(0, 11.6, 0),
+    plainCyl(3.28, 3.28, 0.2, 12).translate(0, 13.9, 0),
   ];
   for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) {
     parts.push(plainBox(0.5, 11, 0.5).rotateZ(sx * 0.07).rotateX(sz * 0.07).translate(sx * 2.2, 5.5, sz * 2.2));
   }
   parts.push(plainBox(5.5, 0.3, 0.3).translate(0, 6, -2.2)); // cross braces
   parts.push(plainBox(5.5, 0.3, 0.3).translate(0, 6, 2.2));
+  // The access ladder up a leg to the tank walk.
+  parts.push(plainBox(0.12, 9.5, 0.12).translate(3.35, 6.2, 0.3));
+  parts.push(plainBox(0.12, 9.5, 0.12).translate(3.35, 6.2, -0.3));
+  for (const py of [3, 5, 7, 9] as const) parts.push(plainBox(0.1, 0.1, 0.7).translate(3.35, py, 0));
   return gradient(parts, palette.ridgeBase, palette.ridgeHaze, 18);
 }
 
-/** A highway billboard: two legs, a braced frame, a big blank panel. */
+/** A highway billboard: legs, braced frame, catwalk and lamp hoods — its poster
+ *  half torn away, one sheet peeled and hanging. */
 function billboardGeometry(): THREE.BufferGeometry {
-  return gradient(
+  const frame = gradient(
     [
       plainBox(0.5, 8, 0.5).translate(-3.5, 4, 0),
       plainBox(0.5, 8, 0.5).translate(3.5, 4, 0),
@@ -622,11 +671,29 @@ function billboardGeometry(): THREE.BufferGeometry {
       plainBox(10, 4, 0.4).translate(0, 8.6, 0), // panel
       plainBox(10.6, 0.4, 0.5).translate(0, 10.7, 0), // top trim
       plainBox(10.6, 0.4, 0.5).translate(0, 6.5, 0), // bottom trim
+      plainBox(9.5, 0.15, 0.9).translate(0, 6.3, 0.5), // maintenance catwalk
+      plainBox(0.15, 1.6, 0.15).translate(-4.6, 7.1, 0.5), // catwalk rail posts
+      plainBox(0.15, 1.6, 0.15).translate(4.6, 7.1, 0.5),
+      plainBox(9.4, 0.12, 0.12).translate(0, 7.8, 0.5),
+      // Lamp hoods craned over the top edge, long dead.
+      plainBox(0.7, 0.3, 0.9).rotateX(0.5).translate(-2.5, 11.1, 0.35),
+      plainBox(0.7, 0.3, 0.9).rotateX(0.5).translate(2.5, 11.1, 0.35),
     ],
     palette.structureBase,
     palette.structureHaze,
     11,
   );
+  return assemble([
+    frame,
+    // What is left of the poster: a pale sheet over half the panel, one corner
+    // peeled loose and hanging over the catwalk.
+    box(4.6, 3.2, 0.12, palette.barrierPaint, 0.15).translate(-2.4, 8.6, 0.25),
+    paint(
+      new THREE.BoxGeometry(2.2, 2.6, 0.08).rotateX(0.4).rotateZ(0.15).translate(1.6, 7.4, 0.55),
+      palette.barrierPaint,
+      0.3,
+    ),
+  ]);
 }
 
 /** A crashed saucer, half-buried and tilted, its ring still flickering. */
@@ -960,17 +1027,239 @@ function barrelsGeometry(): THREE.BufferGeometry {
   ]);
 }
 
-/** Shipping containers, one stacked askew on another. */
+/** Shipping containers, one stacked askew on another: corner posts break the
+ *  clean box read, one door dropped flat in the dirt. */
 function containerGeometry(): THREE.BufferGeometry {
   return gradient(
     [
       plainBox(2.6, 2.6, 6.0).translate(0, 1.3, 0),
       plainBox(2.5, 2.5, 5.8).rotateY(0.18).translate(0.6, 3.9, 0.8), // stacked, shifted
+      // Proud corner posts on the lower box.
+      plainBox(0.3, 2.7, 0.3).translate(1.25, 1.35, 2.9),
+      plainBox(0.3, 2.7, 0.3).translate(-1.25, 1.35, 2.9),
+      plainBox(0.3, 2.7, 0.3).translate(1.25, 1.35, -2.9),
+      // A door torn off, lying flat against the base.
+      plainBox(1.2, 0.12, 2.4).rotateY(0.5).translate(2.2, 0.06, 1.8),
+      // Lock bars proud of the end face.
+      plainBox(0.12, 2.4, 0.12).translate(0.5, 1.3, 3.05),
+      plainBox(0.12, 2.4, 0.12).translate(-0.5, 1.3, 3.05),
     ],
     palette.containerBase,
     palette.containerHaze,
     6.4,
   );
+}
+
+// Act II suburbia silhouettes: the Rust act's dead farmland edge. No lit windows
+// out here — the power went with the people.
+
+/** A gambrel barn with one roof panel caved in, its silo alongside, the big
+ *  doors ajar. */
+function barnGeometry(): THREE.BufferGeometry {
+  return gradient(
+    [
+      plainBox(10, 6, 8).translate(0, 3, 0),
+      // Gambrel roof: steep lower panels, shallow upper — one upper panel caved.
+      plainBox(3.4, 0.4, 8.4).rotateZ(0.95).translate(-4.2, 7.2, 0),
+      plainBox(3.4, 0.4, 8.4).rotateZ(-0.95).translate(4.2, 7.2, 0),
+      plainBox(3.4, 0.4, 8.4).rotateZ(0.35).translate(-1.6, 8.7, 0),
+      plainBox(3.4, 0.4, 8.0).rotateZ(-0.12).translate(1.5, 7.9, 0), // dropped panel
+      // The grain silo alongside.
+      plainCyl(1.6, 1.6, 9, 10).translate(7.5, 4.5, -1),
+      plainCone(1.8, 1.4, 10).translate(7.5, 9.7, -1),
+      // Big doors ajar and the hay-loft opening above them.
+      plainBox(2.4, 3.6, 0.3).rotateY(0.3).translate(-1, 1.8, 4.2),
+      plainBox(1.6, 1.4, 0.3).translate(0, 5.4, 4.05),
+    ],
+    palette.ridgeBase,
+    palette.ridgeHaze,
+    10,
+  );
+}
+
+/** A farm windpump: pinched lattice tower, multi-blade rotor and tail vane, one
+ *  blade snapped off at the base. */
+function windmillGeometry(): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [];
+  // Four legs pinching toward the head, with two girt rings.
+  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) {
+    parts.push(
+      plainBox(0.24, 12, 0.24)
+        .rotateZ(-sx * 0.075)
+        .rotateX(sz * 0.075)
+        .translate(sx * 0.95, 6, sz * 0.95),
+    );
+  }
+  parts.push(plainBox(2.4, 0.2, 0.2).translate(0, 4, 1.15));
+  parts.push(plainBox(2.4, 0.2, 0.2).translate(0, 4, -1.15));
+  parts.push(plainBox(0.2, 0.2, 2.4).translate(-1.15, 8, 0));
+  parts.push(plainBox(0.2, 0.2, 2.4).translate(1.15, 8, 0));
+  // The head: hub and the blade ring (one blade missing), plus the tail vane.
+  parts.push(plainBox(0.6, 0.6, 0.7).translate(0, 12.4, 0.3));
+  for (let i = 0; i < 7; i += 1) {
+    const a = (i / 8) * TWO_PI;
+    const blade = plainBox(0.42, 2.2, 0.08).translate(0, 1.35, 0);
+    blade.rotateZ(a);
+    blade.translate(0, 12.4, 0.62);
+    parts.push(blade);
+  }
+  parts.push(plainBox(2.4, 0.9, 0.12).rotateY(0.25).translate(1.5, 12.4, -0.5)); // tail vane
+  // The snapped-off blade dead in the dirt below.
+  parts.push(plainBox(0.42, 2.0, 0.08).rotateX(1.5).rotateY(0.5).translate(1.0, 0.08, 1.4));
+  return gradient(parts, palette.snagBase, palette.snagHaze, 14);
+}
+
+/** A roadside motel: the room strip under its walkway canopy, the office block,
+ *  and the tall highway sign — its face blank, its neon long dead. */
+function motelGeometry(): THREE.BufferGeometry {
+  const shell = gradient(
+    [
+      plainBox(18, 4.5, 7).translate(0, 2.25, 0), // room strip
+      plainBox(18.4, 0.5, 7.6).translate(0, 4.75, 0), // flat roof lip
+      plainBox(18, 0.3, 1.8).translate(0, 3.4, 4.2), // walkway canopy
+      plainBox(0.22, 3.4, 0.22).translate(-7.5, 1.7, 4.9),
+      plainBox(0.22, 3.4, 0.22).translate(-3.75, 1.7, 4.9),
+      plainBox(0.22, 3.4, 0.22).translate(0, 1.7, 4.9),
+      plainBox(0.22, 3.4, 0.22).translate(3.75, 1.7, 4.9),
+      plainBox(0.22, 3.4, 0.22).translate(7.5, 1.7, 4.9),
+      plainBox(5, 6, 6).translate(11, 3, -0.5), // office block
+      // The highway sign: pole, main panel, the smaller VACANCY tab.
+      plainBox(0.5, 9, 0.5).translate(-11.5, 4.5, 2),
+      plainBox(4.2, 3.2, 0.5).translate(-11.5, 10, 2),
+      plainBox(2.6, 1.0, 0.55).translate(-11.5, 7.8, 2),
+    ],
+    palette.structureBase,
+    palette.structureHaze,
+    12,
+  );
+  return assemble([
+    shell,
+    // The sign faces, bleached blank — no neon left to light them.
+    box(3.6, 2.6, 0.1, palette.barrierPaint, 0.2).translate(-11.5, 10, 2.28),
+    box(2.2, 0.7, 0.1, palette.barrierPaint, 0.25).translate(-11.5, 7.8, 2.31),
+    // Dark room doors down the strip.
+    box(1.0, 2.2, 0.2, palette.huskGlass, 0.2).translate(-5.5, 1.1, 3.55),
+    box(1.0, 2.2, 0.2, palette.huskGlass, 0.2).translate(-1.5, 1.1, 3.55),
+    box(1.0, 2.2, 0.2, palette.huskGlass, 0.2).translate(2.5, 1.1, 3.55),
+    box(1.0, 2.2, 0.2, palette.huskGlass, 0.2).translate(6.5, 1.1, 3.55),
+  ]);
+}
+
+// Act I city silhouettes: the day-one skyline. Lit signage and windows read as
+// "the power is still on" — the city is dying, not dead yet.
+
+/** A commercial storefront strip: parapet block, stepped sign band still lit,
+ *  awnings over the glazing line, rooftop AC — the shopping street they fled. */
+function storefrontGeometry(): THREE.BufferGeometry {
+  const body = [
+    plainBox(16, 7, 8).translate(0, 3.5, 0),
+    plainBox(16.4, 0.8, 8.4).translate(0, 7.2, 0), // parapet cap
+    plainBox(5, 2.5, 8.2).translate(-5, 8.4, 0), // stepped sign block over the anchor unit
+    // Awnings over the glazing line, one per unit.
+    plainBox(4.6, 0.25, 1.6).rotateX(0.35).translate(-5, 3.1, 4.4),
+    plainBox(4.6, 0.25, 1.6).rotateX(0.35).translate(0.2, 3.1, 4.4),
+    plainBox(4.6, 0.25, 1.6).rotateX(0.35).translate(5.2, 3.1, 4.4),
+    // Rooftop AC units and a vent stack.
+    plainBox(1.6, 1.2, 1.6).translate(3, 8.2, -1),
+    plainBox(1.2, 1.0, 1.2).translate(6, 8.1, 1.5),
+    plainCyl(0.35, 0.35, 2.2, 6).translate(-1.5, 8.7, -2),
+    // One unit already boarded blind.
+    plainBox(3.6, 2.2, 0.3).translate(5.2, 1.6, 4.05),
+  ];
+  const lights = [
+    // The anchor unit's sign band, still burning.
+    box(4.2, 1.2, 0.25, palette.structureWin, 0).translate(-5, 8.6, 4.15),
+    ...winSlits(16, 4, 0, 2.0, 4.05, 5),
+  ];
+  return litBuilding(body, lights, palette.structureBase, palette.structureHaze, 10);
+}
+
+/** A terrace of gabled rowhouses: three party-wall units, chimneys, stoops, one
+ *  window still lit — somebody stayed. */
+function rowhousesGeometry(): THREE.BufferGeometry {
+  const body: THREE.BufferGeometry[] = [];
+  for (const px of [-5, 0, 5] as const) {
+    body.push(plainBox(5, 7, 7).translate(px, 3.5, 0));
+    body.push(plainBox(2.9, 0.35, 7.4).rotateZ(0.55).translate(px - 1.25, 7.6, 0));
+    body.push(plainBox(2.9, 0.35, 7.4).rotateZ(-0.55).translate(px + 1.25, 7.6, 0));
+    body.push(plainBox(0.7, 1.8, 0.7).translate(px + 1.6, 8.3, -1.8)); // chimney
+    body.push(plainBox(1.2, 2, 0.3).translate(px - 1, 1, 3.55)); // door
+    body.push(plainBox(2, 0.5, 1.2).translate(px - 1, 0.25, 4.2)); // stoop
+  }
+  const lights = [box(0.6, 1.0, 0.3, palette.structureWin, 0).translate(0.9, 4.6, 3.5)];
+  return litBuilding(body, lights, palette.structureBase, palette.structureHaze, 9);
+}
+
+/** A filling station: kiosk, canopy on columns over two pump islands, and the
+ *  price totem — fascia and totem still lit for nobody. */
+function gasStationGeometry(): THREE.BufferGeometry {
+  const body = [
+    plainBox(5, 3.2, 4).translate(-3.5, 1.6, -3), // kiosk at the back
+    plainBox(5.3, 0.5, 4.3).translate(-3.5, 3.35, -3),
+    plainBox(10.5, 0.7, 6.5).translate(0, 5.2, 0), // canopy
+    plainBox(0.55, 5, 0.55).translate(-2.6, 2.5, 0), // columns
+    plainBox(0.55, 5, 0.55).translate(2.6, 2.5, 0),
+    plainBox(0.9, 1.5, 0.6).translate(-1.2, 0.75, 0.8), // pumps
+    plainBox(0.9, 1.5, 0.6).translate(1.6, 0.75, 0.8),
+    plainBox(1.6, 0.3, 1.0).translate(-1.2, 0.15, 0.8), // island kerbs
+    plainBox(1.6, 0.3, 1.0).translate(1.6, 0.15, 0.8),
+    plainBox(0.5, 6.5, 0.5).translate(6.2, 3.25, 1), // price totem
+    plainBox(2.4, 2.6, 0.5).translate(6.2, 7.4, 1),
+  ];
+  const lights = [
+    box(9.8, 0.35, 0.25, palette.structureWin, 0).translate(0, 5.15, 3.3), // canopy fascia
+    box(1.9, 0.8, 0.2, palette.structureWin, 0).translate(6.2, 7.9, 1.28), // totem brand
+    box(2.6, 1.1, 0.25, palette.structureWin, 0).translate(-3.5, 2.2, -0.85), // kiosk glazing
+  ];
+  return litBuilding(body, lights, palette.structureBase, palette.structureHaze, 8.5);
+}
+
+/** A multi-storey parking garage: open deck slabs on columns (the banded
+ *  silhouette), a stair core past the roof, cars abandoned on the top deck. */
+function parkingGarageGeometry(): THREE.BufferGeometry {
+  const body: THREE.BufferGeometry[] = [];
+  for (let f = 0; f < 5; f += 1) body.push(plainBox(16, 0.9, 10).translate(0, 1 + f * 3, 0));
+  for (const px of [-7.4, -2.5, 2.5, 7.4] as const)
+    body.push(plainBox(0.7, 13, 0.7).translate(px, 6.5, 4.4));
+  for (const px of [-7.4, 2.5] as const) body.push(plainBox(0.7, 13, 0.7).translate(px, 6.5, -4.4));
+  body.push(plainBox(4, 16.4, 5).translate(8.5, 8.2, -2)); // stair core past the roof
+  body.push(plainBox(16.2, 0.5, 0.3).translate(0, 13.7, 5.05)); // roof parapet
+  // Cars abandoned on the top deck, mid-queue for a ramp that jammed.
+  body.push(plainBox(1.7, 0.8, 3.2).translate(-3, 13.85, 1));
+  body.push(plainBox(1.7, 0.8, 3.2).rotateY(0.4).translate(2, 13.85, -2));
+  const lights = [
+    // One deck's sodium strip still on.
+    box(6, 0.5, 0.2, palette.structureWin, 0).translate(-2, 7.6, 5.05),
+  ];
+  return litBuilding(body, lights, palette.structureBase, palette.structureHaze, 17);
+}
+
+/** A tower crane over a half-built frame: open floor slabs on corner columns,
+ *  the mast, jib and counterweight, the hook still hanging where the shift
+ *  ended. Red beacon lit. */
+function craneTowerGeometry(): THREE.BufferGeometry {
+  const body: THREE.BufferGeometry[] = [];
+  // The half-built frame: corner columns and open slabs, the top one askew.
+  for (const px of [-4, 4] as const)
+    for (const pz of [-4, 4] as const) body.push(plainBox(0.8, 26, 0.8).translate(px, 13, pz));
+  for (let f = 0; f < 5; f += 1) body.push(plainBox(9.6, 0.6, 9.6).translate(0, 3 + f * 5.5, 0));
+  body.push(plainBox(9.6, 0.6, 9.6).rotateZ(0.07).translate(0.3, 27.5, 0));
+  // The crane: mast, cab, jib + counter-jib, counterweight, apex ties, hook line.
+  body.push(plainBox(1.4, 44, 1.4).translate(9, 22, 0));
+  body.push(plainBox(2.2, 2, 2.2).translate(9, 45, 0)); // cab
+  body.push(plainBox(20, 0.9, 0.9).translate(19, 46.4, 0)); // jib
+  body.push(plainBox(7, 1.1, 1.1).translate(5, 46.4, 0)); // counter-jib
+  body.push(plainBox(2.2, 2.4, 1.8).translate(2.2, 45.2, 0)); // counterweight
+  body.push(plainBox(0.5, 3, 0.5).translate(9, 48.5, 0)); // apex
+  body.push(plainBox(11, 0.25, 0.25).rotateZ(-0.32).translate(14.5, 48.2, 0)); // ties
+  body.push(plainBox(7, 0.25, 0.25).rotateZ(0.55).translate(5.6, 48.4, 0));
+  body.push(plainBox(0.12, 10, 0.12).translate(24, 41, 0)); // hook cable
+  body.push(plainBox(0.9, 1.1, 0.9).translate(24, 35.6, 0)); // hook block
+  const lights = [
+    box(0.5, 0.5, 0.5, palette.trafficRed, 0).translate(9, 50.2, 0), // beacon
+    ...winSlits(9.6, 4, 0, 5.8, 4.85, 2), // a work lamp burning on one open floor
+  ];
+  return litBuilding(body, lights, palette.structureBase, palette.structureHaze, 50);
 }
 
 /** A cluster of alien crystal shards with a glowing core. */
@@ -1016,6 +1305,14 @@ const GEOMETRY: Record<SilKind, () => THREE.BufferGeometry> = {
   barrels: barrelsGeometry,
   container: containerGeometry,
   crystal: crystalGeometry,
+  storefront: storefrontGeometry,
+  rowhouses: rowhousesGeometry,
+  gasstation: gasStationGeometry,
+  parkinggarage: parkingGarageGeometry,
+  cranetower: craneTowerGeometry,
+  barn: barnGeometry,
+  windmill: windmillGeometry,
+  motel: motelGeometry,
 };
 
 export class Horizon {

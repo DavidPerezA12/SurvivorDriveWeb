@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { DecorField } from '../src/render/decor';
 import { GroundScatter } from '../src/render/groundscatter';
 import { HazardField } from '../src/render/hazards';
+import { Horizon } from '../src/render/horizon';
 
 /**
  * Geometry-construction smoke test. The instanced fields build all their merged
@@ -18,5 +19,6 @@ describe('render geometry builders', () => {
     expect(() => new DecorField(scene, 123)).not.toThrow();
     expect(() => new GroundScatter(scene, 123)).not.toThrow();
     expect(() => new HazardField(scene)).not.toThrow();
+    expect(() => new Horizon(scene, 123)).not.toThrow();
   });
 });

@@ -52,7 +52,10 @@ type ScatterKind =
   | 'litter'
   | 'sign'
   | 'glass'
-  | 'luggage';
+  | 'luggage'
+  | 'bones'
+  | 'planks'
+  | 'ruts';
 const KINDS: readonly ScatterKind[] = [
   'drift',
   'crack',
@@ -75,6 +78,9 @@ const KINDS: readonly ScatterKind[] = [
   'sign',
   'glass',
   'luggage',
+  'bones',
+  'planks',
+  'ruts',
 ];
 
 /**
@@ -85,7 +91,9 @@ const KINDS: readonly ScatterKind[] = [
 const ACT_SCATTER: readonly (readonly ScatterKind[])[] = [
   // I Outbreak — paved city floor, the evacuation's leavings strewn across it.
   ['slab', 'slab', 'manhole', 'litter', 'sign', 'glass', 'luggage', 'chunks'],
-  ['drift', 'drift', 'crack', 'scorch', 'chunks'], // II Rust — baked suburbia dirt
+  // II Rust — baked suburbia dirt: drifts, cracks, bleached bones, fence planks,
+  // and the ruts of the convoys that already left.
+  ['drift', 'drift', 'crack', 'scorch', 'bones', 'planks', 'ruts', 'chunks'],
   ['ash', 'ash', 'crack', 'scorch', 'drift', 'chunks'], // III Swarm — trampled ash of the overrun outskirts
   ['shards', 'shards', 'crack', 'scorch', 'drift'], // IV Visitors — alien crystal up through the ground
   ['crater', 'crater', 'chunks', 'crack', 'scorch'], // V Colossus — stomped giant craters and crushed rubble
@@ -113,7 +121,7 @@ const INNER = roadHalfWidth() + 2;
 const OUTER = roadHalfWidth() + 50;
 /** A hair above the ground plane (which sits at y = -0.08), below the road. */
 const Y = -0.05;
-const CAP = 28;
+const CAP = 40;
 /** Fraction of an act band folded into a crossfade at its end, mirroring the
  *  skyline transition so the floor rebuilds into the next act gradually. */
 const TRANSITION_F = TRANSITION / ACT_SPAN;
@@ -399,6 +407,50 @@ function luggageGeometry(): THREE.BufferGeometry {
   ]);
 }
 
+/** Bleached cattle bones settled into the dirt: rib arcs over a spine, the
+ *  pelvis, the skull with its dark socket, a stray long bone. */
+function bonesGeometry(): THREE.BufferGeometry {
+  const bone = palette.zombieBone;
+  return merged([
+    box(0.06, 0.3, 0.06, bone, 0.3).rotateZ(0.5).translate(0, 0.12, 0),
+    box(0.06, 0.34, 0.06, bone, 0.3).rotateZ(0.55).translate(0.02, 0.14, 0.18),
+    box(0.06, 0.3, 0.06, bone, 0.3).rotateZ(0.6).translate(0.04, 0.12, 0.36),
+    box(0.06, 0.26, 0.06, bone, 0.3).rotateZ(0.5).translate(0.02, 0.1, 0.54),
+    box(0.08, 0.04, 0.85, bone, 0.25).translate(-0.12, 0.03, 0.3),
+    box(0.2, 0.08, 0.16, bone, 0.3).translate(-0.14, 0.05, -0.15), // pelvis
+    box(0.18, 0.12, 0.26, bone, 0.3).rotateY(0.4).translate(-0.1, 0.06, 0.85), // skull
+    box(0.05, 0.06, 0.1, palette.groundScorch, 0).rotateY(0.4).translate(-0.03, 0.08, 0.94),
+    box(0.05, 0.04, 0.4, bone, 0.25).rotateY(0.8).translate(0.42, 0.02, -0.2),
+  ]);
+}
+
+/** Fence planks scattered where a section blew down, one pair still nailed. */
+function planksGeometry(): THREE.BufferGeometry {
+  const w = palette.postCollar;
+  return merged([
+    box(0.16, 0.03, 1.3, w, 0.25).rotateY(0.3).translate(0, Y + 0.05, 0),
+    box(0.14, 0.03, 1.0, palette.husk, 0.25).rotateY(-0.4).translate(0.4, Y + 0.08, 0.3),
+    box(0.15, 0.03, 1.1, w, 0.25).rotateY(0.9).translate(-0.5, Y + 0.05, -0.3),
+    // The pair still nailed to a rail stub.
+    box(0.5, 0.04, 0.14, palette.husk, 0.25).rotateY(0.3).translate(0.15, Y + 0.1, -0.55),
+    box(0.14, 0.03, 0.9, w, 0.25).rotateY(0.32).translate(0.05, Y + 0.12, -0.5),
+  ]);
+}
+
+/** Convoy ruts baked into the dirt: two parallel dark tracks with the kicked-out
+ *  lips still holding their edge. */
+function rutsGeometry(): THREE.BufferGeometry {
+  const dark = palette.groundScorch;
+  const lip = palette.groundSand;
+  return merged([
+    box(0.22, 0.02, 2.6, dark, 0).rotateY(0.12).translate(-0.45, Y, 0),
+    box(0.22, 0.02, 2.6, dark, 0).rotateY(0.12).translate(0.45, Y, 0),
+    box(0.08, 0.03, 2.2, lip, 0).rotateY(0.12).translate(-0.64, Y + 0.003, 0),
+    box(0.08, 0.03, 2.2, lip, 0).rotateY(0.12).translate(0.64, Y + 0.003, 0),
+    box(0.08, 0.03, 2.0, lip, 0).rotateY(0.12).translate(-0.26, Y + 0.003, 0.1),
+  ]);
+}
+
 const GEOMETRY: Record<ScatterKind, () => THREE.BufferGeometry> = {
   drift: driftGeometry,
   crack: crackGeometry,
@@ -421,6 +473,9 @@ const GEOMETRY: Record<ScatterKind, () => THREE.BufferGeometry> = {
   sign: signGeometry,
   glass: glassGeometry,
   luggage: luggageGeometry,
+  bones: bonesGeometry,
+  planks: planksGeometry,
+  ruts: rutsGeometry,
 };
 
 export class GroundScatter {
@@ -460,7 +515,8 @@ export class GroundScatter {
     for (let slot = first; slot <= last; slot += 1) {
       for (const side of [-1, 1] as const) {
         const key = slot * 2 + (side < 0 ? 0 : 1);
-        if (this.rand(key, 1) < 0.5) continue;
+        // 70% of slots dress the dirt (was 50%): the floor should read busy.
+        if (this.rand(key, 1) < 0.3) continue;
 
         const worldZ = slot * SPACING + (this.rand(key, 3) - 0.5) * SPACING;
 
