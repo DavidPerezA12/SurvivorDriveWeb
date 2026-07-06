@@ -70,6 +70,10 @@ export const palette = {
   mechaGlow: 0xff7a42, // reactor core and visor (Colossus runs red-hot)
   kaijuBody: 0x1f1b1a,
   kaijuGlow: 0xff5a2c, // glowing maw and dorsal spines
+  // Static act (VI) — reality tearing. A cold, wrong glitch light rimming the void
+  // rifts and glitch slabs: violet-white so it reads as "broken", never warm (a
+  // threat) and never the cool cyan of a road pickup.
+  voidGlow: 0xa89cff,
 
   asphalt: 0x26282c,
   asphaltSeam: 0x1d1f22,

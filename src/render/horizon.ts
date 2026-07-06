@@ -67,7 +67,13 @@ type SilKind =
   | 'cranetower'
   | 'barn'
   | 'windmill'
-  | 'motel';
+  | 'motel'
+  | 'alienspire'
+  | 'tripod'
+  | 'footprint'
+  | 'toppledtower'
+  | 'glitchslab'
+  | 'voidrift';
 
 const KINDS: readonly SilKind[] = [
   'mesa',
@@ -108,6 +114,12 @@ const KINDS: readonly SilKind[] = [
   'barn',
   'windmill',
   'motel',
+  'alienspire',
+  'tripod',
+  'footprint',
+  'toppledtower',
+  'glitchslab',
+  'voidrift',
 ];
 
 /** Per-kind instance capacity — comfortably above the slots routed to one kind
@@ -169,6 +181,12 @@ const KIND_META: Record<SilKind, KindMeta> = {
   barn: STRETCH,
   windmill: GROUNDED, // the rotor must stay round
   motel: STRETCH,
+  alienspire: GROUNDED, // an organic grown shard; stretching reads as a box
+  tripod: GROUNDED, // the walker's leg balance would shear
+  footprint: GROUNDED, // an oval stamp; stretching warps the foot shape
+  toppledtower: GROUNDED, // the felled proportions are the read
+  glitchslab: GROUNDED, // the sliced bands must keep their offsets
+  voidrift: GROUNDED, // a tall thin tear; stretching ruins the slit
 };
 
 /** A placement band: where slots sit, independent of which kind fills them. */
@@ -278,26 +296,28 @@ const ACT_SILHOUETTES: Record<Role, readonly SilKind[]>[] = [
     accent: ['pylon', 'cityBlock', 'cityBlock2', 'billboard'],
   },
   // IV Visitors — downtown canyons under an invasion sky, wrecks and alien
-  // crystal growing up through the road.
+  // crystal growing up through the road, harvested by the tripods overhead.
   {
-    near: ['debris', 'rubble', 'crystal', 'container'],
-    mid: ['rubble', 'snag', 'downedSaucer', 'crystal'],
-    far: ['cityBlock', 'cityBlock2', 'lowrise', 'saucer', 'brokenTower'],
-    accent: ['saucer', 'skyscraper', 'skyscraper2', 'downedSaucer'],
+    near: ['debris', 'rubble', 'crystal', 'container', 'alienspire'],
+    mid: ['rubble', 'snag', 'downedSaucer', 'crystal', 'alienspire'],
+    far: ['cityBlock', 'cityBlock2', 'lowrise', 'saucer', 'brokenTower', 'alienspire'],
+    accent: ['saucer', 'skyscraper', 'skyscraper2', 'downedSaucer', 'tripod'],
   },
-  // V Colossus — skyline with giants, towers sheared by their passing.
+  // V Colossus — skyline with giants, towers sheared and streets stamped flat by
+  // their passing: fresh footprints and felled towers litter the near ground.
   {
-    near: ['rubble', 'debris'],
-    mid: ['rubble', 'debris'],
-    far: ['skyscraper', 'skyscraper2', 'cityBlock', 'cityBlock2', 'lowrise', 'brokenTower'],
+    near: ['rubble', 'debris', 'footprint', 'huskWreck'],
+    mid: ['rubble', 'debris', 'toppledtower', 'brokenTower', 'footprint'],
+    far: ['skyscraper', 'skyscraper2', 'cityBlock', 'cityBlock2', 'brokenTower', 'toppledtower'],
     accent: ['mecha', 'kaiju', 'skyscraper', 'skyscraper2', 'brokenTower'],
   },
-  // VI Static — reality coming apart: shards, broken mountains, floating debris.
+  // VI Static — reality coming apart: sliced glitch slabs, tears in the air,
+  // broken mountains and floating debris.
   {
-    near: ['debris', 'spire'],
-    mid: ['rubble', 'spire'],
-    far: ['spire', 'mountain', 'floatChunk'],
-    accent: ['spire', 'floatChunk'],
+    near: ['debris', 'spire', 'glitchslab'],
+    mid: ['rubble', 'spire', 'glitchslab'],
+    far: ['spire', 'mountain', 'floatChunk', 'glitchslab'],
+    accent: ['spire', 'floatChunk', 'voidrift'],
   },
 ];
 
@@ -997,6 +1017,174 @@ function kaijuGeometry(): THREE.BufferGeometry {
   ]);
 }
 
+/**
+ * Act IV Visitors — an alien spire grown up through the road: a tapering organic
+ * shard (not the human `spire`'s toppled boxes) with side growths, a glowing seam
+ * running up its front, and a rooted base bulging the ground. Reads as "the
+ * invasion took root here", a cousin of the crystal but a full skyline landmark.
+ */
+function alienSpireGeometry(): THREE.BufferGeometry {
+  const b = palette.crystalBody;
+  const g = palette.ufoGlow;
+  return assemble([
+    cone(2.2, 16, 6, b, 0.5).rotateZ(0.06).translate(0, 8, 0), // main shaft
+    cone(1.3, 9, 6, b, 0.5).rotateZ(-0.35).translate(2.2, 5, 0.4), // side growths
+    cone(0.9, 6, 6, b, 0.5).rotateZ(0.5).translate(-1.8, 3.4, -0.3),
+    cyl(2.6, 3.2, 1.1, 6, b, 0.55).translate(0, 0.55, 0), // rooted base bulging the ground
+    box(0.32, 12, 0.32, g, 0).rotateZ(0.06).translate(0, 7, 1.35), // glowing seam up the front
+    box(0.26, 6, 0.26, g, 0).rotateZ(-0.35).translate(2.1, 5, 1.0),
+    box(0.9, 0.9, 0.6, g, 0).translate(0, 14.5, 1.1), // a glowing node near the tip
+  ]);
+}
+
+/**
+ * Act IV Visitors — a striding tripod harvester: three legs splayed from a hub down
+ * to the ground, a cowled head pod riding high with a single glowing eye and an
+ * underbelly glow ring, and a harvesting tentacle trailing from one flank. The
+ * headline accent giant of the invasion (a cousin of the saucer, but walking).
+ */
+function tripodGeometry(): THREE.BufferGeometry {
+  const b = palette.ufoBody;
+  const g = palette.ufoGlow;
+  const parts: THREE.BufferGeometry[] = [];
+  // Three legs (two thigh/shin segments each) splaying from the hub to the ground.
+  const feet: readonly [number, number][] = [
+    [-7, -2],
+    [7, -2],
+    [0, 8],
+  ];
+  for (const [fx, fz] of feet) {
+    parts.push(box(1.3, 13, 1.3, b, 0.5).rotateZ(-fx * 0.045).rotateX(-fz * 0.045).translate(fx * 0.5, 10, fz * 0.5));
+    parts.push(box(1.0, 8, 1.0, b, 0.45).rotateZ(-fx * 0.08).rotateX(-fz * 0.08).translate(fx * 0.85, 3.5, fz * 0.85));
+    parts.push(box(1.9, 0.9, 1.9, b, 0.5).translate(fx, 0.45, fz)); // foot pad
+  }
+  parts.push(box(4.6, 3.2, 5.6, b, 0.55).translate(0, 17.2, 0.4)); // head pod
+  parts.push(cone(3.2, 2.4, 10, b, 0.5).rotateX(Math.PI).translate(0, 15.2, 0.4)); // cowl underside
+  parts.push(cyl(2.4, 2.4, 0.35, 12, g, 0).rotateX(Math.PI / 2).translate(0, 15.5, 0.4)); // underbelly glow ring
+  parts.push(box(2.0, 1.5, 0.6, g, 0).translate(0, 17.3, 3.4)); // glowing eye
+  parts.push(box(0.5, 6, 0.5, b, 0.4).rotateZ(0.3).translate(2.6, 12.8, 2.2)); // harvesting tentacle
+  parts.push(box(0.4, 3, 0.4, b, 0.4).rotateZ(0.85).translate(3.7, 9.8, 2.6));
+  return assemble(parts);
+}
+
+/**
+ * Act V Colossus — a footprint the giant stamped into the street: an oval rim of
+ * shoved-up rubble with three toe gouges at the front and a car crushed flat in the
+ * sole. Ground-level evidence of the accent-band giants, so the near band reads as
+ * "one of them walked right here" instead of generic rubble.
+ */
+function footprintGeometry(): THREE.BufferGeometry {
+  const rim: THREE.BufferGeometry[] = [];
+  const N = 12;
+  for (let i = 0; i < N; i += 1) {
+    const a = (i / N) * Math.PI * 2;
+    const bx = Math.cos(a) * 5;
+    const bz = Math.sin(a) * 7;
+    rim.push(
+      plainBox(1.8, 1.5 + (i % 3) * 0.4, 1.6)
+        .rotateY(a)
+        .rotateZ((i % 2 ? 1 : -1) * 0.3)
+        .translate(bx, 0.7, bz),
+    );
+  }
+  for (const tx of [-3, 0, 3] as const) {
+    rim.push(plainBox(1.4, 1.2, 2.6).translate(tx, 0.55, 8.3)); // toe gouges at the front
+  }
+  const mass = gradient(rim, palette.ridgeBase, palette.ridgeHaze, 3);
+  const car = gradient(
+    [
+      plainBox(1.6, 0.5, 3.1).rotateY(0.2).translate(1.4, 0.25, -1),
+      plainBox(1.3, 0.8, 1.4).translate(1.4, 0.55, -1.6), // crushed cabin
+    ],
+    palette.structureBase,
+    palette.structureHaze,
+    1.2,
+  );
+  return assemble([mass, car]);
+}
+
+/**
+ * Act V Colossus — a skyscraper felled on its side: a short snapped stump and the
+ * long tower body lying across the ground (its window rows now running along the
+ * up-face), rubble spilled at the break. Distinct from `brokenTower`'s standing
+ * stump — this one is fully down, a horizontal mass the giants left behind.
+ */
+function toppledTowerGeometry(): THREE.BufferGeometry {
+  const mass = gradient(
+    [
+      plainBox(6, 7, 6).translate(0, 3.5, 0), // snapped stump
+      plainBox(6.6, 0.8, 6.6).translate(0, 7, 0), // sheared cap
+      plainBox(5.5, 5.5, 24).rotateX(0.02).translate(1, 3, 16), // the felled shaft lying +z
+      plainBox(5.9, 5.9, 3).translate(1, 3, 27), // crown at the far end
+    ],
+    palette.structureBase,
+    palette.structureHaze,
+    8,
+  );
+  const parts: THREE.BufferGeometry[] = [mass];
+  for (let i = 0; i < 6; i += 1) {
+    parts.push(box(3.6, 0.3, 0.5, palette.structureWin, 0).translate(1, 5.78, 8 + i * 3.4)); // window rows on the up-face
+  }
+  parts.push(
+    gradient(
+      [
+        plainBox(2, 1.4, 2).rotateY(0.4).translate(-1, 0.7, 5),
+        plainBox(1.4, 1, 1.4).rotateY(-0.3).translate(2.6, 0.5, 6.2),
+      ],
+      palette.ridgeBase,
+      palette.ridgeHaze,
+      1.5,
+    ), // debris spilled at the break
+  );
+  return assemble(parts);
+}
+
+/**
+ * Act VI Static — a slab of the world caught mid-shatter: horizontal bands sheared
+ * apart and shoved out of line with clean voids between them, a cold glitch seam
+ * glowing on one displaced edge. The Static act's signature "this is not holding
+ * together" landmark; matches the ground-decor glitchhusk/glitchpillar language.
+ */
+function glitchSlabGeometry(): THREE.BufferGeometry {
+  const offs = [0, 1.6, -1.1, 2.2, -0.6, 1.2];
+  const bands: THREE.BufferGeometry[] = [];
+  let y = 0.6;
+  for (let i = 0; i < offs.length; i += 1) {
+    const bh = 1.2 + (i % 2) * 0.5;
+    bands.push(plainBox(5, bh, 4).translate(offs[i], y + bh / 2, 0));
+    y += bh + 0.7; // a clean gap between bands
+  }
+  const mass = gradient(bands, palette.spireBase, palette.spireHaze, y);
+  const seam = box(0.3, y - 1.4, 0.35, palette.voidGlow, 0).translate(2.6, y / 2, 2.1);
+  return assemble([mass, seam]);
+}
+
+/**
+ * Act VI Static — a tear in reality standing on the horizon: a near-black rift core
+ * rimmed down both edges by a cold glitch glow, with slabs of the world peeling off
+ * and hanging frozen in the gap. The accent landmark for "the sky itself is coming
+ * apart" — cold and wrong, never a warm threat read.
+ */
+function voidRiftGeometry(): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [];
+  parts.push(gradient([plainBox(2.2, 26, 1).rotateZ(0.05).translate(0, 13, -0.5)], 0x090a10, 0x14161f, 26)); // rift core
+  parts.push(box(0.35, 25, 0.5, palette.voidGlow, 0).rotateZ(0.05).translate(-1.4, 13, 0.2)); // cold glow rims
+  parts.push(box(0.35, 25, 0.5, palette.voidGlow, 0).rotateZ(0.05).translate(1.6, 13, 0.2));
+  parts.push(
+    gradient(
+      [
+        plainBox(3, 2, 2).rotateZ(0.4).translate(-3.5, 18, 0),
+        plainBox(2.2, 1.6, 1.6).rotateZ(-0.5).translate(3.6, 11, 0.5),
+        plainBox(1.6, 3, 1.4).rotateZ(0.7).translate(-3, 7, -0.3),
+      ],
+      palette.spireBase,
+      palette.spireHaze,
+      20,
+    ), // slabs peeling off, hanging in the tear
+  );
+  return assemble(parts);
+}
+
 // Act-coherent roadside clutter (the near band, per act)
 
 /** A burnt-out car shell rusting on the shoulder. */
@@ -1313,6 +1501,12 @@ const GEOMETRY: Record<SilKind, () => THREE.BufferGeometry> = {
   barn: barnGeometry,
   windmill: windmillGeometry,
   motel: motelGeometry,
+  alienspire: alienSpireGeometry,
+  tripod: tripodGeometry,
+  footprint: footprintGeometry,
+  toppledtower: toppledTowerGeometry,
+  glitchslab: glitchSlabGeometry,
+  voidrift: voidRiftGeometry,
 };
 
 export class Horizon {
