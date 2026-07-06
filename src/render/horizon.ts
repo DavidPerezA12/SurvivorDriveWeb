@@ -970,51 +970,135 @@ function saucerGeometry(): THREE.BufferGeometry {
   ]);
 }
 
-/** A towering bipedal war machine, mid-stride, reactor and visor aglow. */
+/** A towering bipedal war machine, mid-stride: segmented legs on toed pads, hip
+ *  pistons, bolted chest plates, exhaust stacks, a cannon arm — reactor, visor,
+ *  vents, and muzzle aglow. The Colossus accent's armored half. */
 function mechaGeometry(): THREE.BufferGeometry {
   const b = palette.mechaBody;
   const g = palette.mechaGlow;
-  return assemble([
-    box(3.2, 12, 3.4, b, 0.5).rotateX(0.16).translate(-2.4, 6, 1.3), // left leg forward
-    box(3.2, 13, 3.4, b, 0.5).rotateX(-0.12).translate(2.4, 6.6, -1.1), // right leg back
-    box(3.8, 3, 4.4, b, 0.5).translate(-2.6, 1.3, 3.4), // feet
-    box(3.8, 3, 4.4, b, 0.5).translate(2.6, 1.3, -2.8),
-    box(8, 6, 5, b, 0.55).translate(0, 15, 0), // hips
-    box(9, 9, 6, b, 0.6).translate(0, 21, 0), // chest
-    box(2.6, 2.6, 0.6, g, 0).translate(0, 21, 3.1), // reactor glow
-    box(3, 3.6, 3, b, 0.5).translate(-6, 24, 0), // shoulders
-    box(3, 3.6, 3, b, 0.5).translate(6, 24, 0),
-    box(2.4, 10, 2.4, b, 0.45).rotateZ(0.2).translate(-7, 18, 0), // arms
-    box(2.4, 11, 2.4, b, 0.45).rotateZ(-0.5).translate(7.6, 20, 2),
-    box(3.4, 3, 3.2, b, 0.55).translate(0, 27.6, 0), // head
-    box(2.2, 0.7, 0.5, g, 0).translate(0, 28, 1.7), // visor
-    box(1.4, 1.4, 5.5, b, 0.4).translate(6, 26.5, 2), // shoulder cannon
-  ]);
+  const parts: THREE.BufferGeometry[] = [];
+  // Legs mid-stride: thigh, knee cap, shin, and a toed foot pad each.
+  // Left leg forward.
+  parts.push(box(3.0, 6.5, 3.2, b, 0.5).rotateX(0.28).translate(-2.4, 11.4, 1.0)); // thigh
+  parts.push(box(2.4, 1.6, 2.6, b, 0.4).rotateX(0.2).translate(-2.4, 8.2, 1.9)); // knee cap
+  parts.push(box(2.5, 6.5, 2.7, b, 0.55).rotateX(-0.06).translate(-2.4, 4.6, 2.5)); // shin
+  parts.push(box(3.4, 1.5, 4.6, b, 0.5).translate(-2.4, 0.75, 3.2)); // foot
+  parts.push(box(1.0, 1.1, 1.3, b, 0.4).translate(-3.4, 0.55, 5.3)); // toes
+  parts.push(box(1.0, 1.1, 1.3, b, 0.4).translate(-1.4, 0.55, 5.3));
+  // Right leg planted back.
+  parts.push(box(3.0, 6.5, 3.2, b, 0.5).rotateX(-0.22).translate(2.4, 11.6, -0.9));
+  parts.push(box(2.4, 1.6, 2.6, b, 0.4).translate(2.4, 8.3, -1.7));
+  parts.push(box(2.5, 6.8, 2.7, b, 0.55).rotateX(0.1).translate(2.4, 4.6, -2.2));
+  parts.push(box(3.4, 1.5, 4.6, b, 0.5).translate(2.4, 0.75, -2.6));
+  parts.push(box(1.0, 1.1, 1.3, b, 0.4).translate(1.4, 0.55, -0.5));
+  parts.push(box(1.0, 1.1, 1.3, b, 0.4).translate(3.4, 0.55, -0.5));
+  // Hips: block, side guards, and the stride pistons into each thigh.
+  parts.push(box(7.6, 4.2, 4.6, b, 0.55).translate(0, 15.8, 0)); // hip block
+  parts.push(box(1.6, 2.8, 5.0, b, 0.45).translate(-4.4, 15.6, 0)); // hip guards
+  parts.push(box(1.6, 2.8, 5.0, b, 0.45).translate(4.4, 15.6, 0));
+  parts.push(box(0.7, 4.5, 0.7, b, 0.35).rotateX(0.5).translate(-2.4, 13.4, 2.2)); // pistons
+  parts.push(box(0.7, 4.5, 0.7, b, 0.35).rotateX(-0.45).translate(2.4, 13.6, -2.0));
+  // Torso: waist joint, chest mass, bolted flank plates, collar.
+  parts.push(box(5.4, 2.0, 4.0, b, 0.45).translate(0, 18.4, 0)); // waist
+  parts.push(box(9, 7.5, 6, b, 0.6).translate(0, 23, 0)); // chest
+  parts.push(box(1.2, 5.5, 4.8, b, 0.5).translate(-5.0, 23, 0)); // flank plates, proud
+  parts.push(box(1.2, 5.5, 4.8, b, 0.5).translate(5.0, 23, 0));
+  parts.push(box(7.4, 1.2, 5.2, b, 0.5).translate(0, 27.2, 0)); // collar shelf
+  // The reactor: a glowing core recessed under a split chest plate.
+  parts.push(box(2.8, 2.8, 0.7, g, 0).translate(0, 22.6, 3.05));
+  parts.push(box(3.6, 1.0, 0.5, b, 0.45).translate(0, 24.6, 3.2)); // brow plate over it
+  // Radiator vents: two dim glow slits low on the chest.
+  parts.push(box(1.6, 0.5, 0.5, g, 0.35).translate(-2.8, 20.2, 3.05));
+  parts.push(box(1.6, 0.5, 0.5, g, 0.35).translate(2.8, 20.2, 3.05));
+  // Back: twin exhaust stacks with dim ember tips.
+  parts.push(box(1.3, 4.5, 1.3, b, 0.5).translate(-2.2, 27.5, -2.6));
+  parts.push(box(1.3, 4.5, 1.3, b, 0.5).translate(2.2, 27.5, -2.6));
+  parts.push(box(0.9, 0.5, 0.9, g, 0.4).translate(-2.2, 29.9, -2.6));
+  parts.push(box(0.9, 0.5, 0.9, g, 0.4).translate(2.2, 29.9, -2.6));
+  // Shoulders: pauldrons riding over the arm roots.
+  parts.push(box(3.6, 2.6, 3.8, b, 0.5).translate(-6.2, 26.2, 0));
+  parts.push(box(3.6, 2.6, 3.8, b, 0.5).translate(6.2, 26.2, 0));
+  // Left arm: upper, forearm, fist.
+  parts.push(box(2.2, 5.5, 2.2, b, 0.45).rotateZ(0.15).translate(-6.8, 22.2, 0));
+  parts.push(box(1.9, 5.0, 1.9, b, 0.4).rotateZ(0.3).rotateX(0.3).translate(-7.6, 17.6, 0.9));
+  parts.push(box(2.3, 2.0, 2.3, b, 0.5).translate(-8.3, 14.8, 1.6));
+  // Right arm carries the cannon: upper arm, then the piece with a ribbed muzzle.
+  parts.push(box(2.2, 4.5, 2.2, b, 0.45).rotateZ(-0.3).translate(7.0, 23.0, 0.6));
+  parts.push(box(1.8, 1.8, 7.5, b, 0.45).translate(7.8, 20.6, 3.4)); // cannon body
+  parts.push(box(2.2, 2.2, 1.2, b, 0.4).translate(7.8, 20.6, 6.6)); // muzzle ring
+  parts.push(box(1.1, 1.1, 0.5, g, 0.25).translate(7.8, 20.6, 7.3)); // muzzle glow
+  parts.push(box(1.0, 2.4, 3.0, b, 0.4).translate(7.8, 22.6, 1.4)); // ammo feed hump
+  // Head: armored cowl, glowing visor slit, sensor mast with a beacon.
+  parts.push(box(3.2, 2.6, 3.2, b, 0.55).translate(0, 29.4, 0.4));
+  parts.push(box(3.6, 0.9, 3.4, b, 0.5).translate(0, 30.8, 0.2)); // cowl brim
+  parts.push(box(2.2, 0.6, 0.5, g, 0).translate(0, 29.5, 2.1)); // visor
+  parts.push(box(0.35, 2.6, 0.35, b, 0.4).translate(1.2, 32.2, -0.6)); // mast
+  parts.push(box(0.5, 0.5, 0.5, g, 0.2).translate(1.2, 33.6, -0.6)); // beacon
+  return assemble(parts);
 }
 
-/** A colossal beast, leaning forward, dorsal spines and an open maw aglow. */
+/** A colossal beast, leaning forward mid-prowl: haunched clawed legs, banded
+ *  belly, scarred flanks, a fanged head under a heavy brow — maw and a full
+ *  dorsal fin row aglow down to the tail. The Colossus accent's living half. */
 function kaijuGeometry(): THREE.BufferGeometry {
   const b = palette.kaijuBody;
   const g = palette.kaijuGlow;
-  return assemble([
-    box(3, 8, 3.4, b, 0.5).translate(-2.2, 4, -1), // hind legs
-    box(3, 8, 3.4, b, 0.5).translate(2.2, 4, -1),
-    box(3.6, 2, 5, b, 0.5).translate(-2.2, 1, 0.7), // feet
-    box(3.6, 2, 5, b, 0.5).translate(2.2, 1, 0.7),
-    box(6.5, 7, 9, b, 0.55).rotateX(0.25).translate(0, 11, -1), // body
-    box(4.5, 6, 4.5, b, 0.5).rotateX(0.4).translate(0, 16, 3), // chest
-    box(3.2, 4, 3.6, b, 0.5).rotateX(0.3).translate(0, 20, 5.5), // neck
-    box(3, 3, 5, b, 0.55).translate(0, 22.5, 8.5), // head
-    box(2.2, 0.9, 2.6, g, 0).translate(0, 21.7, 10.2), // glowing maw
-    box(1.2, 4, 1.2, b, 0.4).rotateX(0.6).translate(-3, 15, 5), // little arms
-    box(1.2, 4, 1.2, b, 0.4).rotateX(0.6).translate(3, 15, 5),
-    box(3, 3, 6, b, 0.5).rotateX(-0.2).translate(0, 8, -7), // tail
-    box(2, 2, 5, b, 0.45).rotateX(-0.35).translate(0, 6, -11.5),
-    box(1.2, 1.2, 4, b, 0.4).rotateX(-0.5).translate(0, 4.5, -15),
-    box(0.5, 2, 0.8, g, 0).rotateX(0.25).translate(0, 15.4, -1), // dorsal spines
-    box(0.6, 2.6, 1, g, 0).rotateX(0.25).translate(0, 14, -4),
-    box(0.5, 2, 0.8, g, 0).rotateX(0.25).translate(0, 12.5, -7),
-  ]);
+  const bone = palette.zombieBone;
+  const parts: THREE.BufferGeometry[] = [];
+  // Hind legs: haunch, shin, three-clawed feet.
+  for (const s of [-1, 1] as const) {
+    parts.push(box(3.4, 5.5, 4.6, b, 0.5).rotateX(0.15).translate(s * 2.6, 6.5, -1.2)); // haunch
+    parts.push(box(2.4, 4.5, 2.8, b, 0.55).rotateX(-0.2).translate(s * 2.6, 2.8, 0.2)); // shin
+    parts.push(box(3.2, 1.6, 4.4, b, 0.5).translate(s * 2.6, 0.8, 1.0)); // foot
+    parts.push(box(0.8, 1.0, 1.4, bone, 0.35).translate(s * 2.6 - 1.0, 0.5, 3.2)); // claws
+    parts.push(box(0.8, 1.0, 1.4, bone, 0.35).translate(s * 2.6, 0.5, 3.4));
+    parts.push(box(0.8, 1.0, 1.4, bone, 0.35).translate(s * 2.6 + 1.0, 0.5, 3.2));
+  }
+  // Body: deep belly, chest, shoulder hump; pale belly bands, proud scars.
+  parts.push(box(6.5, 7.5, 9.5, b, 0.55).rotateX(0.22).translate(0, 11, -1)); // belly barrel
+  parts.push(box(5.6, 1.1, 7.5, b, 0.35).rotateX(0.22).translate(0, 7.6, 0.2)); // belly band, paler
+  parts.push(box(5.2, 1.0, 6.0, b, 0.3).rotateX(0.22).translate(0, 6.9, 0.8));
+  parts.push(box(5.0, 6.0, 5.0, b, 0.5).rotateX(0.4).translate(0, 16.5, 3)); // chest
+  parts.push(box(4.6, 3.2, 4.2, b, 0.55).rotateX(0.3).translate(0, 14.2, -3.4)); // shoulder hump
+  parts.push(box(0.5, 2.6, 0.7, b, 0.3).rotateZ(0.3).translate(-3.4, 12.5, 1.5)); // flank scars, paler + proud
+  parts.push(box(0.5, 2.2, 0.7, b, 0.3).rotateZ(-0.25).translate(3.4, 11.5, -2.0));
+  // Forearms: two segments each, cocked, ending in claws.
+  for (const s of [-1, 1] as const) {
+    parts.push(box(1.3, 3.6, 1.3, b, 0.45).rotateX(0.55).translate(s * 3.2, 15.5, 4.6));
+    parts.push(box(1.1, 2.8, 1.1, b, 0.4).rotateX(1.1).translate(s * 3.3, 13.2, 6.0));
+    parts.push(box(0.5, 0.5, 1.0, bone, 0.3).translate(s * 3.3, 12.2, 7.0)); // claw
+  }
+  // Neck in two segments, throat paler.
+  parts.push(box(3.4, 4.2, 3.8, b, 0.5).rotateX(0.35).translate(0, 20, 5.2));
+  parts.push(box(2.9, 3.4, 3.2, b, 0.45).rotateX(0.3).translate(0, 22.6, 7.2));
+  parts.push(box(2.2, 2.6, 0.9, b, 0.3).rotateX(0.35).translate(0, 20.8, 7.3)); // throat
+  // Head: skull, heavy brow, snout, jaw ajar with the maw glowing between.
+  parts.push(box(3.2, 2.6, 4.4, b, 0.55).translate(0, 25.2, 9.6)); // skull
+  parts.push(box(3.5, 1.0, 2.0, b, 0.5).translate(0, 26.6, 10.6)); // brow ridge
+  parts.push(box(2.4, 1.4, 2.6, b, 0.5).translate(0, 24.6, 12.4)); // snout
+  parts.push(box(2.2, 1.0, 3.6, b, 0.5).rotateX(0.3).translate(0, 22.6, 11.6)); // jaw, dropped open
+  parts.push(box(1.9, 0.9, 2.8, g, 0).rotateX(0.15).translate(0, 23.7, 11.8)); // the maw glow between
+  // Teeth hanging below the lip line, placed outside the jaw flanks.
+  for (const [tx, tz] of [[-1.2, 12.9], [1.2, 12.9], [-1.15, 11.7], [1.15, 11.7]] as const) {
+    parts.push(box(0.35, 0.8, 0.35, bone, 0.25).translate(tx, 23.4, tz));
+  }
+  parts.push(box(0.4, 0.4, 0.4, g, 0.3).translate(-1.5, 25.4, 11.4)); // eye embers
+  parts.push(box(0.4, 0.4, 0.4, g, 0.3).translate(1.5, 25.4, 11.4));
+  // Tail: four tapering segments swinging low, a bone spike at the tip.
+  parts.push(box(3, 3, 6, b, 0.5).rotateX(-0.2).translate(0, 8, -7));
+  parts.push(box(2.2, 2.2, 5, b, 0.45).rotateX(-0.32).rotateY(0.15).translate(-0.8, 6, -11.5));
+  parts.push(box(1.5, 1.5, 4, b, 0.4).rotateX(-0.42).rotateY(0.3).translate(-2.0, 4.6, -15));
+  parts.push(box(0.9, 0.9, 3, b, 0.4).rotateX(-0.5).rotateY(0.45).translate(-3.3, 3.6, -17.6));
+  parts.push(box(0.4, 0.4, 1.4, bone, 0.3).rotateY(0.5).translate(-4.2, 3.4, -19.2));
+  // The dorsal fin row, glowing, running the spine down onto the tail.
+  parts.push(box(0.5, 2.2, 1.0, g, 0).rotateX(0.35).translate(0, 19.8, 2.4));
+  parts.push(box(0.6, 2.8, 1.2, g, 0).rotateX(0.3).translate(0, 17.6, -1));
+  parts.push(box(0.7, 3.2, 1.3, g, 0).rotateX(0.25).translate(0, 15.6, -4));
+  parts.push(box(0.6, 2.6, 1.1, g, 0).rotateX(0.2).translate(0, 12.8, -6.8));
+  parts.push(box(0.5, 2.0, 0.9, g, 0).rotateX(-0.25).translate(0, 9.6, -9.6));
+  parts.push(box(0.35, 1.4, 0.7, g, 0).rotateX(-0.35).translate(-0.9, 7.4, -12.6));
+  parts.push(box(0.25, 1.0, 0.5, g, 0).rotateX(-0.45).translate(-2.1, 5.8, -15.6));
+  return assemble(parts);
 }
 
 /**
