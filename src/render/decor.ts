@@ -1001,6 +1001,147 @@ function glitchPillarGeometry(): THREE.BufferGeometry {
   ]);
 }
 
+/** An alien probe speared nose-down into the verge at an angle: a finned dart
+ *  half-buried, its tail ring still dimly lit, dirt shoved up where it struck
+ *  (Visitors). The beacon's violent cousin — dropped, not planted. */
+function probeGeometry(): THREE.BufferGeometry {
+  const body = palette.crystalBody;
+  const glow = palette.ufoBeam;
+  const lean = 0.5;
+  return merged([
+    // The dart body, buried to a third of its length.
+    paint(new THREE.CylinderGeometry(0.16, 0.3, 2.2, 6), body, 0.45).rotateZ(lean).translate(0, 1.0, 0),
+    // The tail ring, a dim lit collar just below the fins.
+    paint(new THREE.CylinderGeometry(0.24, 0.24, 0.08, 6), glow, 0.1).rotateZ(lean).translate(-0.85, 1.85, 0),
+    // Three tail fins.
+    box(0.05, 0.7, 0.32, body, 0.4).rotateZ(lean).translate(-0.95, 2.15, 0.16),
+    box(0.05, 0.7, 0.32, body, 0.4).rotateZ(lean).translate(-0.95, 2.15, -0.16),
+    box(0.32, 0.7, 0.05, body, 0.4).rotateZ(lean).translate(-1.1, 2.1, 0),
+    // The impact: dirt heaped at the entry wound, one cracked slab lifted.
+    rockChunk(0.4, 0.4, 0.35, palette.groundSand, 0.45).translate(0.45, 0.1, 0.2),
+    rockChunk(0.3, 0.45, 0.4, palette.rockDark, 0.5).rotateY(0.7).translate(-0.35, 0.08, -0.3),
+    paint(new THREE.BoxGeometry(0.7, 0.1, 0.5).rotateZ(0.3).rotateY(0.4).translate(0.75, 0.16, -0.25), palette.rock, 0.45),
+  ]);
+}
+
+/** A husk the growth has claimed: crystal spurs erupting through the hood and
+ *  roof, a faint seam glowing where the biggest spur split the body (Visitors).
+ *  The invasion is not beside the traffic, it is *through* it. */
+function crystalHuskGeometry(): THREE.BufferGeometry {
+  const c = palette.crystalBody;
+  const glow = palette.ufoBeam;
+  return merged([
+    // The gutted body, roof crushed where the big spur burst it.
+    box(1.7, 0.5, 3.4, palette.husk, 0.5).translate(0, 0.3, 0),
+    box(1.5, 0.4, 1.6, palette.huskDoor, 0.45).translate(0, 0.7, -0.3),
+    // Crystal spurs through hood, roof, and out the flank.
+    cone(0.34, 1.5, 5, c, 0.4).rotateZ(0.25).translate(0.2, 1.4, -0.4),
+    cone(0.22, 0.9, 5, c, 0.4).rotateZ(-0.4).rotateX(0.2).translate(-0.4, 0.9, 1.1),
+    cone(0.16, 0.7, 5, c, 0.4).rotateX(-0.5).translate(0.5, 0.5, -1.7),
+    cone(0.14, 0.55, 5, c, 0.4).rotateZ(0.7).translate(-0.85, 0.35, 0.2),
+    // The seam glowing where the roof split.
+    box(0.5, 0.05, 0.08, glow, 0.1).rotateY(0.3).translate(0.15, 0.92, -0.35),
+    // Wheels burst, one lying free.
+    wheel(0.32, 0.24, palette.wheel).translate(-1.05, 0.32, 1.15),
+    paint(new THREE.CylinderGeometry(0.3, 0.3, 0.18, 9).rotateZ(1.5), palette.wheel, 0.4).translate(1.35, 0.09, -0.9),
+  ]);
+}
+
+/** A street light stepped on: the pole folded flat at knee height, the upper
+ *  run lying along the dirt with its lamp head crushed into the ground
+ *  (Colossus). Ground-level evidence of the giants, same story as the stomps. */
+function bentPoleGeometry(): THREE.BufferGeometry {
+  return merged([
+    box(0.42, 0.1, 0.42, palette.post, 0.5).translate(0, 0.05, 0),
+    // The stub, still standing but kinked hard.
+    box(0.2, 1.1, 0.2, palette.post, 0.55).rotateZ(0.12).translate(0, 0.6, 0),
+    // The fold: a crushed elbow where the foot came down.
+    box(0.26, 0.3, 0.26, palette.postCollar, 0.45).rotateZ(0.6).translate(0.12, 1.15, 0),
+    // The upper pole lying nearly flat, driven into the dirt at the far end.
+    paint(new THREE.BoxGeometry(0.18, 2.6, 0.18).rotateZ(1.42).translate(1.55, 1.0, 0.06), palette.post, 0.5),
+    // The lamp head, face-down and crushed oval.
+    box(0.55, 0.14, 0.36, palette.postLamp, 0.45).translate(2.85, 0.1, 0.1),
+    box(0.4, 0.05, 0.24, palette.huskGlass, 0.2).translate(2.85, 0.19, 0.1),
+    // Glass sprayed past the head, and the dirt lip the impact shoved up.
+    box(0.4, 0.02, 0.3, palette.glassShatter, 0.15).rotateY(0.5).translate(3.35, 0.03, 0.25),
+    rockChunk(0.3, 0.4, 0.4, palette.groundSand, 0.45).translate(2.5, 0.07, -0.3),
+    // The dead wire torn out of the junction box, trailing.
+    box(0.04, 0.04, 1.1, palette.bridgeCable, 0.3).rotateY(0.3).translate(0.6, 0.04, 0.7),
+  ]);
+}
+
+/** Sheared structural steel heaped at the verge: I-beams torn out of a felled
+ *  tower, concrete still clinging to one, rebar whiskers (Colossus). The
+ *  skyline's toppled towers shed this on their way down. */
+function girderPileGeometry(): THREE.BufferGeometry {
+  const steel = palette.bridgeSteel;
+  const dark = palette.bridgeSteelDark;
+  const beam = (len: number, hex: number, ao: number): THREE.BufferGeometry[] => [
+    box(0.34, 0.06, len, hex, ao), // top flange
+    box(0.34, 0.06, len, hex, ao).translate(0, -0.3, 0), // bottom flange
+    box(0.06, 0.3, len, hex, ao + 0.1).translate(0, -0.15, 0), // web
+  ];
+  const beamA = beam(2.6, steel, 0.4).map((p) => p.rotateY(0.35).translate(-0.2, 0.42, 0));
+  const beamB = beam(2.0, dark, 0.45).map((p) => p.rotateZ(0.28).rotateY(-0.5).translate(0.5, 0.75, 0.3));
+  const beamC = beam(1.5, steel, 0.45).map((p) => p.rotateY(1.2).translate(0.2, 0.14, -0.8));
+  return merged([
+    ...beamA,
+    ...beamB,
+    ...beamC,
+    // A torn concrete plug still gripping beam B's end, rebar whiskers out of it.
+    rockChunk(0.35, 0.5, 0.45, palette.barrierCore, 0.45).translate(1.15, 1.0, 0.75),
+    box(0.05, 0.7, 0.05, palette.railBeam, 0.3).rotateZ(0.5).translate(1.4, 1.35, 0.7),
+    box(0.05, 0.55, 0.05, palette.railBeam, 0.3).rotateZ(-0.4).rotateX(0.3).translate(1.05, 1.4, 0.95),
+    // Crushed masonry under the heap.
+    rockChunk(0.4, 0.5, 0.5, palette.rock, 0.5).rotateY(0.6).translate(-0.9, 0.12, 0.5),
+    rockChunk(0.3, 0.5, 0.55, palette.rockDark, 0.5).rotateY(1.3).translate(0.9, 0.1, -0.9),
+  ]);
+}
+
+/** A dead tree de-rendering: the trunk sliced into laterally displaced bands
+ *  with clean gaps, one limb hanging detached, chips frozen mid-dissolve
+ *  (Static). The glitch family's take on the Act II snag. */
+function glitchTreeGeometry(): THREE.BufferGeometry {
+  const a = palette.spireBase;
+  const b = palette.spireHaze;
+  return merged([
+    // The trunk in four shifted slices, gaps between them.
+    box(0.3, 0.8, 0.3, a, 0.45).translate(0, 0.4, 0),
+    box(0.28, 0.6, 0.28, b, 0.4).translate(0.15, 1.4, -0.06),
+    box(0.24, 0.7, 0.24, a, 0.4).translate(-0.1, 2.35, 0.08),
+    box(0.2, 0.5, 0.2, b, 0.35).translate(0.06, 3.2, -0.04),
+    // Two branch stubs; one limb slice floats clean off its shoulder.
+    box(0.14, 0.7, 0.14, a, 0.35).rotateZ(0.7).translate(0.45, 2.7, 0.1),
+    box(0.12, 0.6, 0.12, b, 0.35).rotateZ(-0.6).translate(-0.42, 3.0, -0.1),
+    box(0.1, 0.5, 0.1, b, 0.3).rotateZ(0.9).translate(0.95, 3.3, 0.15),
+    // Chips drifting off the break lines, frozen.
+    box(0.1, 0.1, 0.1, a, 0.3).translate(0.4, 1.05, 0.2),
+    box(0.08, 0.08, 0.08, b, 0.3).translate(-0.35, 1.95, -0.18),
+    box(0.07, 0.07, 0.07, a, 0.3).translate(0.3, 2.85, 0.2),
+  ]);
+}
+
+/** A leaning shard knot around a cold rift sliver: grey fragments crowding a
+ *  thin standing tear, one chip hovering clean off the ground (Static). The
+ *  verge-scale echo of the skyline's void rifts; the glow stays dim and cold. */
+function riftShardGeometry(): THREE.BufferGeometry {
+  const a = palette.spireBase;
+  const b = palette.spireHaze;
+  return merged([
+    // The sliver: a thin near-black blade with a cold seam up one edge.
+    box(0.16, 1.9, 0.3, palette.tvDark, 0.3).rotateZ(0.06).translate(0, 0.95, 0),
+    box(0.05, 1.7, 0.08, palette.voidGlow, 0.12).rotateZ(0.06).translate(-0.12, 0.95, 0.1),
+    // Shards leaning in around it.
+    cone(0.3, 1.1, 5, a, 0.45).rotateZ(0.3).translate(0.5, 0.5, 0.2),
+    cone(0.24, 0.85, 5, b, 0.4).rotateZ(-0.35).translate(-0.5, 0.4, -0.15),
+    cone(0.2, 0.7, 5, a, 0.4).rotateZ(0.15).rotateX(0.3).translate(0.15, 0.32, 0.55),
+    cone(0.16, 0.55, 5, b, 0.4).rotateZ(-0.2).translate(-0.3, 0.25, 0.4),
+    // One chip hovering just off the dirt, wrong on purpose.
+    box(0.14, 0.14, 0.14, b, 0.3).translate(0.55, 1.3, -0.25),
+    box(0.1, 0.1, 0.1, a, 0.3).translate(-0.5, 1.6, 0.2),
+  ]);
+}
+
 // Biome roadside dressing. Like the act dressings above, these re-skin the four
 // placement archetypes — but per geographic band (snow, desert, tunnel, bridge,
 // lava), so an ice field is lined with snow-loaded pines and plow banks while the
@@ -1364,7 +1505,13 @@ type DecorKind =
   | 'stompedhusk'
   | 'giantrib'
   | 'glitchhusk'
-  | 'glitchpillar';
+  | 'glitchpillar'
+  | 'probe'
+  | 'crystalhusk'
+  | 'bentpole'
+  | 'girderpile'
+  | 'glitchtree'
+  | 'riftshard';
 
 const GEOMETRY: Record<DecorKind, () => THREE.BufferGeometry> = {
   streetlight: postGeometry,
@@ -1421,6 +1568,12 @@ const GEOMETRY: Record<DecorKind, () => THREE.BufferGeometry> = {
   giantrib: giantRibGeometry,
   glitchhusk: glitchHuskGeometry,
   glitchpillar: glitchPillarGeometry,
+  probe: probeGeometry,
+  crystalhusk: crystalHuskGeometry,
+  bentpole: bentPoleGeometry,
+  girderpile: girderPileGeometry,
+  glitchtree: glitchTreeGeometry,
+  riftshard: riftShardGeometry,
 };
 
 const KINDS = Object.keys(GEOMETRY) as DecorKind[];
@@ -1441,9 +1594,9 @@ const ACT_DECOR: Record<PropKind, readonly (readonly DecorKind[])[]> = {
     ['streetlight', 'streetlight', 'trafficlight', 'streetlight', 'trafficlight', 'snappedpole', 'scaffold'],
     ['deadtree', 'deadtree', 'clothesline', 'swingset', 'deadtree'], // II — the yards they left
     ['streetlight', 'snappedpole', 'scaffold'], // III — the overrun outskirts, half the grid down
-    ['crystalspur', 'crystalspur', 'beacon'], // IV — the survey the invaders left
-    ['rebar'], // V
-    ['rebar', 'glitchpillar'], // VI — the grid de-rendering
+    ['crystalspur', 'crystalspur', 'beacon', 'probe'], // IV — the survey the invaders left
+    ['rebar', 'bentpole', 'bentpole'], // V — the grid stepped flat
+    ['rebar', 'glitchpillar', 'glitchtree'], // VI — the grid de-rendering
   ],
   barrier: [
     // I — kerbside furniture: barriers, dumpsters, shelters, hydrants, cabinets,
@@ -1451,15 +1604,15 @@ const ACT_DECOR: Record<PropKind, readonly (readonly DecorKind[])[]> = {
     ['barrier', 'dumpster', 'barrier', 'busstop', 'sandbags', 'dumpster', 'hydrant', 'utilitybox'],
     ['fence', 'fence', 'mailbox', 'tirepile'], // II — garden lines and kerb junk
     ['barrier', 'sandbags', 'utilitybox'], // III — the quarantine line, already failed
-    ['slab', 'meltslab'], // IV — sheared by something's passing
-    ['slab', 'stompedhusk'], // V — pressed flat by the giants
-    ['slab', 'glitchpillar'], // VI
+    ['slab', 'meltslab', 'probe'], // IV — sheared by something's passing
+    ['slab', 'stompedhusk', 'girderpile'], // V — pressed flat by the giants
+    ['slab', 'glitchpillar', 'riftshard'], // VI
   ],
   husk: [
     ['husk', 'taxihusk', 'husk', 'policehusk', 'taxihusk'], // I
     ['husk', 'camperhusk', 'husk'], // II — the caravan that never left the drive
     ['husk', 'policehusk'], // III
-    ['husk'], // IV
+    ['husk', 'crystalhusk', 'crystalhusk'], // IV — the growth claiming the traffic
     ['husk', 'stompedhusk'], // V — some of the traffic met a foot
     ['husk', 'glitchhusk'], // VI — some of it is de-rendering
   ],
@@ -1468,8 +1621,8 @@ const ACT_DECOR: Record<PropKind, readonly (readonly DecorKind[])[]> = {
     ['rock', 'camp', 'tirepile', 'rock'], // II — dead camps and dumped junk
     ['rubble', 'trashpile', 'conecluster'], // III
     ['crystalcluster', 'crystalcluster', 'podcluster'], // IV — the growth spreading
-    ['rubble', 'giantrib', 'rubble'], // V — something giant died here too
-    ['shardcluster', 'shardcluster', 'glitchhusk'], // VI
+    ['rubble', 'giantrib', 'rubble', 'girderpile'], // V — something giant died here too
+    ['shardcluster', 'shardcluster', 'glitchhusk', 'riftshard'], // VI
   ],
 };
 
