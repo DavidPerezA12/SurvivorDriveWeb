@@ -55,7 +55,10 @@ type ScatterKind =
   | 'luggage'
   | 'bones'
   | 'planks'
-  | 'ruts';
+  | 'ruts'
+  | 'beamscar'
+  | 'dragmark'
+  | 'voidmelt';
 const KINDS: readonly ScatterKind[] = [
   'drift',
   'crack',
@@ -81,6 +84,9 @@ const KINDS: readonly ScatterKind[] = [
   'bones',
   'planks',
   'ruts',
+  'beamscar',
+  'dragmark',
+  'voidmelt',
 ];
 
 /**
@@ -95,9 +101,12 @@ const ACT_SCATTER: readonly (readonly ScatterKind[])[] = [
   // and the ruts of the convoys that already left.
   ['drift', 'drift', 'crack', 'scorch', 'bones', 'planks', 'ruts', 'chunks'],
   ['ash', 'ash', 'crack', 'scorch', 'drift', 'chunks'], // III Swarm — trampled ash of the overrun outskirts
-  ['shards', 'shards', 'crack', 'scorch', 'drift'], // IV Visitors — alien crystal up through the ground
-  ['crater', 'crater', 'chunks', 'crack', 'scorch'], // V Colossus — stomped giant craters and crushed rubble
-  ['glitch', 'glitch', 'glitch', 'crack', 'chunks', 'drift'], // VI Static — reality fracturing into grey shards
+  // IV Visitors — alien crystal up through the ground, beam scars where they took someone.
+  ['shards', 'shards', 'beamscar', 'crack', 'scorch', 'drift'],
+  // V Colossus — stomped craters, drag gouges, and crushed rubble: the giants use the ground.
+  ['crater', 'crater', 'dragmark', 'chunks', 'crack', 'scorch'],
+  // VI Static — reality fracturing into grey shards, patches de-rendering to void.
+  ['glitch', 'glitch', 'voidmelt', 'crack', 'chunks', 'drift'],
 ];
 
 /**
@@ -260,6 +269,65 @@ function glitchGeometry(): THREE.BufferGeometry {
     box(0.8, 0.5, 0.8, b, 0.3).rotateZ(0.5).rotateY(0.4).translate(0.6, 0.18, 0.3),
     box(0.5, 0.7, 0.5, a, 0.3).rotateZ(-0.6).rotateY(0.8).translate(-0.6, 0.22, -0.4),
     box(0.3, 0.4, 0.3, b, 0.3).rotateX(0.7).translate(0.2, 0.14, -0.7),
+  ]);
+}
+
+/** The scar an abduction beam left: a scorched ring with a dim glowing rim, the
+ *  pavement inside swept unnaturally clean, crystal nubs sprouting at the edge
+ *  (Visitors). The glow stays dim — a mark, never a pickup. */
+function beamScarGeometry(): THREE.BufferGeometry {
+  const g = palette.ufoBeam;
+  const b = palette.crystalBody;
+  return merged([
+    disc(1.9, palette.groundScorch, Y),
+    // The rim ring, faintly lit where the beam's edge burned.
+    paint(new THREE.CylinderGeometry(1.45, 1.45, 0.03, 18, 1, true), g, 0.25).translate(0, Y + 0.005, 0),
+    // Inside the ring: swept clean, a shade paler than the scorch.
+    disc(1.3, palette.asphaltSeam, Y + 0.004),
+    // Crystal nubs taking root along the rim.
+    paint(new THREE.ConeGeometry(0.12, 0.5, 5), b, 0.4).rotateZ(0.2).translate(1.35, 0.22, 0.4),
+    paint(new THREE.ConeGeometry(0.09, 0.35, 5), b, 0.4).rotateZ(-0.3).translate(-1.1, 0.16, -0.85),
+    paint(new THREE.ConeGeometry(0.07, 0.3, 5), b, 0.4).translate(-0.3, 0.14, 1.4),
+  ]);
+}
+
+/** The gouges something colossal left dragging a downed thing away: three long
+ *  parallel scrapes with kicked-out lips, rubble shoved to a heap at the far end
+ *  (Colossus). Reads with the craters: the giants use the ground. */
+function dragMarkGeometry(): THREE.BufferGeometry {
+  const lip = palette.curb;
+  const parts: THREE.BufferGeometry[] = [];
+  for (const [xo, len, w] of [
+    [-0.8, 5.2, 0.5],
+    [0.1, 6.0, 0.62],
+    [0.95, 4.6, 0.44],
+  ] as const) {
+    // The gouge floor, dark, and its kicked-out lips.
+    parts.push(box(w, 0.04, len, palette.meteorCrater, 0).rotateY(0.12).translate(xo, Y, 0));
+    parts.push(box(0.12, 0.1, len * 0.8, lip, 0.35).rotateY(0.12).translate(xo - w * 0.62, Y + 0.03, 0.2));
+    parts.push(box(0.12, 0.09, len * 0.7, lip, 0.4).rotateY(0.12).translate(xo + w * 0.62, Y + 0.03, -0.3));
+  }
+  // The heap where whatever was dragged finally left the ground.
+  parts.push(rockChunk(0.3, 0.7, 0.6, lip, 0.4).rotateY(0.5).translate(0.3, 0.08, 3.1));
+  parts.push(rockChunk(0.22, 0.75, 0.65, palette.structureBase, 0.4).rotateY(1.2).translate(-0.5, 0.07, 2.9));
+  return merged(parts);
+}
+
+/** A patch where the ground de-rendered: a matte void pane sunk flush with the
+ *  dirt, a cold seam along one edge, the pavement around it sliced into lifted
+ *  steps (Static). The floor-scale echo of the rifts on the skyline. */
+function voidMeltGeometry(): THREE.BufferGeometry {
+  const a = palette.spireBase;
+  const b = palette.spireHaze;
+  return merged([
+    // The pane: near-black, dead flat — a hole that renders as a surface.
+    box(1.7, 0.04, 1.3, palette.tvDark, 0).rotateY(0.25).translate(0, Y, 0),
+    // The cold seam along its long edge.
+    box(1.5, 0.05, 0.07, palette.voidGlow, 0.2).rotateY(0.25).translate(-0.15, Y + 0.01, 0.62),
+    // The pavement around it sliced into clean lifted steps.
+    box(0.8, 0.14, 0.5, a, 0.3).rotateY(0.25).translate(1.1, 0.04, -0.5),
+    box(0.55, 0.22, 0.4, b, 0.3).rotateY(0.55).translate(-1.15, 0.07, 0.3),
+    box(0.4, 0.1, 0.35, a, 0.3).rotateY(-0.1).translate(-0.4, 0.03, -0.95),
   ]);
 }
 
@@ -476,6 +544,9 @@ const GEOMETRY: Record<ScatterKind, () => THREE.BufferGeometry> = {
   bones: bonesGeometry,
   planks: planksGeometry,
   ruts: rutsGeometry,
+  beamscar: beamScarGeometry,
+  dragmark: dragMarkGeometry,
+  voidmelt: voidMeltGeometry,
 };
 
 export class GroundScatter {
