@@ -77,7 +77,11 @@ export class MeteorField {
           this.place(this.crater, craters, h.x, ground + 0.02, screenZ, 0);
           craters += 1;
         }
-        if (rocks < MAX_INSTANCES) {
+        // A shielded car survives a landed meteor (`applyCrash` is absorbed) and
+        // drives on; the crater scar stays, but the rock must stop drawing or the
+        // surviving car (and the chase camera behind it) ploughs through it. On a
+        // fatal hit `dead` is set the same tick, so the freeze-frame keeps the rock.
+        if (rocks < MAX_INSTANCES && !(h.hit && !state.dead)) {
           this.place(this.rock, rocks, h.x, ground + REST_Y, screenZ, h.forward * 0.3);
           rocks += 1;
         }

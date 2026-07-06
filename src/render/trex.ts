@@ -99,7 +99,12 @@ export class StompField {
           this.place(this.print, prints, h.x, ground + 0.02, screenZ, 1, 0);
           prints += 1;
         }
-        if (feet < MAX_FEET) {
+        // A shielded car survives a stomp (`applyCrash` is absorbed) and drives on;
+        // the pressed footprint stays as road scarring, but the 4.5 m leg column
+        // must stop drawing or the surviving car (and the chase camera behind it)
+        // ploughs straight through it, engulfing the view. On a fatal stomp `dead`
+        // is set the same tick, so the death freeze-frame keeps the leg on screen.
+        if (feet < MAX_FEET && !(h.hit && !state.dead)) {
           this.place(this.foot, feet, h.x, ground + FOOT_REST_Y, screenZ, 1, 0);
           feet += 1;
         }

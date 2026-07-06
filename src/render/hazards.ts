@@ -1225,6 +1225,20 @@ export class HazardField {
         h.hit
       )
         continue;
+      // A lethal wall (rig, concrete barrier, bus) is normally the last thing the
+      // player sees: a square hit empties the hull and the sim freezes against it.
+      // But a shielded or heavily armored car can survive the hit (docs/DESIGN.md
+      // → Shield: a bubble survives a rig) and would then drive straight through
+      // the solid mesh, engulfing the camera for a few frames. Once such a wall has
+      // been hit and the car lived (`!dead`), stop drawing it — you plowed through.
+      // On a fatal hit `dead` is set the same tick, so the death freeze-frame keeps
+      // the wall on screen.
+      if (
+        (h.kind === 'rig' || h.kind === 'barrier' || h.kind === 'bus') &&
+        h.hit &&
+        !state.dead
+      )
+        continue;
       // Falling boss hazards have dedicated fields. Skip the whole crater family
       // here so none also falls through to the generic wreck branch below.
       if (usesDedicatedCraterField(h.kind)) continue;

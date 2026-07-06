@@ -98,7 +98,11 @@ export class ShellField {
           this.placeFlat(this.crater, craters, h.x, ground + 0.02, screenZ, 1);
           craters += 1;
         }
-        if (shells < MAX_SHELLS) {
+        // A shielded car survives a landed shell (`applyCrash` is absorbed) and
+        // drives on; the crater scar stays, but the shell casing must stop drawing
+        // or the surviving car (and the chase camera behind it) ploughs through it.
+        // On a fatal hit `dead` is set the same tick, so the freeze-frame keeps it.
+        if (shells < MAX_SHELLS && !(h.hit && !state.dead)) {
           this.placeShell(shells, h.x, ground + SHELL_REST_Y, screenZ, 1.2);
           shells += 1;
         }
