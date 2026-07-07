@@ -302,6 +302,14 @@ now part of the plan, each kept honest rather than copied wholesale:
    learnable, never a random twitch. Damage still never touches the controls; only the
    chosen biome does, and the player can read it coming.
 
+   The order of the biomes is authored, not rolled. Every run crosses the same
+   journey: open road first, then desert, snow, a tunnel, a broken bridge, and lava
+   fields, with open road between them. The journey is paired with the acts, so the
+   tunnel arrives with the swarm, the bridge under the invasion, and the lava under
+   the giants. Past the journey, deep runs repeat a fixed rotation of the harder
+   stretches. The player learns the trip and progresses against it; the seed still
+   decides everything laid on the road inside each stretch.
+
 Raiders, mines, and chassis variety remain post-MVP.
 
 ## Roadmap

@@ -8,8 +8,10 @@
  * replace.
  *
  * Pure data plus pure helpers (no Three.js, no DOM, no `Date.now`): the sim reads
- * the handling modifiers, the renderer reads the look, and both derive everything
- * from `(seed, distance)` so the same seed always lays the same biomes.
+ * the handling modifiers, the renderer reads the look. The band order is an
+ * authored journey (`BIOME_JOURNEY` + `BIOME_ROTATION`), identical on every run;
+ * the seed decides what is laid on the road inside each stretch, not the order of
+ * the places.
  *
  * A biome carries handling modifiers (a deliberate, telegraphed exception to
  * "terrain never touches the controls", user-approved): `steerOmegaMul` slows the
@@ -73,14 +75,6 @@ export interface Biome {
    * formations that carry a gap/crackgap/ramp. Read by `src/sim/world.ts`.
    */
   readonly jumpBias: number;
-  /**
-   * Earliest band this biome can appear in. The weirder, harder biomes (bridge over
-   * the ocean, lava chasms) hold off until the run is deep, keeping the opening acts
-   * the intact teaching ground (and the early-acts-gap-free invariant true).
-   */
-  readonly minBand: number;
-  /** Selection weight once past the opening band (and its `minBand`). */
-  readonly weight: number;
 }
 
 /** A look that does nothing (amount 0) — the open road and the render default. */
@@ -108,8 +102,6 @@ export const BIOMES: readonly Biome[] = [
     liquid: 'none',
     look: NEUTRAL_LOOK,
     jumpBias: 1,
-    minBand: 1,
-    weight: 3,
   },
   // Ice fields: the car slides. A slower, underdamped wheel means lane changes drift
   // and overshoot, so you commit earlier and feather the line. Cold whiteout look and
@@ -134,8 +126,6 @@ export const BIOMES: readonly Biome[] = [
       fogFarMul: 0.78,
     },
     jumpBias: 1,
-    minBand: 1,
-    weight: 2,
   },
   // Dust flats: an arid, sun-baked stretch. No handling change (the grip is fine),
   // just a warm hazy look — tan haze on the horizon, bright key light, sand floor.
@@ -160,8 +150,6 @@ export const BIOMES: readonly Biome[] = [
       fogFarMul: 1.08,
     },
     jumpBias: 1,
-    minBand: 1,
-    weight: 2,
   },
   // Tunnel: an enclosed dark stretch. No grip change, but the haze pulls in tight and
   // the world goes dim, so threats appear late and you have far less room to read the
@@ -187,8 +175,6 @@ export const BIOMES: readonly Biome[] = [
       fogFarMul: 0.46,
     },
     jumpBias: 1,
-    minBand: 1,
-    weight: 2,
   },
   // Broken bridge over the ocean: the deck is out in long stretches, so the run is
   // mostly holes you leap (world gen boosts gap/ramp formations via `jumpBias`). Cool
@@ -212,8 +198,6 @@ export const BIOMES: readonly Biome[] = [
       fogFarMul: 1.0,
     },
     jumpBias: 4,
-    minBand: 4,
-    weight: 2,
   },
   // Lava field: the road crosses a molten plain, cracked open in chasms you jump (same
   // jump bias as the bridge). Dark and smoky with a hot red wash. Deep-run only.
@@ -236,8 +220,6 @@ export const BIOMES: readonly Biome[] = [
       fogFarMul: 0.8,
     },
     jumpBias: 4,
-    minBand: 5,
-    weight: 2,
   },
 ];
 
@@ -251,32 +233,61 @@ export const BIOME_BAND_M = 1800;
  *  slot by slot over the same stretch the look and handling blend across. */
 export const BIOME_TRANSITION_M = 400;
 
-/** Deterministic 0..1 hash of a band index for a seed (a small integer mixer). */
-function bandHash(seed: number, band: number): number {
-  let h = (Math.trunc(seed) ^ 0x9e3779b9) + Math.imul(band, 0x85ebca6b);
-  h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d);
-  h = Math.imul(h ^ (h >>> 13), 0x297a2d39);
-  h ^= h >>> 16;
-  return (h >>> 0) / 0x100000000;
-}
+const BIOME_BY_ID: Record<BiomeId, Biome> = Object.fromEntries(
+  BIOMES.map((b) => [b.id, b]),
+) as Record<BiomeId, Biome>;
 
 /**
- * The biome that owns band `band` for `seed`. Band 0 is always the open road, and a
- * biome only enters the draw once the run has reached its `minBand` (the weirder
- * biomes hold off so the opening acts stay the intact teaching ground).
+ * The authored journey (user decision 2026-07-06: the scenario order is designed,
+ * not rolled — the Last Driver model, where the player learns the trip and
+ * progresses against it). One entry per band (1800 m ≈ half an act), paired with
+ * the act schedule so each place lands under its apocalypse: the tunnel arrives
+ * with the Swarm (the horde in the dark), the broken bridge under the invasion,
+ * the lava fields under the giants. Open-road breathers separate every stretch,
+ * and the jump-heavy biomes (bridge, lava) stay deep so the opening acts remain
+ * the intact teaching ground (the early-acts-gap-free invariant).
  */
-export function biomeForBand(seed: number, band: number): Biome {
+export const BIOME_JOURNEY: readonly BiomeId[] = [
+  'highway', // band 0 (0.0-1.8 km, act I) — the run always opens on clean tarmac
+  'desert', // band 1 (1.8-3.6 km, acts I-II) — the first place change, grip intact
+  'highway', // band 2 (3.6-5.4 km, act II)
+  'snow', // band 3 (5.4-7.2 km, acts II-III) — the first handling twist
+  'tunnel', // band 4 (7.2-9.0 km, act III) — the Swarm in the dark
+  'highway', // band 5 (9.0-10.8 km, act III)
+  'bridge', // band 6 (10.8-12.6 km, act IV) — leaping the deck under the invasion
+  'highway', // band 7 (12.6-14.4 km, act IV)
+  'lava', // band 8 (14.4-16.2 km, act V) — the molten plain under the giants
+  'highway', // band 9 (16.2-18.0 km, acts V-VI)
+];
+
+/**
+ * Past the journey the run is endgame: a fixed rotation of the harder stretches
+ * with open-road breathers, repeating every six bands (~10.8 km). Same for every
+ * run, so deep pace is designed too.
+ */
+export const BIOME_ROTATION: readonly BiomeId[] = [
+  'snow',
+  'tunnel',
+  'highway',
+  'bridge',
+  'lava',
+  'highway',
+];
+
+/**
+ * The biome that owns band `band`. The order is the authored journey above, then
+ * the endgame rotation — identical on every run. The seed parameter is unused by
+ * design (kept for API stability, and so a seeded variant can come back as a mode
+ * without touching the callers); the seed still decides everything laid on the
+ * road *inside* each stretch.
+ */
+export function biomeForBand(_seed: number, band: number): Biome {
   if (band <= 0) return HIGHWAY;
-  let total = 0;
-  for (const b of BIOMES) if (band >= b.minBand) total += b.weight;
-  if (total <= 0) return HIGHWAY;
-  let r = bandHash(seed, band) * total;
-  for (const b of BIOMES) {
-    if (band < b.minBand) continue;
-    r -= b.weight;
-    if (r < 0) return b;
-  }
-  return HIGHWAY;
+  const id =
+    band < BIOME_JOURNEY.length
+      ? BIOME_JOURNEY[band]
+      : BIOME_ROTATION[(band - BIOME_JOURNEY.length) % BIOME_ROTATION.length];
+  return BIOME_BY_ID[id];
 }
 
 /** The discrete biome at a distance (no transition blend) — for the entry banner. */

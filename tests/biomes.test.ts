@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   BIOME_BAND_M,
+  BIOME_JOURNEY,
+  BIOME_ROTATION,
   biomeAt,
   biomeForBand,
   biomeStateAt,
@@ -63,13 +65,29 @@ describe('biome layer', () => {
     }
   });
 
+  it('follows the authored journey, identically on every seed', () => {
+    // The scenario order is designed, not rolled (user decision 2026-07-06): every
+    // run crosses the same journey, then repeats the endgame rotation. The seed
+    // varies what is on the road inside a stretch, never the order of the places.
+    for (let band = 0; band < BIOME_JOURNEY.length; band += 1) {
+      for (const seed of [1, 7, 42, 123, 2024, 0xc0ffee]) {
+        expect(biomeForBand(seed, band).id).toBe(BIOME_JOURNEY[band]);
+      }
+    }
+    // Past the journey the rotation cycles, seed-independent too.
+    const n = BIOME_JOURNEY.length;
+    for (let k = 0; k < BIOME_ROTATION.length * 3; k += 1) {
+      expect(biomeForBand(9999, n + k).id).toBe(BIOME_ROTATION[k % BIOME_ROTATION.length]);
+    }
+  });
+
   it('holds the deep biomes (bridge, lava) out of the opening bands', () => {
-    // Bridge/lava have a `minBand`, so the opening stays the intact teaching ground
-    // (and the early-acts-gap-free invariant in gap.test holds). With the compressed
-    // pacing (bands of 1800 m, bridge from band 4 = 7.2 km) the guarded opening is
-    // bands 0-3: acts I-II, before the act III spectacle starts.
+    // The jump-heavy biomes stay deep so the opening acts remain the intact teaching
+    // ground (and the early-acts-gap-free invariant in gap.test holds). Under the
+    // authored journey the bridge first lands at band 6 (10.8 km, act IV) and the
+    // lava at band 8 (14.4 km, act V), so the guarded opening is bands 0-5.
     for (const seed of [1, 7, 42, 123, 2024, 0xc0ffee]) {
-      for (let band = 0; band < 4; band += 1) {
+      for (let band = 0; band < 6; band += 1) {
         const id = biomeForBand(seed, band).id;
         expect(id).not.toBe('bridge');
         expect(id).not.toBe('lava');
