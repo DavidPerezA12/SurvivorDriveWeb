@@ -61,9 +61,44 @@ function lensGeometry(): THREE.BufferGeometry {
   );
 }
 
+/**
+ * The tunnel mouth: a headwall around the bore opening — piers flanking it, a
+ * lintel band over it, a parapet cap, wing walls angled back into the slope,
+ * and a dark name plate on the lintel. Authored facing +z (the approach side of
+ * an entry); the exit reuses it spun half a turn so both ends greet the road.
+ */
+function portalGeometry(): THREE.BufferGeometry {
+  const c = palette.structureBase;
+  const trim = palette.structureHaze;
+  const parts: THREE.BufferGeometry[] = [];
+  for (const sx of [-1, 1] as const) {
+    // The pier beside the mouth, and the wing wall angling back off it.
+    parts.push(box(4.6, CEIL_Y + 3.4, 2.6, c, 0.55).translate(sx * 14.2, (CEIL_Y + 3.4) / 2, 0));
+    parts.push(
+      box(7.5, CEIL_Y + 1.2, 1.8, c, 0.5)
+        .rotateY(sx * 0.5)
+        .translate(sx * 19.5, (CEIL_Y + 1.2) / 2, -2.8),
+    );
+    // A drainage stain streaking the pier face.
+    parts.push(box(0.9, 4.5, 0.12, palette.tvDark, 0.3).translate(sx * 13.4, 4.5, 1.36));
+  }
+  // The lintel over the mouth, its trim band, and the parapet cap.
+  parts.push(box(33, 3.6, 2.6, c, 0.55).translate(0, CEIL_Y + 1.8, 0));
+  parts.push(box(33.6, 1.0, 2.9, trim, 0.45).translate(0, CEIL_Y + 3.6, 0));
+  parts.push(box(24, 0.8, 2.7, trim, 0.5).translate(0, CEIL_Y - 0.2, 0));
+  // The name plate on the lintel, a dark recess with a pale frame.
+  parts.push(box(7.5, 1.7, 0.3, trim, 0.35).translate(0, CEIL_Y + 1.9, 1.35));
+  parts.push(box(6.7, 1.1, 0.2, palette.tvDark, 0.2).translate(0, CEIL_Y + 1.9, 1.55));
+  // Rubble slumped at both pier feet — the mountain is coming down on it.
+  parts.push(paint(new THREE.BoxGeometry(3.4, 1.6, 2.4).rotateY(0.4).rotateZ(0.15), palette.barrierCore, 0.5).translate(-13.2, 0.8, 1.8));
+  parts.push(paint(new THREE.BoxGeometry(2.6, 1.2, 2.0).rotateY(-0.5), palette.barrierCore, 0.55).translate(13.6, 0.6, 1.6));
+  return merged(parts);
+}
+
 export class TunnelRoof {
   private readonly bore: THREE.InstancedMesh;
   private readonly lens: THREE.InstancedMesh;
+  private readonly portal: THREE.InstancedMesh;
   private readonly dummy = new THREE.Object3D();
   private readonly seed: number;
 
@@ -71,7 +106,9 @@ export class TunnelRoof {
     this.seed = seed | 0;
     this.bore = new THREE.InstancedMesh(segmentGeometry(), propMaterial, CAP);
     this.lens = new THREE.InstancedMesh(lensGeometry(), lightMaterial, CAP);
-    for (const mesh of [this.bore, this.lens]) {
+    // At most one entry and one exit face are ever in the window at once.
+    this.portal = new THREE.InstancedMesh(portalGeometry(), propMaterial, 2);
+    for (const mesh of [this.bore, this.lens, this.portal]) {
       mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       mesh.frustumCulled = false;
       mesh.count = 0;
@@ -92,6 +129,7 @@ export class TunnelRoof {
     const last = Math.ceil((distance + LOOKAHEAD) / SPACING);
     let bores = 0;
     let lenses = 0;
+    let portals = 0;
 
     for (let site = first; site <= last && bores < CAP; site += 1) {
       const forward = site * SPACING;
@@ -111,18 +149,36 @@ export class TunnelRoof {
         this.lens.setMatrixAt(lenses, this.dummy.matrix);
         lenses += 1;
       }
+      // A site whose neighbor falls outside the band is a mouth: dress it with
+      // the headwall. The entry face greets the approach (+z, toward the car);
+      // the exit face is the same wall spun half a turn to face the far side.
+      const prevTunnel =
+        forward >= SPACING &&
+        biomeForBand(this.seed, Math.floor((forward - SPACING) / BIOME_BAND_M)).id === 'tunnel';
+      const nextTunnel =
+        biomeForBand(this.seed, Math.floor((forward + SPACING) / BIOME_BAND_M)).id === 'tunnel';
+      if ((!prevTunnel || !nextTunnel) && portals < 2) {
+        this.dummy.rotation.set(0, prevTunnel ? Math.PI : 0, 0);
+        this.dummy.updateMatrix();
+        this.portal.setMatrixAt(portals, this.dummy.matrix);
+        portals += 1;
+      }
     }
 
     this.bore.count = bores;
     this.lens.count = lenses;
+    this.portal.count = portals;
     this.bore.visible = bores > 0;
     this.lens.visible = lenses > 0;
+    this.portal.visible = portals > 0;
     this.bore.instanceMatrix.needsUpdate = true;
     this.lens.instanceMatrix.needsUpdate = true;
+    this.portal.instanceMatrix.needsUpdate = true;
   }
 
   dispose(): void {
     this.bore.geometry.dispose();
     this.lens.geometry.dispose();
+    this.portal.geometry.dispose();
   }
 }
