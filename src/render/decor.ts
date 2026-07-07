@@ -1449,6 +1449,234 @@ function pipeStackGeometry(): THREE.BufferGeometry {
   ]);
 }
 
+// Biome uniques (2026-07-07 "objetos únicos" pass): each biome's variant list
+// gains signature pieces so a stretch never reads as one cloned model.
+
+/** A pine snapped at the waist, its crown lying in the snow: tilted stump, the
+ *  fallen trunk with crushed boughs, snow load along the up-side (Ice Fields). */
+function fallenPineGeometry(): THREE.BufferGeometry {
+  const t = palette.pineTrunk;
+  const b = palette.pineBough;
+  return merged([
+    // The stump, splintered at the break.
+    paint(new THREE.CylinderGeometry(0.16, 0.22, 1.2, 6), t, 0.5).rotateZ(0.08).translate(0, 0.6, 0),
+    paint(new THREE.ConeGeometry(0.14, 0.5, 5), t, 0.4).translate(0.05, 1.35, 0),
+    // The fallen crown: trunk lying away, boughs crushed under it.
+    paint(new THREE.CylinderGeometry(0.1, 0.17, 2.6, 6), t, 0.45).rotateZ(1.45).translate(1.7, 0.28, 0.2),
+    cone(0.55, 1.1, 6, b, 0.5).rotateZ(1.5).translate(1.5, 0.4, 0.2),
+    cone(0.42, 0.9, 6, b, 0.5).rotateZ(1.5).translate(2.2, 0.34, 0.15),
+    cone(0.3, 0.7, 6, b, 0.45).rotateZ(1.5).translate(2.8, 0.28, 0.2),
+    // Snow load settled on the up-side of the fallen crown, and the kicked drift.
+    box(1.6, 0.12, 0.5, palette.snowBody, 0.2).rotateZ(0.05).translate(2.1, 0.62, 0.2),
+    rockChunk(0.4, 0.4, 0.3, palette.snowLit, 0.25).translate(0.4, 0.08, 0.4),
+  ]);
+}
+
+/** A highway sign drowned to the shoulders in a drift: post stubs, the panel
+ *  leaning half-buried, a snow cap on its top edge (Ice Fields). Tells "the snow
+ *  is deep here" in one silhouette. */
+function snowedSignGeometry(): THREE.BufferGeometry {
+  return merged([
+    // The drift it sank into.
+    rockChunk(0.9, 0.35, 0.25, palette.snowBody, 0.35).translate(0, 0.15, 0),
+    rockChunk(0.55, 0.4, 0.3, palette.snowLit, 0.25).translate(0.7, 0.12, 0.3),
+    // Post stubs just clearing the snow, and the leaning panel.
+    box(0.1, 0.7, 0.1, palette.post, 0.45).rotateZ(0.1).translate(-0.5, 0.6, 0),
+    box(0.1, 0.5, 0.1, palette.post, 0.45).rotateZ(0.18).translate(0.5, 0.5, 0.05),
+    paint(new THREE.BoxGeometry(1.7, 0.9, 0.08).rotateZ(0.14).rotateY(0.1).translate(0, 1.05, 0), palette.barrierPaint, 0.35),
+    // The snow cap ridged along its top edge.
+    box(1.6, 0.14, 0.2, palette.snowLit, 0.15).rotateZ(0.14).translate(-0.05, 1.55, 0),
+  ]);
+}
+
+/** A bleached longhorn skull and a half-buried rib pair — the desert's old dead
+ *  (Dust Flats). Classic silhouette, kept dim bone, never pickup-bright. */
+function longhornGeometry(): THREE.BufferGeometry {
+  const bone = palette.zombieBone;
+  return merged([
+    // The skull: brow box, tapering snout, dark sockets.
+    box(0.5, 0.35, 0.45, bone, 0.3).translate(0, 0.22, 0),
+    paint(new THREE.BoxGeometry(0.3, 0.25, 0.45).rotateX(0.25).translate(0, 0.16, 0.4), bone, 0.35),
+    box(0.09, 0.09, 0.06, palette.tvDark, 0.2).translate(-0.13, 0.28, 0.21),
+    box(0.09, 0.09, 0.06, palette.tvDark, 0.2).translate(0.13, 0.28, 0.21),
+    // The horns sweeping wide, two segments each.
+    paint(new THREE.CylinderGeometry(0.05, 0.07, 0.7, 5), bone, 0.3).rotateZ(1.35).translate(-0.55, 0.42, -0.05),
+    paint(new THREE.CylinderGeometry(0.03, 0.05, 0.5, 5), bone, 0.25).rotateZ(1.05).translate(-1.05, 0.58, -0.05),
+    paint(new THREE.CylinderGeometry(0.05, 0.07, 0.7, 5), bone, 0.3).rotateZ(-1.35).translate(0.55, 0.42, -0.05),
+    paint(new THREE.CylinderGeometry(0.03, 0.05, 0.5, 5), bone, 0.25).rotateZ(-1.05).translate(1.05, 0.58, -0.05),
+    // A rib pair arcing out of the sand behind it.
+    paint(new THREE.BoxGeometry(0.08, 0.6, 0.14).rotateZ(0.5).translate(-0.3, 0.28, -0.7), bone, 0.35),
+    paint(new THREE.BoxGeometry(0.07, 0.5, 0.12).rotateZ(0.65).translate(0.1, 0.24, -0.85), bone, 0.35),
+    // The sand banked around the skull.
+    rockChunk(0.5, 0.3, 0.3, palette.sandDune, 0.4).translate(0.15, 0.06, -0.2),
+  ]);
+}
+
+/** Tumbleweeds caught on a broken fence stub: two dry twig balls wedged against
+ *  a leaning post and its sagging wire (Dust Flats). */
+function tumbleKnotGeometry(): THREE.BufferGeometry {
+  const twig = palette.snagBase;
+  const ball = (r: number, x: number, y: number, z: number): THREE.BufferGeometry[] => {
+    const parts: THREE.BufferGeometry[] = [];
+    for (let i = 0; i < 6; i += 1) {
+      parts.push(
+        box(r * 2, 0.04, 0.04, twig, 0.25)
+          .rotateZ(i * 0.9)
+          .rotateY(i * 1.3)
+          .translate(x, y, z),
+      );
+      parts.push(
+        box(0.04, r * 1.8, 0.04, twig, 0.25)
+          .rotateX(i * 1.1)
+          .rotateY(i * 0.7)
+          .translate(x, y, z),
+      );
+    }
+    return parts;
+  };
+  return merged([
+    // The fence stub: a leaning post, one snapped, the wire sagging between.
+    box(0.12, 1.0, 0.12, palette.postCollar, 0.45).rotateZ(0.2).translate(-0.7, 0.5, 0),
+    box(0.12, 0.45, 0.12, palette.postCollar, 0.5).rotateZ(-0.3).translate(0.8, 0.22, 0.1),
+    box(1.6, 0.03, 0.03, palette.bridgeCable, 0.3).rotateZ(0.12).translate(0.05, 0.75, 0),
+    ...ball(0.42, -0.15, 0.42, 0.25),
+    ...ball(0.3, 0.55, 0.3, -0.2),
+  ]);
+}
+
+/** A dead extractor fan on a wall stub: ring housing, four static blades, grill
+ *  bars, a grime streak below (The Tunnel). */
+function ventFanGeometry(): THREE.BufferGeometry {
+  const s = palette.bridgeSteel;
+  const d = palette.bridgeSteelDark;
+  const parts: THREE.BufferGeometry[] = [
+    // The wall stub it hangs from, grime-streaked.
+    box(1.4, 2.2, 0.3, palette.barrierCore, 0.55).translate(0, 1.1, 0),
+    box(0.5, 0.9, 0.05, palette.tvDark, 0.35).translate(0.1, 0.5, 0.16),
+    // The housing ring and hub.
+    paint(new THREE.CylinderGeometry(0.62, 0.62, 0.22, 12, 1, true), s, 0.45).rotateX(Math.PI / 2).translate(0, 1.45, 0.25),
+    paint(new THREE.CylinderGeometry(0.12, 0.12, 0.24, 8), d, 0.35).rotateX(Math.PI / 2).translate(0, 1.45, 0.28),
+  ];
+  // Four blades frozen mid-turn, and three grill bars over the mouth.
+  for (let i = 0; i < 4; i += 1) {
+    parts.push(
+      box(0.16, 0.48, 0.05, d, 0.45)
+        .translate(0, 0.3, 0)
+        .rotateZ((i * Math.PI) / 2 + 0.5)
+        .translate(0, 1.45, 0.26),
+    );
+  }
+  for (const gy of [-0.3, 0, 0.3] as const) {
+    parts.push(box(1.15, 0.05, 0.04, s, 0.35).translate(0, 1.45 + gy, 0.4));
+  }
+  return merged(parts);
+}
+
+/** A service generator trailer with a cable drum: boxy genset on small wheels,
+ *  cables snaking off, a dead work lamp on its mast (The Tunnel). */
+function gensetGeometry(): THREE.BufferGeometry {
+  const s = palette.bridgeSteel;
+  const d = palette.bridgeSteelDark;
+  return merged([
+    // The genset box on its trailer frame, vents louvred on the flank.
+    box(1.5, 0.9, 0.9, d, 0.5).translate(0, 0.75, 0),
+    box(1.6, 0.12, 1.0, s, 0.45).translate(0, 0.28, 0),
+    box(0.5, 0.5, 0.06, s, 0.4).translate(-0.35, 0.75, 0.46),
+    box(0.5, 0.06, 0.06, d, 0.3).translate(-0.35, 0.62, 0.47),
+    box(0.5, 0.06, 0.06, d, 0.3).translate(-0.35, 0.78, 0.47),
+    // Small trailer wheels and the tow bar nose-down.
+    wheel(0.2, 0.12, palette.wheel).translate(-0.55, 0.2, 0.42),
+    wheel(0.2, 0.12, palette.wheel).translate(0.55, 0.2, 0.42),
+    box(0.08, 0.08, 0.7, s, 0.35).rotateX(0.5).translate(0.9, 0.2, 0.35),
+    // The dead work lamp on a mast, head drooped.
+    box(0.07, 1.3, 0.07, s, 0.4).translate(-0.6, 1.85, -0.1),
+    box(0.3, 0.2, 0.2, palette.tunnelLampDead, 0.35).rotateX(0.5).translate(-0.6, 2.5, 0.05),
+    // The cable drum beside, cables snaking toward the road.
+    paint(new THREE.CylinderGeometry(0.4, 0.4, 0.35, 10), d, 0.45).rotateX(Math.PI / 2).translate(1.4, 0.4, -0.3),
+    box(0.05, 0.05, 1.6, palette.bridgeCable, 0.3).rotateY(0.4).translate(1.0, 0.04, 0.7),
+    box(0.05, 0.05, 1.2, palette.bridgeCable, 0.3).rotateY(-0.2).translate(0.2, 0.04, 0.9),
+  ]);
+}
+
+/** A beached channel buoy dragged onto the deck: the striped float on its side,
+ *  lamp cage bent, chain trailing to a barnacled anchor block (Broken Bridge). */
+function buoyGeometry(): THREE.BufferGeometry {
+  const s = palette.bridgeSteel;
+  const d = palette.bridgeSteelDark;
+  return merged([
+    // The float lying on its side, band proud around the waist.
+    paint(new THREE.CylinderGeometry(0.55, 0.7, 1.3, 10), d, 0.45).rotateZ(1.35).translate(0, 0.55, 0),
+    paint(new THREE.CylinderGeometry(0.72, 0.72, 0.25, 10), s, 0.35).rotateZ(1.35).translate(-0.15, 0.58, 0),
+    // The cone top and the bent lamp cage at its tip.
+    paint(new THREE.ConeGeometry(0.5, 0.8, 10), d, 0.4).rotateZ(1.35 + Math.PI / 2).translate(1.0, 0.42, 0),
+    box(0.08, 0.5, 0.08, s, 0.35).rotateZ(1.0).translate(1.5, 0.5, 0),
+    box(0.22, 0.2, 0.22, palette.tunnelLampDead, 0.3).translate(1.72, 0.62, 0),
+    // Chain links dragging back to a barnacled anchor block.
+    box(0.09, 0.05, 0.4, s, 0.3).rotateY(0.3).translate(-0.9, 0.05, 0.3),
+    box(0.09, 0.05, 0.4, s, 0.35).rotateY(-0.2).translate(-1.35, 0.05, 0.55),
+    rockChunk(0.35, 0.5, 0.4, d, 0.5).translate(-1.8, 0.12, 0.8),
+  ]);
+}
+
+/** A fallen truss section off the superstructure: two chords with zigzag lattice
+ *  lying propped on a deck chunk, a torn gusset plate (Broken Bridge). */
+function trussFallGeometry(): THREE.BufferGeometry {
+  const s = palette.bridgeSteel;
+  const d = palette.bridgeSteelDark;
+  const parts: THREE.BufferGeometry[] = [
+    // Two parallel chords, propped at a lean on the deck chunk.
+    box(0.14, 0.14, 3.0, s, 0.4).rotateZ(0.18).translate(-0.1, 0.75, 0),
+    box(0.14, 0.14, 3.0, s, 0.45).rotateZ(0.18).translate(-0.35, 0.15, 0),
+    rockChunk(0.4, 0.5, 0.4, palette.barrierCore, 0.5).translate(0.4, 0.15, 1.1),
+    // The torn gusset plate hanging off one end.
+    box(0.4, 0.35, 0.05, d, 0.4).rotateZ(0.5).translate(-0.15, 0.5, -1.55),
+  ];
+  // The zigzag lattice between the chords.
+  for (let i = 0; i < 4; i += 1) {
+    parts.push(
+      box(0.08, 0.75, 0.08, d, 0.4)
+        .rotateX(i % 2 ? 0.7 : -0.7)
+        .rotateZ(0.18)
+        .translate(-0.22, 0.45, -1.1 + i * 0.75),
+    );
+  }
+  return merged(parts);
+}
+
+/** A parasitic vent cone: a small basalt cone with a dim ember rim at the mouth
+ *  and a spatter apron of cooled clots (Lava Fields). */
+function ventConeGeometry(): THREE.BufferGeometry {
+  return merged([
+    cone(0.9, 1.4, 7, palette.basaltDark, 0.55).translate(0, 0.7, 0),
+    cone(0.55, 0.7, 7, palette.basaltCool, 0.5).translate(0.1, 1.15, 0),
+    // The mouth rim, dim hot, and a vein bleeding down the flank.
+    paint(new THREE.CylinderGeometry(0.3, 0.36, 0.1, 7), palette.emberVein, 0.15).translate(0.1, 1.5, 0),
+    box(0.08, 0.7, 0.08, palette.emberVein, 0.3).rotateZ(0.25).translate(0.45, 0.8, 0.25),
+    // Spatter clots cooled on the apron.
+    rockChunk(0.25, 0.6, 0.5, palette.lavaCooling, 0.45).translate(0.8, 0.08, 0.4),
+    rockChunk(0.2, 0.55, 0.5, palette.basaltDark, 0.5).translate(-0.7, 0.07, -0.3),
+    rockChunk(0.16, 0.5, 0.55, palette.lavaCooling, 0.4).translate(-0.3, 0.05, 0.7),
+  ]);
+}
+
+/** A carbonized snag: black trunk and snapped limbs, ember seams still glowing
+ *  in the bark cracks, an ash ring at the base (Lava Fields). */
+function charSnagGeometry(): THREE.BufferGeometry {
+  const black = palette.basaltDark;
+  return merged([
+    paint(new THREE.CylinderGeometry(0.14, 0.24, 2.4, 6), black, 0.55).rotateZ(0.06).translate(0, 1.2, 0),
+    // Snapped limbs, one still holding, one dropped at the base.
+    box(0.1, 0.9, 0.1, black, 0.5).rotateZ(0.9).translate(0.45, 1.9, 0.1),
+    box(0.08, 0.6, 0.08, black, 0.5).rotateZ(-0.7).translate(-0.35, 2.1, -0.05),
+    box(0.09, 0.8, 0.09, black, 0.45).rotateZ(1.5).translate(0.5, 0.08, 0.5),
+    // Ember seams glowing in the bark cracks, dim hot.
+    box(0.05, 0.8, 0.05, palette.emberVein, 0.3).rotateZ(0.06).translate(0.12, 1.0, 0.12),
+    box(0.04, 0.5, 0.04, palette.emberVein, 0.35).rotateZ(0.12).translate(-0.1, 1.8, 0.08),
+    // The ash ring banked at the foot.
+    rockChunk(0.4, 0.3, 0.25, palette.sunRockShade, 0.5).translate(0.1, 0.05, 0.1),
+  ]);
+}
+
 /** The render-side object set: the four sim archetypes reuse the originals, the
  *  rest are the act-specific dressings chosen by `ACT_DECOR`. */
 type DecorKind =
@@ -1511,7 +1739,17 @@ type DecorKind =
   | 'bentpole'
   | 'girderpile'
   | 'glitchtree'
-  | 'riftshard';
+  | 'riftshard'
+  | 'fallenpine'
+  | 'snowedsign'
+  | 'longhorn'
+  | 'tumbleknot'
+  | 'ventfan'
+  | 'genset'
+  | 'buoy'
+  | 'trussfall'
+  | 'ventcone'
+  | 'charsnag';
 
 const GEOMETRY: Record<DecorKind, () => THREE.BufferGeometry> = {
   streetlight: postGeometry,
@@ -1574,6 +1812,16 @@ const GEOMETRY: Record<DecorKind, () => THREE.BufferGeometry> = {
   girderpile: girderPileGeometry,
   glitchtree: glitchTreeGeometry,
   riftshard: riftShardGeometry,
+  fallenpine: fallenPineGeometry,
+  snowedsign: snowedSignGeometry,
+  longhorn: longhornGeometry,
+  tumbleknot: tumbleKnotGeometry,
+  ventfan: ventFanGeometry,
+  genset: gensetGeometry,
+  buoy: buoyGeometry,
+  trussfall: trussFallGeometry,
+  ventcone: ventConeGeometry,
+  charsnag: charSnagGeometry,
 };
 
 const KINDS = Object.keys(GEOMETRY) as DecorKind[];
@@ -1631,15 +1879,44 @@ const ACT_DECOR: Record<PropKind, readonly (readonly DecorKind[])[]> = {
  * desert, tunnel, bridge, lava — `src/content/biomes.ts`), its archetype dresses
  * for the *place* instead of the act, so an ice field is lined with loaded pines
  * and plow banks whatever the apocalypse overhead. The open highway (and any biome
- * without an entry) falls through to the act dressing above. Deterministic per
- * `(seed, forward)`, mirroring the sim's banding; render-only.
+ * without an entry) falls through to the act dressing above. Like the act lists,
+ * each entry is a weighted variant list (repeat a kind to weight it up) picked
+ * deterministically per prop, so a biome stretch mixes its signature pieces
+ * instead of cloning one model — with the authored journey these stretches appear
+ * in every run, so their variety carries. Deterministic per `(seed, forward)`;
+ * render-only.
  */
-const BIOME_DECOR: Partial<Record<BiomeId, Record<PropKind, DecorKind>>> = {
-  snow: { post: 'snowpine', barrier: 'snowbank', husk: 'frozenhusk', rock: 'iceboulder' },
-  desert: { post: 'cactus', barrier: 'dune', husk: 'buriedhusk', rock: 'sunrock' },
-  tunnel: { post: 'tunnellamp', barrier: 'barrier', husk: 'husk', rock: 'pipestack' },
-  bridge: { post: 'bridgecable', barrier: 'bridgerail', husk: 'seacontainer', rock: 'slab' },
-  lava: { post: 'basalt', barrier: 'emberrock', husk: 'charredhusk', rock: 'emberrock' },
+const BIOME_DECOR: Partial<Record<BiomeId, Record<PropKind, readonly DecorKind[]>>> = {
+  snow: {
+    post: ['snowpine', 'snowpine', 'snowpine', 'fallenpine'],
+    barrier: ['snowbank', 'snowbank', 'snowedsign'],
+    husk: ['frozenhusk'],
+    rock: ['iceboulder', 'iceboulder', 'fallenpine'],
+  },
+  desert: {
+    post: ['cactus', 'cactus', 'cactus', 'tumbleknot'],
+    barrier: ['dune', 'dune', 'tumbleknot'],
+    husk: ['buriedhusk'],
+    rock: ['sunrock', 'sunrock', 'longhorn'],
+  },
+  tunnel: {
+    post: ['tunnellamp', 'tunnellamp', 'ventfan'],
+    barrier: ['barrier', 'genset'],
+    husk: ['husk'],
+    rock: ['pipestack', 'pipestack', 'genset'],
+  },
+  bridge: {
+    post: ['bridgecable', 'bridgecable', 'trussfall'],
+    barrier: ['bridgerail', 'bridgerail', 'trussfall'],
+    husk: ['seacontainer'],
+    rock: ['slab', 'buoy', 'slab'],
+  },
+  lava: {
+    post: ['basalt', 'basalt', 'charsnag'],
+    barrier: ['emberrock', 'ventcone'],
+    husk: ['charredhusk'],
+    rock: ['emberrock', 'ventcone', 'basalt'],
+  },
 };
 
 /**
@@ -1716,11 +1993,11 @@ export class DecorField {
           inBlend && this.rand(key, 8) >= local / BIOME_TRANSITION_M ? band - 1 : band;
         const biome = BIOME_DECOR[biomeForBand(this.seed, useBand).id];
         // Inside a biome the place owns the archetype; otherwise the act's
-        // weighted variant list does, one deterministic pick per prop.
-        const options = ACT_DECOR[prop.kind][act];
-        const kind = biome
-          ? biome[prop.kind]
-          : options[Math.min(options.length - 1, Math.floor(this.rand(key, 9) * options.length))];
+        // list does. Both are weighted variant lists, one deterministic pick
+        // per prop, so no stretch clones a single model.
+        const options = biome ? biome[prop.kind] : ACT_DECOR[prop.kind][act];
+        const kind =
+          options[Math.min(options.length - 1, Math.floor(this.rand(key, 9) * options.length))];
 
         const count = this.counts[kind];
         if (count >= MAX_INSTANCES) continue;

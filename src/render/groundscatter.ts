@@ -116,11 +116,14 @@ const ACT_SCATTER: readonly (readonly ScatterKind[])[] = [
  * act floor above. Same slot-by-slot boundary crossfade as the acts.
  */
 const BIOME_SCATTER: Partial<Record<BiomeId, readonly ScatterKind[]>> = {
-  snow: ['snowpatch', 'snowpatch', 'snowpatch', 'icesheet', 'crack'],
-  desert: ['dunepatch', 'dunepatch', 'crack', 'drift', 'scorch'],
-  tunnel: ['chunks', 'cable', 'crack', 'cable', 'litter', 'chunks'],
-  bridge: ['foam', 'foam', 'foam', 'foam'],
-  lava: ['lavapool', 'lavapool', 'basaltchunk', 'crack', 'basaltchunk'],
+  // Each biome's floor mixes its signature with fitting shared decals (bones bake
+  // in the sun, litter blows through the tunnel, deck planks and glass on the
+  // bridge), so no stretch reads as one repeated stamp.
+  snow: ['snowpatch', 'snowpatch', 'icesheet', 'icesheet', 'crack', 'chunks'],
+  desert: ['dunepatch', 'dunepatch', 'bones', 'ruts', 'crack', 'scorch', 'drift'],
+  tunnel: ['chunks', 'cable', 'crack', 'cable', 'litter', 'glass', 'chunks'],
+  bridge: ['foam', 'foam', 'foam', 'planks', 'glass', 'foam'],
+  lava: ['lavapool', 'lavapool', 'basaltchunk', 'scorch', 'crack', 'basaltchunk'],
 };
 
 const SPACING = 9;
