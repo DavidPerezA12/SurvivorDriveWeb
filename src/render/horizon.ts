@@ -4,6 +4,7 @@ import { box, paint, silhouetteMaterial } from './materials';
 import { palette } from './palette';
 import { LOOKAHEAD } from '../content/tuning';
 import { actBlendAt, ACTS } from './mood';
+import { BIOME_BAND_M, BIOME_TRANSITION_M, biomeForBand, type BiomeId } from '../content/biomes';
 import type { Elevation } from './elevation';
 
 /**
@@ -73,7 +74,12 @@ type SilKind =
   | 'footprint'
   | 'toppledtower'
   | 'glitchslab'
-  | 'voidrift';
+  | 'voidrift'
+  | 'pinestand'
+  | 'tunnelrib'
+  | 'bridgetower'
+  | 'shipwreck'
+  | 'volcano';
 
 const KINDS: readonly SilKind[] = [
   'mesa',
@@ -120,6 +126,11 @@ const KINDS: readonly SilKind[] = [
   'toppledtower',
   'glitchslab',
   'voidrift',
+  'pinestand',
+  'tunnelrib',
+  'bridgetower',
+  'shipwreck',
+  'volcano',
 ];
 
 /** Per-kind instance capacity — comfortably above the slots routed to one kind
@@ -139,9 +150,16 @@ interface KindMeta {
   readonly bob: number;
   readonly elevJitter: number;
   readonly stretch: boolean;
+  /**
+   * Face the road instead of taking a random yaw. A tunnel wall segment or a
+   * bridge tower reads only when its authored front (+x) points at the corridor;
+   * a random spin turns it into noise.
+   */
+  readonly faceRoad?: boolean;
 }
 const GROUNDED: KindMeta = { elevation: 0, bob: 0, elevJitter: 0, stretch: false };
 const STRETCH: KindMeta = { elevation: 0, bob: 0, elevJitter: 0, stretch: true };
+const FACING: KindMeta = { elevation: 0, bob: 0, elevJitter: 0, stretch: false, faceRoad: true };
 const KIND_META: Record<SilKind, KindMeta> = {
   mesa: STRETCH,
   snag: GROUNDED,
@@ -187,6 +205,11 @@ const KIND_META: Record<SilKind, KindMeta> = {
   toppledtower: GROUNDED, // the felled proportions are the read
   glitchslab: GROUNDED, // the sliced bands must keep their offsets
   voidrift: GROUNDED, // a tall thin tear; stretching ruins the slit
+  pinestand: GROUNDED, // conifer tiers must stay round
+  tunnelrib: FACING, // a wall segment; a random spin turns it into noise
+  bridgetower: FACING, // the portal must bracket the corridor
+  shipwreck: STRETCH, // hull proportions vary fine; every wreck lists its own way
+  volcano: GROUNDED, // the cone and its crater rim
 };
 
 /** A placement band: where slots sit, independent of which kind fills them. */
@@ -320,6 +343,49 @@ const ACT_SILHOUETTES: Record<Role, readonly SilKind[]>[] = [
     accent: ['spire', 'floatChunk', 'voidrift'],
   },
 ];
+
+/**
+ * Inside a geographic band the *place* owns the horizon too (mirrors the decor
+ * and ground-scatter overrides, same slot-by-slot boundary flip): the ice field
+ * runs past pine stands under white peaks, the dust flats past mesas and dead
+ * windpumps, the tunnel closes into broken gallery walls, the bridge crosses
+ * water dotted with listing wrecks under snapped suspension towers, and the lava
+ * plain smokes below a volcano. The open highway (and any biome without an
+ * entry) keeps the act skyline — an empty role list means that band draws
+ * nothing there (the tunnel's far horizon is blackness, not buildings).
+ */
+const BIOME_SILHOUETTES: Partial<Record<BiomeId, Record<Role, readonly SilKind[]>>> = {
+  snow: {
+    near: ['scrub', 'debris', 'huskWreck', 'scrub'],
+    mid: ['pinestand', 'pinestand', 'snag', 'house'],
+    far: ['mountain', 'pinestand', 'mountain', 'mesa2'],
+    accent: ['mountain', 'pylon', 'pinestand'],
+  },
+  desert: {
+    near: ['scrub', 'debris', 'barrels', 'huskWreck'],
+    mid: ['snag', 'house2', 'windmill', 'scrub'],
+    far: ['mesa', 'mesa2', 'mountain', 'windmill'],
+    accent: ['mesa', 'pylon', 'windmill'],
+  },
+  tunnel: {
+    near: ['tunnelrib'],
+    mid: ['tunnelrib', 'rubble'],
+    far: [],
+    accent: [],
+  },
+  bridge: {
+    near: ['container', 'debris'],
+    mid: ['shipwreck', 'container', 'debris'],
+    far: ['shipwreck', 'bridgetower', 'shipwreck'],
+    accent: ['bridgetower', 'shipwreck'],
+  },
+  lava: {
+    near: ['rubble', 'debris'],
+    mid: ['rubble', 'debris', 'rubble'],
+    far: ['mountain', 'volcano', 'mountain'],
+    accent: ['volcano', 'mountain'],
+  },
+};
 
 function plainBox(w: number, h: number, d: number): THREE.BufferGeometry {
   return new THREE.BoxGeometry(w, h, d);
@@ -1269,6 +1335,138 @@ function voidRiftGeometry(): THREE.BufferGeometry {
   return assemble(parts);
 }
 
+// Biome horizon set (2026-07-07): the geographic band re-skins the backdrop the
+// same way it re-skins the verge, so the place owns the whole frame.
+
+/** A stand of snow-loaded conifers: three trunks of stacked bough tiers, the
+ *  top tiers capped pale where the snow sits (Ice Fields). */
+function pineStandGeometry(): THREE.BufferGeometry {
+  const t = palette.pineTrunk;
+  const b = palette.pineBough;
+  const s = palette.snowBody;
+  const parts: THREE.BufferGeometry[] = [];
+  const pine = (x: number, z: number, h: number): void => {
+    parts.push(cyl(0.18, 0.3, h * 0.35, 5, t, 0.5).translate(x, h * 0.16, z));
+    const tiers = 4;
+    for (let i = 0; i < tiers; i += 1) {
+      const f = i / (tiers - 1);
+      const r = 1.9 - f * 1.25;
+      const y = h * (0.3 + f * 0.55);
+      parts.push(cone(r, h * 0.3, 7, b, 0.5 - f * 0.1).translate(x, y, z));
+      // Snow load riding the upper tiers.
+      if (f > 0.3) parts.push(cone(r * 0.72, h * 0.12, 7, s, 0.25).translate(x, y + h * 0.09, z));
+    }
+    parts.push(cone(0.35, h * 0.16, 6, s, 0.2).translate(x, h * 0.92, z)); // the capped tip
+  };
+  pine(0, 0, 9);
+  pine(2.6, 1.4, 6.5);
+  pine(-2.2, -1.0, 7.5);
+  return assemble(parts);
+}
+
+/** A broken tunnel gallery wall: a long concrete run with an arched rib, a dead
+ *  lamp bracket, spalled panels and a rubble slump at its foot (The Tunnel).
+ *  Authored with its face on +x so `faceRoad` points it at the corridor; the
+ *  slot gaps read as collapsed sections of the gallery. */
+function tunnelRibGeometry(): THREE.BufferGeometry {
+  const wall = gradient(
+    [
+      plainBox(1.2, 8, 13).translate(0, 4, 0), // the gallery wall run
+      plainBox(1.6, 9, 1.6).translate(0, 4.5, -4), // the rib pillar, proud
+      plainBox(1.6, 9, 1.6).translate(0, 4.5, 4.5),
+      plainBox(2.0, 1.2, 13.4).translate(0, 8.4, 0), // the arched springing line
+      // Spalled panel faces standing proud of the wall.
+      plainBox(0.3, 3.2, 3.4).translate(0.62, 3.4, -1.2),
+      plainBox(0.3, 2.4, 2.6).translate(0.62, 5.6, 2.2),
+    ],
+    palette.structureBase,
+    palette.structureHaze,
+    9,
+  );
+  return assemble([
+    wall,
+    // A dead sodium lamp bracket craned off the rib, and the rubble slump.
+    box(0.9, 0.25, 0.35, palette.tunnelLampDead, 0.35).translate(1.3, 7.2, -4),
+    box(0.3, 0.5, 0.3, palette.tunnelLampDead, 0.45).translate(1.7, 6.9, -4),
+    paint(new THREE.BoxGeometry(1.6, 1.4, 3.2).rotateZ(0.4).translate(1.1, 0.5, 1.6), palette.barrierCore, 0.55),
+  ]);
+}
+
+/** A suspension-bridge tower out on the water, its span gone: two legs under a
+ *  portal cap, cross-braced, the snapped main cables drooping off both sides
+ *  (Broken Bridge). Faces the corridor so the portal reads as a gate. */
+function bridgeTowerGeometry(): THREE.BufferGeometry {
+  const s = palette.bridgeSteel;
+  const d = palette.bridgeSteelDark;
+  return assemble([
+    // Legs spanning z (the drive direction), braced twice.
+    box(2.2, 38, 2.6, d, 0.5).translate(0, 19, -6),
+    box(2.2, 38, 2.6, d, 0.5).translate(0, 19, 6),
+    box(1.4, 2.2, 12.5, s, 0.45).translate(0, 14, 0), // lower brace
+    box(1.4, 2.2, 12.5, s, 0.45).translate(0, 27, 0), // upper brace
+    box(2.8, 3.2, 16, d, 0.55).translate(0, 39.5, 0), // the portal cap
+    // The snapped main cables drooping off the saddles.
+    box(0.5, 0.5, 9, s, 0.35).rotateX(0.55).translate(0, 36.5, 10),
+    box(0.5, 0.5, 7, s, 0.35).rotateX(-0.6).translate(0, 37, -9.5),
+    // A hanging deck shred still swinging from one cable stub.
+    box(0.25, 4.5, 0.25, s, 0.3).translate(0, 31, 12.6),
+    box(2.6, 0.6, 3.2, d, 0.45).translate(0, 28.5, 12.6),
+  ]);
+}
+
+/** A listing cargo ship, beached in the shallows: raked hull, island
+ *  superstructure with a tilted funnel, spilled deck containers (Broken
+ *  Bridge). Every wreck lists its own way via the stretch scale. */
+function shipwreckGeometry(): THREE.BufferGeometry {
+  const hull = gradient(
+    [
+      plainBox(6, 5, 26).rotateZ(0.14).translate(0, 2.2, 0), // the hull, heeled over
+      plainBox(5.4, 2.4, 5).rotateZ(0.14).rotateY(0.25).translate(0.4, 3.4, 14), // raked bow block
+      plainBox(6.4, 0.8, 20).rotateZ(0.14).translate(0, 5.2, -2), // deck lip
+      plainBox(4.4, 6, 4.6).rotateZ(0.14).translate(0.8, 8, -8), // island superstructure
+      plainBox(4.8, 1.0, 5.0).rotateZ(0.14).translate(0.9, 11.2, -8), // bridge deck
+      plainBox(1.6, 3.4, 1.6).rotateZ(0.34).translate(1.6, 12.5, -10), // funnel, tilted
+    ],
+    palette.bridgeSteelDark,
+    palette.bridgeSteel,
+    13,
+  );
+  return assemble([
+    hull,
+    // Containers spilled across the heeled deck, one overboard.
+    box(1.4, 1.3, 3.4, palette.containerBase, 0.4).rotateZ(0.3).translate(1.6, 6.2, 3),
+    box(1.4, 1.3, 3.4, palette.containerHaze, 0.45).rotateZ(0.2).rotateY(0.4).translate(-0.4, 6.0, 6.5),
+    box(1.4, 1.3, 3.4, palette.containerBase, 0.5).rotateZ(1.2).translate(-4.2, 0.8, 8),
+    // The dark bridge glazing strip.
+    box(3.8, 0.9, 0.4, palette.huskGlass, 0.2).rotateZ(0.14).translate(1.5, 10.4, -5.8),
+  ]);
+}
+
+/** A shield volcano on the horizon, the lava plain's source: broad stacked cone,
+ *  a parasitic vent, the crater rim lit dim-hot with a streak bleeding down the
+ *  flank (Lava Fields). */
+function volcanoGeometry(): THREE.BufferGeometry {
+  const rock = gradient(
+    [
+      plainCone(30, 26, 9).translate(0, 13, 0), // the main shield
+      plainCone(18, 20, 8).translate(4, 22, -2), // the upper cone, offset
+      plainCone(7, 9, 7).translate(-14, 4.5, 8), // a parasitic vent on the skirt
+    ],
+    palette.basaltDark,
+    palette.basaltCool,
+    32,
+  );
+  return assemble([
+    rock,
+    // The crater rim, dim hot, and the flank streak bleeding from a notch.
+    paint(new THREE.CylinderGeometry(5.2, 6.4, 1.6, 9, 1, true), palette.emberVein, 0.2).translate(4, 31.5, -2),
+    box(1.6, 12, 1.2, palette.emberVein, 0.35).rotateZ(0.42).translate(11, 22, -1),
+    box(1.1, 8, 1.0, palette.emberVein, 0.4).rotateZ(0.55).translate(16, 13, 0.5),
+    // The vent's own small hot mouth.
+    paint(new THREE.CylinderGeometry(1.4, 1.9, 0.8, 7, 1, true), palette.emberVein, 0.35).translate(-14, 8.7, 8),
+  ]);
+}
+
 // Act-coherent roadside clutter (the near band, per act)
 
 /** A burnt-out car shell rusting on the shoulder. */
@@ -1591,6 +1789,11 @@ const GEOMETRY: Record<SilKind, () => THREE.BufferGeometry> = {
   toppledtower: toppledTowerGeometry,
   glitchslab: glitchSlabGeometry,
   voidrift: voidRiftGeometry,
+  pinestand: pineStandGeometry,
+  tunnelrib: tunnelRibGeometry,
+  bridgetower: bridgeTowerGeometry,
+  shipwreck: shipwreckGeometry,
+  volcano: volcanoGeometry,
 };
 
 export class Horizon {
@@ -1666,15 +1869,26 @@ export class Horizon {
         const key = band.salt + slot * 4 + (side < 0 ? 0 : 2);
         if (this.rand(key, 1) < band.skip) continue;
 
+        const worldZ = slot * band.spacing + (this.rand(key, 2) - 0.5) * band.jitterZ;
+
         // Across a transition, each slot flips to the next act's catastrophe at
         // its own threshold — the world rebuilds gradually, never all at once.
         const act = t > 0 && this.rand(key, 7) < t ? bi : ai;
-        const choices = ACT_SILHOUETTES[act][role];
+        // The geographic band then overrides the act (mirroring the decor and
+        // ground-scatter overrides, same slot-by-slot boundary flip): inside a
+        // biome the place owns the backdrop too. An empty role list draws
+        // nothing — the tunnel's far horizon is blackness, not buildings.
+        const bandIdx = Math.floor(Math.max(0, worldZ) / BIOME_BAND_M);
+        const local = Math.max(0, worldZ) - bandIdx * BIOME_BAND_M;
+        const inBlend = bandIdx > 0 && local < BIOME_TRANSITION_M;
+        const useBand =
+          inBlend && this.rand(key, 15) >= local / BIOME_TRANSITION_M ? bandIdx - 1 : bandIdx;
+        const biomeSil = BIOME_SILHOUETTES[biomeForBand(this.seed, useBand).id];
+        const choices = biomeSil ? biomeSil[role] : ACT_SILHOUETTES[act][role];
+        if (choices.length === 0) continue;
         const kind = choices[Math.min(choices.length - 1, Math.floor(this.rand(key, 8) * choices.length))];
         const n = this.counts[kind];
         if (n >= CAP) continue;
-
-        const worldZ = slot * band.spacing + (this.rand(key, 2) - 0.5) * band.jitterZ;
 
         const meta = KIND_META[kind];
         // Ride the road's vertical profile so a silhouette is planted on the
@@ -1686,7 +1900,9 @@ export class Horizon {
 
         const x = side * (band.xMin + this.rand(key, 3) * (band.xMax - band.xMin));
         const base = band.scaleMin + this.rand(key, 4) * (band.scaleMax - band.scaleMin);
-        const yaw = this.rand(key, 5) * TWO_PI;
+        // A facing kind points its authored front (+x) at the corridor; anything
+        // else takes a random yaw for variety.
+        const yaw = meta.faceRoad ? (side < 0 ? 0 : Math.PI) : this.rand(key, 5) * TWO_PI;
         const roll = band.lean === 0 ? 0 : (this.rand(key, 6) - 0.5) * 2 * band.lean;
 
         this.dummy.position.set(x, y, distance - worldZ);
