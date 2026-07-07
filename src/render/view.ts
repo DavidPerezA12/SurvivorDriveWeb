@@ -11,6 +11,7 @@ import { CrossStreets } from './crossStreets';
 import { DecorField } from './decor';
 import { Guardrail } from './guardrail';
 import { Overpass } from './overpass';
+import { TunnelRoof } from './tunnelroof';
 import { HazardField } from './hazards';
 import { MeteorField } from './meteors';
 import { StompField, TrexSilhouette } from './trex';
@@ -88,6 +89,7 @@ export class GameView {
   private readonly decor: DecorField;
   private readonly guardrail: Guardrail;
   private readonly overpass: Overpass;
+  private readonly tunnelRoof: TunnelRoof;
   private readonly hazards: HazardField;
   private readonly meteors: MeteorField;
   private readonly stomps: StompField;
@@ -130,6 +132,7 @@ export class GameView {
     this.decor = new DecorField(this.stage.scene, seed);
     this.guardrail = new Guardrail(this.stage.scene, seed);
     this.overpass = new Overpass(this.stage.scene, seed);
+    this.tunnelRoof = new TunnelRoof(this.stage.scene, seed);
     this.hazards = new HazardField(this.stage.scene);
     this.meteors = new MeteorField(this.stage.scene);
     this.stomps = new StompField(this.stage.scene);
@@ -399,6 +402,7 @@ export class GameView {
     this.decor.update(distance, this.elevation);
     this.guardrail.update(distance, this.elevation);
     this.overpass.update(distance, this.elevation);
+    this.tunnelRoof.update(distance, this.elevation);
     this.hazards.update(curr, this.elevation);
     this.meteors.update(curr, this.elevation);
     this.stomps.update(curr, this.elevation);
