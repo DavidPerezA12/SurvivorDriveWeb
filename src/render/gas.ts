@@ -6,7 +6,12 @@ import type { Elevation } from './elevation';
 // Up to this many clouds live at once, each drawn as a few translucent puffs. One
 // instanced draw call; idle slots cost nothing.
 const MAX_CLOUDS = 8;
-const PUFFS_PER_CLOUD = 5;
+// Per cloud: a ring of murky rim puffs, two brighter roiling core puffs above,
+// and one wide flattened skirt hugging the road (heavier than air — the gas
+// pools on the lane it denies rather than floating as soap bubbles).
+const RIM_PUFFS = 4;
+const CORE_PUFFS = 2;
+const PUFFS_PER_CLOUD = RIM_PUFFS + CORE_PUFFS + 1;
 const MAX_PUFFS = MAX_CLOUDS * PUFFS_PER_CLOUD;
 const TWO_PI = Math.PI * 2;
 
@@ -26,8 +31,8 @@ export class GasField {
 
   constructor(scene: THREE.Scene) {
     const geo = new THREE.SphereGeometry(0.6, 6, 5);
+    // White base color: the per-puff tint lives in the (static) instance colors.
     const mat = new THREE.MeshBasicMaterial({
-      color: palette.gasCloud,
       transparent: true,
       opacity: 0.32,
       depthWrite: false,
@@ -38,6 +43,17 @@ export class GasField {
     this.mesh.count = 0;
     // Draw after the opaque world so the haze blends over what is behind it.
     this.mesh.renderOrder = 3;
+    // Two-tone bake, set once: murky rim + skirt, acid-bright roiling core — the
+    // same body-vs-glow split every crafted object gets, done with instance color
+    // so the whole cloud stays one draw call.
+    const rim = new THREE.Color(palette.gasCloud).multiplyScalar(0.62);
+    const core = new THREE.Color(palette.gasCloud).multiplyScalar(1.15);
+    const skirt = new THREE.Color(palette.gasCloud).multiplyScalar(0.78);
+    for (let i = 0; i < MAX_PUFFS; i += 1) {
+      const p = i % PUFFS_PER_CLOUD;
+      this.mesh.setColorAt(i, p < RIM_PUFFS ? rim : p < RIM_PUFFS + CORE_PUFFS ? core : skirt);
+    }
+    if (this.mesh.instanceColor) this.mesh.instanceColor.needsUpdate = true;
     scene.add(this.mesh);
   }
 
@@ -53,15 +69,32 @@ export class GasField {
       const baseY = elevation.yAt(g.forward, state.distance);
       const z0 = state.distance - g.forward;
       for (let p = 0; p < PUFFS_PER_CLOUD && n < MAX_PUFFS; p += 1) {
-        const a = (p / PUFFS_PER_CLOUD) * TWO_PI;
         const wob = this.reduced ? 0 : Math.sin(this.clock * 1.3 + p * 1.7 + g.forward) * 0.18;
-        this.dummy.position.set(
-          g.x + Math.cos(a) * 0.85,
-          baseY + 0.5 + Math.sin(a * 1.3) * 0.25 + wob,
-          z0 + Math.sin(a) * 1.4,
-        );
         // Full-bodied while fresh, shrinking to nothing as it dissipates.
-        this.dummy.scale.setScalar(0.7 + 0.7 * frac);
+        const body = 0.7 + 0.7 * frac;
+        if (p < RIM_PUFFS) {
+          // The murky rim ring, low around the cloud's waist.
+          const a = (p / RIM_PUFFS) * TWO_PI;
+          this.dummy.position.set(
+            g.x + Math.cos(a) * 0.9,
+            baseY + 0.42 + Math.sin(a * 1.3) * 0.2 + wob,
+            z0 + Math.sin(a) * 1.5,
+          );
+          this.dummy.scale.setScalar(body * (0.85 + 0.15 * Math.sin(a * 2.1)));
+        } else if (p < RIM_PUFFS + CORE_PUFFS) {
+          // The brighter core boiling up through the middle.
+          const s = p === RIM_PUFFS ? 1 : -1;
+          this.dummy.position.set(
+            g.x + s * 0.25,
+            baseY + 0.78 + s * 0.1 + wob * 1.4,
+            z0 + s * 0.45,
+          );
+          this.dummy.scale.setScalar(body * 0.62);
+        } else {
+          // The heavy skirt pooling on the asphalt, wide and flat.
+          this.dummy.position.set(g.x, baseY + 0.16, z0);
+          this.dummy.scale.set(body * 1.5, body * 0.35, body * 1.9);
+        }
         this.dummy.rotation.set(0, this.clock * 0.3 + p, 0);
         this.dummy.updateMatrix();
         this.mesh.setMatrixAt(n, this.dummy.matrix);
