@@ -34,15 +34,28 @@ const MAX = 96;
  *  the five act spans up to Static, so the shoulder rots as the world ends. */
 const DECAY_SPAN = ACT_SPAN * 5;
 
-/** One post plus the W-beam panel that runs from it to the next post. */
+/** One post plus the W-beam panel that runs from it to the next post. The real
+ *  W profile is two creases, and the beam hangs off the post on a blockout
+ *  spacer with a splice-bolt pair at the joint — the up-close silhouette of
+ *  every highway shoulder. Kept lean (instanced ×96). */
 function segmentGeometry(): THREE.BufferGeometry {
   const parts = [
-    // Rusted I-post at the segment's near edge.
+    // Rusted I-post at the segment's near edge, on a buried baseplate.
     box(0.16, 1.0, 0.16, palette.railPost, 0.6).translate(0, 0.5, 0),
+    box(0.26, 0.07, 0.26, palette.railPost, 0.5).translate(0, 0.035, 0),
+    // The blockout spacer hanging the beam off the post face.
+    box(0.14, 0.3, 0.2, palette.railPost, 0.5).translate(0, RAIL_TOP, 0.1),
     // The W-beam panel spanning to the next post, lifted to rail height.
-    box(0.09, 0.32, SEGMENT, palette.railBeam, 0.45).translate(0, RAIL_TOP, SEGMENT / 2),
-    // The signature horizontal crease, proud of the beam and catching the light.
-    box(0.13, 0.09, SEGMENT, palette.railCrease, 0.3).translate(0, RAIL_TOP, SEGMENT / 2),
+    box(0.09, 0.34, SEGMENT, palette.railBeam, 0.45).translate(0, RAIL_TOP, SEGMENT / 2),
+    // The signature W: twin horizontal creases, proud of the beam, catching light.
+    box(0.13, 0.08, SEGMENT, palette.railCrease, 0.3).translate(0, RAIL_TOP + 0.08, SEGMENT / 2),
+    box(0.13, 0.08, SEGMENT, palette.railCrease, 0.3).translate(0, RAIL_TOP - 0.08, SEGMENT / 2),
+    // Splice-bolt pair proud of the beam face at the post line.
+    box(0.16, 0.05, 0.05, palette.railPost, 0.25).translate(0, RAIL_TOP + 0.08, 0.14),
+    box(0.16, 0.05, 0.05, palette.railPost, 0.25).translate(0, RAIL_TOP - 0.08, 0.14),
+    // A worn reflector button on the beam at the post — the dotted line the
+    // headlights used to pick out down the shoulder.
+    box(0.15, 0.07, 0.07, palette.barrierPaint, 0.15).translate(0, RAIL_TOP, 0.3),
   ];
   const geo = mergeGeometries(parts, false);
   for (const p of parts) p.dispose();
