@@ -28,16 +28,16 @@ export class TouchControls {
     this.root.dataset.active = 'false';
     this.root.setAttribute('aria-hidden', 'true');
 
-    const pause = this.button('pause', 'II', 'Pause');
-    const dpad = document.createElement('div');
-    dpad.className = 'sdw-touch-dpad';
-    dpad.append(this.button('left', '<', 'Steer left'), this.button('right', '>', 'Steer right'));
-
-    const actions = document.createElement('div');
-    actions.className = 'sdw-touch-actions';
-    actions.append(this.button('jump', '^', 'Jump'), this.button('fire', 'F', 'Fire gun'));
-
-    this.root.append(pause, dpad, actions);
+    // Layout mirrors The Last Driver: steering split to the two bottom corners
+    // (a thumb resting on each), the gun on the mid-right, the action (jump) on
+    // the mid-left, and pause tucked top-left.
+    this.root.append(
+      this.button('pause', 'II', 'Pause'),
+      this.button('left', '◀', 'Steer left'),
+      this.button('right', '▶', 'Steer right'),
+      this.button('jump', '▲', 'Jump'),
+      this.button('fire', '⌖', 'Fire gun'),
+    );
     document.body.appendChild(this.root);
   }
 

@@ -71,34 +71,65 @@ button {
   letter-spacing: 1px;
 }
 
-.sdw-touch-dpad {
+/* Steering splits to the two bottom corners — a thumb rests on each, the way
+   The Last Driver lays it out. Big painted arrows, not generic glyphs: a faint
+   circular hit target lets the gold chevron read at full speed. */
+.sdw-touch-left,
+.sdw-touch-right {
   position: absolute;
-  left: calc(env(safe-area-inset-left) + 16px);
-  bottom: calc(env(safe-area-inset-bottom) + 18px);
-  display: flex;
-  gap: 12px;
+  bottom: calc(env(safe-area-inset-bottom) + 14px);
+  width: 100px;
+  height: 100px;
+  font-size: 46px;
+  color: #f2c368;
+  border-color: rgba(224, 169, 58, 0.5);
+  background: rgba(13, 11, 9, 0.34);
+  text-shadow:
+    0 2px 10px rgba(0, 0, 0, 0.75),
+    0 0 16px rgba(232, 154, 58, 0.4);
 }
 
-.sdw-touch-actions {
-  position: absolute;
-  right: calc(env(safe-area-inset-right) + 16px);
-  bottom: calc(env(safe-area-inset-bottom) + 18px);
-  display: flex;
-  align-items: flex-end;
-  gap: 12px;
+.sdw-touch-left {
+  left: calc(env(safe-area-inset-left) + 14px);
+  padding-right: 6px; /* optically center the left-pointing arrow */
 }
 
+.sdw-touch-right {
+  right: calc(env(safe-area-inset-right) + 14px);
+  padding-left: 6px;
+}
+
+/* Action buttons ride at mid-height on each edge, above the steering thumbs:
+   the gun on the right (a targeting ring, like The Last Driver's crosshair),
+   jump on the left. */
 .sdw-touch-jump {
+  position: absolute;
+  top: 50%;
+  margin-top: -34px;
+  left: calc(env(safe-area-inset-left) + 20px);
+  width: 68px;
+  height: 68px;
+  font-size: 26px;
   color: #78c8ff;
   border-color: rgba(79, 182, 255, 0.78);
+  text-shadow: 0 0 14px rgba(79, 182, 255, 0.4);
 }
 
 .sdw-touch-fire {
-  width: 76px;
-  height: 76px;
-  color: #f0bc55;
-  border-color: rgba(224, 169, 58, 0.82);
-  font-size: 23px;
+  position: absolute;
+  top: 50%;
+  margin-top: -44px;
+  right: calc(env(safe-area-inset-right) + 20px);
+  width: 88px;
+  height: 88px;
+  color: #f6cf7a;
+  border-color: rgba(224, 169, 58, 0.85);
+  font-size: 40px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 0 0 4px rgba(224, 169, 58, 0.14),
+    0 6px 20px rgba(0, 0, 0, 0.45);
+  text-shadow: 0 0 16px rgba(232, 154, 58, 0.5);
 }
 
 .sdw-menu,
