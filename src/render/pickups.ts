@@ -1,7 +1,6 @@
 import * as THREE from 'three';
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { ReadonlyState } from '../sim';
-import { box, paint, propMaterial } from './materials';
+import { box, merged, paint, propMaterial } from './materials';
 import { palette } from './palette';
 import { ParticlePool, prefersReducedMotion } from './mowFx';
 import type { Elevation } from './elevation';
@@ -18,13 +17,17 @@ const TWO_PI = Math.PI * 2;
  * A lift pickup — a jump-charge refill (docs/DESIGN.md → Object craft). A pair of
  * stacked upward chevrons over a base pad: the silhouette reads "up / jump", and
  * the cool electric blue marks it as a pickup distinct from the cyan scrap ping.
+ * The pad is a real launcher — bolted deck, rim vents, and the emitter coil the
+ * chevrons rise out of — so up close it reads as a machine, not a poker chip.
  */
 function liftGeometry(): THREE.BufferGeometry {
   const tok = palette.liftToken;
   const dark = palette.liftTokenDark;
   const baseCol = palette.liftBase;
 
-  // One upward chevron "^" centered on (0, y): two leaning arms meeting at top.
+  // One upward chevron "^" centered on (0, y): two leaning arms meeting at the
+  // top (the left arm tilts its head right, the right arm left, so the peaks
+  // touch over the centre and the feet splay out — the arrow points up).
   const chevron = (
     y: number,
     span: number,
@@ -32,57 +35,136 @@ function liftGeometry(): THREE.BufferGeometry {
     color: number,
   ): THREE.BufferGeometry[] => [
     box(thick, span, thick, color, 0.5)
-      .rotateZ(0.7)
+      .rotateZ(-0.7)
       .translate(-span * 0.28, y, 0),
     box(thick, span, thick, color, 0.5)
-      .rotateZ(-0.7)
+      .rotateZ(0.7)
       .translate(span * 0.28, y, 0),
   ];
 
   const parts = [
+    // The launch pad: plate, inset deck, corner bolts, and glowing rim vents.
     box(0.78, 0.08, 0.78, baseCol, 0.6).translate(0, 0.05, 0),
     box(0.5, 0.06, 0.5, dark, 0.6).translate(0, 0.11, 0),
+    box(0.07, 0.06, 0.07, dark, 0.4).translate(-0.31, 0.09, -0.31),
+    box(0.07, 0.06, 0.07, dark, 0.4).translate(0.31, 0.09, -0.31),
+    box(0.07, 0.06, 0.07, dark, 0.4).translate(-0.31, 0.09, 0.31),
+    box(0.07, 0.06, 0.07, dark, 0.4).translate(0.31, 0.09, 0.31),
+    box(0.3, 0.035, 0.03, tok, 0.25).translate(0, 0.06, 0.39),
+    box(0.3, 0.035, 0.03, tok, 0.25).translate(0, 0.06, -0.39),
+    box(0.03, 0.035, 0.3, tok, 0.25).translate(0.39, 0.06, 0),
+    box(0.03, 0.035, 0.3, tok, 0.25).translate(-0.39, 0.06, 0),
+    // The emitter coil the field rises from: a squat ribbed core, hot at the tip.
+    paint(new THREE.CylinderGeometry(0.17, 0.2, 0.1, 8), dark, 0.5).translate(0, 0.19, 0),
+    paint(new THREE.CylinderGeometry(0.13, 0.16, 0.1, 8), dark, 0.45).translate(0, 0.29, 0),
+    paint(new THREE.CylinderGeometry(0.08, 0.11, 0.12, 8), tok, 0.3).translate(0, 0.4, 0),
+    // The stacked chevrons — the "up" the player reads at the spawn horizon.
     ...chevron(0.62, 0.52, 0.13, dark),
     ...chevron(0.92, 0.52, 0.14, tok),
+    // Bright caps on the top chevron's peak and splayed feet (the glint).
+    box(0.1, 0.1, 0.1, tok, 0.2).translate(0, 1.14, 0),
+    box(0.08, 0.08, 0.08, dark, 0.3).translate(-0.31, 0.73, 0),
+    box(0.08, 0.08, 0.08, dark, 0.3).translate(0.31, 0.73, 0),
   ];
-  return merge(parts, 'lift');
+  return merged(parts);
 }
 
 /**
  * A health pickup — repairs the hull (docs/DESIGN.md → roster). A bold green "+"
  * cross floating over a base pad: the universal repair read, cool by the
- * readability rule and a different hue from lift-blue and scrap-cyan.
+ * readability rule and a different hue from lift-blue and scrap-cyan. The cross
+ * sits proud of a darker backing cross (a rim that pops it from every angle as
+ * the token spins), over a pad carrying a supply canister and a pulse line.
  */
 function healthGeometry(): THREE.BufferGeometry {
   const tok = palette.healthToken;
   const dark = palette.healthTokenDark;
   const baseCol = palette.healthBase;
   const parts = [
+    // The pad: plate, inset deck, and corner cleats.
     box(0.78, 0.08, 0.78, baseCol, 0.6).translate(0, 0.05, 0),
     box(0.5, 0.06, 0.5, dark, 0.6).translate(0, 0.11, 0),
+    box(0.07, 0.06, 0.07, dark, 0.4).translate(-0.31, 0.09, -0.31),
+    box(0.07, 0.06, 0.07, dark, 0.4).translate(0.31, 0.09, -0.31),
+    box(0.07, 0.06, 0.07, dark, 0.4).translate(-0.31, 0.09, 0.31),
+    box(0.07, 0.06, 0.07, dark, 0.4).translate(0.31, 0.09, 0.31),
+    // A squat supply canister under the cross: ribbed body, lighter cap. Kept low
+    // so the cross floats clear of it (a hovering token, never a monument).
+    paint(new THREE.CylinderGeometry(0.15, 0.18, 0.18, 8), dark, 0.5).translate(0, 0.21, 0),
+    paint(new THREE.CylinderGeometry(0.1, 0.1, 0.06, 8), tok, 0.35).translate(0, 0.33, 0),
+    // A tiny pulse line ticking across the pad deck (the field-hospital read).
+    box(0.12, 0.03, 0.03, tok, 0.25).translate(-0.14, 0.15, 0.18),
+    box(0.03, 0.09, 0.03, tok, 0.25).translate(-0.04, 0.18, 0.18),
+    box(0.12, 0.03, 0.03, tok, 0.25).translate(0.08, 0.15, 0.18),
+    // The darker backing cross, a rim the bright cross sits proud of.
+    box(0.7, 0.26, 0.16, dark, 0.5).translate(0, 0.74, 0),
+    box(0.26, 0.7, 0.16, dark, 0.5).translate(0, 0.74, 0),
     // The cross: a horizontal and a vertical bar, slightly proud of each other.
     box(0.62, 0.2, 0.2, tok, 0.45).translate(0, 0.74, 0),
     box(0.2, 0.62, 0.2, tok, 0.45).translate(0, 0.74, 0),
+    // Capped bar ends, a shade darker, so the arms read machined, not extruded.
+    box(0.06, 0.22, 0.22, dark, 0.4).translate(-0.33, 0.74, 0),
+    box(0.06, 0.22, 0.22, dark, 0.4).translate(0.33, 0.74, 0),
+    box(0.22, 0.06, 0.22, dark, 0.4).translate(0, 1.07, 0),
   ];
-  return merge(parts, 'health');
+  return merged(parts);
 }
 
 /**
  * An ammo box — refills the gun (docs/DESIGN.md → roster). A stout crate banded
- * with the gun's warm amber and topped with two stubby rounds, so it reads as the
- * weapon's economy at a glance.
+ * with the gun's warm amber and topped with a row of rounds, so it reads as the
+ * weapon's economy at a glance. Plank seams, steel corner caps, rope handles,
+ * and a cracked-open lid sell it as a scavenged munitions crate, not a prop box.
  */
 function ammoGeometry(): THREE.BufferGeometry {
+  const p = palette;
   const parts = [
-    box(0.78, 0.08, 0.78, palette.ammoBase, 0.6).translate(0, 0.05, 0),
-    box(0.62, 0.46, 0.5, palette.ammoBox, 0.5).translate(0, 0.36, 0),
-    // A warm band across the lid — the ammo signature.
-    box(0.66, 0.12, 0.54, palette.ammoBand, 0.35).translate(0, 0.5, 0),
-    // Two stubby rounds standing on the crate.
-    box(0.12, 0.26, 0.12, palette.ammoTip, 0.4).translate(-0.14, 0.72, 0),
-    box(0.12, 0.26, 0.12, palette.ammoTip, 0.4).translate(0.14, 0.72, 0),
+    box(0.78, 0.08, 0.78, p.ammoBase, 0.6).translate(0, 0.05, 0),
+    // The crate body with plank seams grooved down the long faces.
+    box(0.62, 0.46, 0.5, p.ammoBox, 0.5).translate(0, 0.36, 0),
+    box(0.64, 0.03, 0.52, p.ammoBase, 0.45).translate(0, 0.28, 0),
+    box(0.64, 0.03, 0.52, p.ammoBase, 0.45).translate(0, 0.42, 0),
+    // Steel caps armoring the four top corners.
+    box(0.08, 0.1, 0.08, p.ammoBase, 0.35).translate(-0.3, 0.56, -0.24),
+    box(0.08, 0.1, 0.08, p.ammoBase, 0.35).translate(0.3, 0.56, -0.24),
+    box(0.08, 0.1, 0.08, p.ammoBase, 0.35).translate(-0.3, 0.56, 0.24),
+    box(0.08, 0.1, 0.08, p.ammoBase, 0.35).translate(0.3, 0.56, 0.24),
+    // A warm band across the lid — the ammo signature — with a stenciled chip.
+    box(0.66, 0.12, 0.54, p.ammoBand, 0.35).translate(0, 0.5, 0),
+    box(0.14, 0.13, 0.1, p.ammoBase, 0.25).translate(-0.12, 0.5, 0.24),
+    // Rope handles slung off both ends.
+    paint(new THREE.CylinderGeometry(0.03, 0.03, 0.26, 6), p.ammoTip, 0.4)
+      .rotateX(Math.PI / 2)
+      .translate(-0.35, 0.4, 0),
+    paint(new THREE.CylinderGeometry(0.03, 0.03, 0.26, 6), p.ammoTip, 0.4)
+      .rotateX(Math.PI / 2)
+      .translate(0.35, 0.4, 0),
+    // The lid pried up at one corner, a dark gap under it.
+    box(0.56, 0.04, 0.44, p.ammoBox, 0.35).rotateZ(0.09).translate(0, 0.61, 0),
+    box(0.5, 0.03, 0.38, p.ammoBase, 0.2).translate(0, 0.585, 0),
+    // The rounds inside: a brass row standing in the crack, one tipped over.
+    box(0.1, 0.24, 0.1, p.ammoTip, 0.4).translate(-0.16, 0.72, -0.08),
+    box(0.1, 0.28, 0.1, p.ammoTip, 0.4).translate(0, 0.74, -0.08),
+    box(0.1, 0.24, 0.1, p.ammoTip, 0.4).translate(0.16, 0.72, -0.08),
+    box(0.1, 0.22, 0.1, p.ammoTip, 0.35).rotateZ(1.35).translate(0.1, 0.68, 0.12),
+    // Pointed tips on the standing rounds.
+    paint(new THREE.CylinderGeometry(0.01, 0.05, 0.08, 6), p.ammoBand, 0.3).translate(
+      -0.16,
+      0.88,
+      -0.08,
+    ),
+    paint(new THREE.CylinderGeometry(0.01, 0.05, 0.08, 6), p.ammoBand, 0.3).translate(
+      0,
+      0.92,
+      -0.08,
+    ),
+    paint(new THREE.CylinderGeometry(0.01, 0.05, 0.08, 6), p.ammoBand, 0.3).translate(
+      0.16,
+      0.88,
+      -0.08,
+    ),
   ];
-  return merge(parts, 'ammo');
+  return merged(parts);
 }
 
 /**
@@ -95,16 +177,48 @@ function scrapGeometry(): THREE.BufferGeometry {
   const tok = palette.scrapToken;
   const dark = palette.scrapTokenDark;
   const baseCol = palette.scrapBase;
+
+  // A gear leaning against the heap: a toothed disc with a hub bore.
+  const gear = (): THREE.BufferGeometry => {
+    const teeth: THREE.BufferGeometry[] = [
+      paint(new THREE.CylinderGeometry(0.17, 0.17, 0.06, 8), tok, 0.4),
+      paint(new THREE.CylinderGeometry(0.07, 0.07, 0.07, 8), dark, 0.4),
+    ];
+    for (let i = 0; i < 4; i += 1) {
+      const a = (i / 4) * Math.PI;
+      teeth.push(
+        box(0.44, 0.055, 0.09, tok, 0.4).rotateY(a),
+      );
+    }
+    return merged(teeth);
+  };
+
   const parts = [
     box(0.78, 0.08, 0.78, baseCol, 0.6).translate(0, 0.05, 0),
-    // A tumbled heap of salvage: a few angled plates and a couple of bolts.
+    // A tumbled heap of salvage: angled plates stacked into a mound.
     box(0.5, 0.26, 0.46, dark, 0.5).rotateY(0.5).translate(-0.06, 0.2, 0.04),
     box(0.42, 0.2, 0.4, tok, 0.4).rotateY(-0.7).rotateZ(0.2).translate(0.16, 0.34, -0.05),
     box(0.3, 0.16, 0.3, dark, 0.45).rotateY(0.3).translate(-0.18, 0.42, -0.1),
+    box(0.26, 0.06, 0.34, tok, 0.35).rotateY(0.9).rotateX(0.3).translate(0.02, 0.52, 0.08),
+    // Bolts and offcuts jutting from the pile.
     box(0.12, 0.22, 0.12, tok, 0.35).rotateZ(0.3).translate(0.22, 0.5, 0.18),
     box(0.1, 0.16, 0.1, tok, 0.35).rotateZ(-0.4).translate(-0.24, 0.46, 0.2),
+    box(0.06, 0.06, 0.06, dark, 0.3).translate(-0.02, 0.62, -0.02),
+    // The gear propped against the flank — the salvage signature piece.
+    gear().rotateZ(1.25).rotateY(0.5).translate(0.28, 0.26, 0.22),
+    // A bent pipe elbow poking out the other side.
+    paint(new THREE.CylinderGeometry(0.05, 0.05, 0.3, 6), dark, 0.4)
+      .rotateZ(0.9)
+      .translate(-0.3, 0.24, -0.18),
+    paint(new THREE.CylinderGeometry(0.05, 0.05, 0.2, 6), dark, 0.4)
+      .rotateX(0.8)
+      .translate(-0.42, 0.32, -0.22),
+    // A coil spring dropped at the heap's foot.
+    paint(new THREE.CylinderGeometry(0.07, 0.07, 0.14, 8), tok, 0.35).translate(0.05, 0.13, -0.28),
+    paint(new THREE.CylinderGeometry(0.08, 0.08, 0.02, 8), dark, 0.3).translate(0.05, 0.16, -0.28),
+    paint(new THREE.CylinderGeometry(0.08, 0.08, 0.02, 8), dark, 0.3).translate(0.05, 0.1, -0.28),
   ];
-  return merge(parts, 'scrap');
+  return merged(parts);
 }
 
 /**
@@ -117,19 +231,30 @@ function scrapGeometry(): THREE.BufferGeometry {
 function coinGeometry(): THREE.BufferGeometry {
   // A cylinder stands on Y by default; tip it onto its edge so the round faces look
   // forward (±Z) and the place()-spin around Y flips it like a tumbling coin.
-  const disc = paint(
-    new THREE.CylinderGeometry(0.34, 0.34, 0.09, 8),
-    palette.coinToken,
-    0.35,
-  ).rotateX(Math.PI / 2);
-  // A smaller raised face on each side: the struck-coin detail.
-  const faceFront = paint(new THREE.CylinderGeometry(0.2, 0.2, 0.04, 8), palette.coinTokenDark, 0.4)
-    .rotateX(Math.PI / 2)
-    .translate(0, 0, 0.06);
-  const faceBack = paint(new THREE.CylinderGeometry(0.2, 0.2, 0.04, 8), palette.coinTokenDark, 0.4)
-    .rotateX(Math.PI / 2)
-    .translate(0, 0, -0.06);
-  return merge([disc, faceFront, faceBack], 'coin');
+  const parts = [
+    paint(new THREE.CylinderGeometry(0.34, 0.34, 0.09, 8), palette.coinToken, 0.35).rotateX(
+      Math.PI / 2,
+    ),
+    // A smaller raised face on each side: the struck-coin detail.
+    paint(new THREE.CylinderGeometry(0.2, 0.2, 0.04, 8), palette.coinTokenDark, 0.4)
+      .rotateX(Math.PI / 2)
+      .translate(0, 0, 0.06),
+    paint(new THREE.CylinderGeometry(0.2, 0.2, 0.04, 8), palette.coinTokenDark, 0.4)
+      .rotateX(Math.PI / 2)
+      .translate(0, 0, -0.06),
+  ];
+  // Short mint marks ringing the face edge, proud of both faces but flush with
+  // the rim — the struck-coin detail, never gear teeth (the scrap heap owns the
+  // gear silhouette). Kept cheap: coins are pooled by the trailful (MAX_COINS).
+  for (let i = 0; i < 8; i += 1) {
+    const a = (i / 8) * Math.PI * 2 + Math.PI / 8;
+    parts.push(
+      box(0.05, 0.09, 0.11, palette.coinTokenDark, 0.35)
+        .rotateZ(a)
+        .translate(Math.cos(a + Math.PI / 2) * 0.27, Math.sin(a + Math.PI / 2) * 0.27, 0),
+    );
+  }
+  return merged(parts);
 }
 
 /**
@@ -139,29 +264,29 @@ function coinGeometry(): THREE.BufferGeometry {
  * the lift chevron and the health cross at the spawn horizon.
  */
 function shieldGeometry(): THREE.BufferGeometry {
+  const tok = palette.shieldToken;
+  const dark = palette.shieldTokenDark;
   const parts = [
     box(0.78, 0.08, 0.78, palette.shieldBase, 0.6).translate(0, 0.05, 0),
-    // The emitter ring, and the bubble it projects.
-    paint(new THREE.CylinderGeometry(0.36, 0.4, 0.12, 8), palette.shieldTokenDark, 0.4).translate(
-      0,
-      0.15,
-      0,
-    ),
-    paint(new THREE.SphereGeometry(0.3, 8, 6), palette.shieldToken, 0.25).translate(0, 0.5, 0),
-    // Four emitter studs around the ring.
-    box(0.08, 0.12, 0.08, palette.shieldTokenDark, 0.35).translate(0.3, 0.16, 0),
-    box(0.08, 0.12, 0.08, palette.shieldTokenDark, 0.35).translate(-0.3, 0.16, 0),
-    box(0.08, 0.12, 0.08, palette.shieldTokenDark, 0.35).translate(0, 0.16, 0.3),
-    box(0.08, 0.12, 0.08, palette.shieldTokenDark, 0.35).translate(0, 0.16, -0.3),
+    // The emitter ring: a ribbed coil housing, wound with darker segments.
+    paint(new THREE.CylinderGeometry(0.36, 0.4, 0.12, 8), dark, 0.4).translate(0, 0.15, 0),
+    paint(new THREE.CylinderGeometry(0.3, 0.34, 0.08, 8), tok, 0.35).translate(0, 0.24, 0),
+    // The faceted pale-ice bubble it projects.
+    paint(new THREE.IcosahedronGeometry(0.3, 0), tok, 0.25).translate(0, 0.54, 0),
+    // Four emitter studs around the ring, each with a bright tip.
+    box(0.08, 0.14, 0.08, dark, 0.35).translate(0.32, 0.18, 0),
+    box(0.08, 0.14, 0.08, dark, 0.35).translate(-0.32, 0.18, 0),
+    box(0.08, 0.14, 0.08, dark, 0.35).translate(0, 0.18, 0.32),
+    box(0.08, 0.14, 0.08, dark, 0.35).translate(0, 0.18, -0.32),
+    box(0.05, 0.05, 0.05, tok, 0.2).translate(0.32, 0.28, 0),
+    box(0.05, 0.05, 0.05, tok, 0.2).translate(-0.32, 0.28, 0),
+    box(0.05, 0.05, 0.05, tok, 0.2).translate(0, 0.28, 0.32),
+    box(0.05, 0.05, 0.05, tok, 0.2).translate(0, 0.28, -0.32),
+    // Conduit blocks running from the pad into the ring.
+    box(0.1, 0.06, 0.16, dark, 0.4).translate(0.2, 0.1, 0.2),
+    box(0.1, 0.06, 0.16, dark, 0.4).translate(-0.2, 0.1, -0.2),
   ];
-  return merge(parts, 'shield');
-}
-
-function merge(parts: THREE.BufferGeometry[], name: string): THREE.BufferGeometry {
-  const geo = mergeGeometries(parts, false);
-  for (const p of parts) p.dispose();
-  if (!geo) throw new Error(`Failed to merge ${name} pickup geometry`);
-  return geo;
+  return merged(parts);
 }
 
 /**
