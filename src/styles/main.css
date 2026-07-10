@@ -604,7 +604,12 @@ button {
 
 @media (hover: none) and (orientation: landscape) and (max-height: 520px), (pointer: coarse) and (orientation: landscape) and (max-height: 520px), (max-width: 900px) and (orientation: landscape) and (max-height: 520px) {
   .sdw-garage {
-    overflow-y: hidden !important;
+    overflow-y: auto !important;
+  }
+
+  .sdw-garage__top,
+  .sdw-garage__bottom {
+    flex: 0 0 auto !important;
   }
 
   .sdw-garage__title {
@@ -613,9 +618,19 @@ button {
   }
 
   .sdw-garage__middle {
-    flex: 1 1 auto !important;
+    display: grid !important;
+    flex: 0 0 220px !important;
     grid-template-columns: minmax(150px, 0.75fr) minmax(220px, 1.6fr) minmax(150px, 0.75fr);
     grid-template-areas: 'info preview status';
+    min-height: 220px !important;
+  }
+
+  .sdw-garage__info,
+  .sdw-garage__status {
+    width: auto !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    overflow-y: auto;
   }
 
   .sdw-garage__preview {
