@@ -35,7 +35,7 @@ export const DEFAULT_SETTINGS: Settings = {
   motion: 'auto',
   shake: 1,
   volume: 0.7,
-  debugOverlay: true,
+  debugOverlay: false,
 };
 
 /** Device-pixel-ratio cap for a quality tier (applied as `min(dpr, cap)`). */

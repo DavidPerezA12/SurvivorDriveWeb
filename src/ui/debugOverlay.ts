@@ -1,10 +1,11 @@
 import type { RenderStats } from '../render';
 
 const HISTORY = 120;
+const WARMUP_FRAMES = 30;
 
 /**
- * The always-on dev overlay (docs/ARCHITECTURE.md → Budgets). It reports draw
- * calls, triangles, FPS, and frame-time stability, not just an average. The
+ * The opt-in dev overlay (docs/ARCHITECTURE.md → Budgets). It reports draw calls,
+ * triangles, FPS, and frame-time stability, not just an average. The
  * p95/median figure turns red when it crosses 1.5×, the stability ceiling.
  */
 export class DebugOverlay {
@@ -12,7 +13,11 @@ export class DebugOverlay {
   private readonly readout: HTMLDivElement;
   private readonly canvas: HTMLCanvasElement;
   private readonly ctx: CanvasRenderingContext2D;
-  private readonly frames: number[] = [];
+  private readonly frames = new Float32Array(HISTORY);
+  private readonly sorted = new Float32Array(HISTORY);
+  private frameCount = 0;
+  private cursor = 0;
+  private warmup = 0;
   private accum = 0;
 
   constructor() {
@@ -52,6 +57,7 @@ export class DebugOverlay {
 
   /** Show or hide the overlay (the graphics setting). Hidden = no DOM churn. */
   setVisible(visible: boolean): void {
+    if (visible && !this.visible) this.resetStats();
     this.visible = visible;
     this.root.style.display = visible ? 'block' : 'none';
   }
@@ -59,8 +65,15 @@ export class DebugOverlay {
   /** Feed one rendered frame. `frameMs` is the real wall-clock frame time. */
   update(frameMs: number, stats: RenderStats): void {
     if (!this.visible) return; // hidden: skip the graph redraw and DOM writes
-    this.frames.push(frameMs);
-    if (this.frames.length > HISTORY) this.frames.shift();
+    if (this.warmup < WARMUP_FRAMES) {
+      this.warmup += 1;
+      if (this.warmup === 1) this.readout.textContent = 'warming up…';
+      return;
+    }
+
+    this.frames[this.cursor] = frameMs;
+    this.cursor = (this.cursor + 1) % HISTORY;
+    if (this.frameCount < HISTORY) this.frameCount += 1;
 
     // Throttle the DOM text to ~5 Hz; the graph still redraws every frame.
     this.accum += frameMs;
@@ -68,9 +81,20 @@ export class DebugOverlay {
     if (this.accum < 200) return;
     this.accum = 0;
 
-    const sorted = [...this.frames].sort((a, b) => a - b);
-    const median = sorted[Math.floor(sorted.length / 2)];
-    const p95 = sorted[Math.floor(sorted.length * 0.95)];
+    // Copy into a preallocated scratch buffer, then insertion-sort the small
+    // fixed window in place. No per-sample arrays or spread copies reach GC.
+    for (let i = 0; i < this.frameCount; i += 1) this.sorted[i] = this.frames[i];
+    for (let i = 1; i < this.frameCount; i += 1) {
+      const value = this.sorted[i];
+      let j = i - 1;
+      while (j >= 0 && this.sorted[j] > value) {
+        this.sorted[j + 1] = this.sorted[j];
+        j -= 1;
+      }
+      this.sorted[j + 1] = value;
+    }
+    const median = this.sorted[Math.floor(this.frameCount / 2)];
+    const p95 = this.sorted[Math.floor((this.frameCount - 1) * 0.95)];
     const ratio = median > 0 ? p95 / median : 1;
     const fps = frameMs > 0 ? 1000 / frameMs : 0;
     const ratioColor = ratio > 1.5 ? '#e8503a' : '#8fbf6a';
@@ -97,12 +121,23 @@ export class DebugOverlay {
 
     ctx.strokeStyle = '#c7b26a';
     ctx.beginPath();
-    for (let i = 0; i < this.frames.length; i += 1) {
-      const y = Math.max(0, h - this.frames[i] * scale);
+    const start = this.frameCount < HISTORY ? 0 : this.cursor;
+    for (let i = 0; i < this.frameCount; i += 1) {
+      const frame = this.frames[(start + i) % HISTORY];
+      const y = Math.max(0, h - frame * scale);
       if (i === 0) ctx.moveTo(i, y);
       else ctx.lineTo(i, y);
     }
     ctx.stroke();
+  }
+
+  private resetStats(): void {
+    this.frameCount = 0;
+    this.cursor = 0;
+    this.warmup = 0;
+    this.accum = 0;
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.readout.textContent = '';
   }
 }
 
