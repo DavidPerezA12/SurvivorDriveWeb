@@ -121,6 +121,12 @@ export class Game {
     // The death screen keeps its own R-to-restart flow, so pausing is disabled
     // while wrecked.
     window.addEventListener('keydown', (e) => {
+      if ((e.key === 'r' || e.key === 'R') && this.state.dead && this.garage.isOpen()) {
+        if (e.repeat) return;
+        e.preventDefault();
+        this.driveAgain();
+        return;
+      }
       if (e.key !== 'Escape' || this.state.dead) return;
       e.preventDefault();
       // A garage opened from pause closes straight back to the run.
@@ -135,11 +141,24 @@ export class Game {
   }
 
   start(): void {
-    this.running = true;
     this.input.setTouchVisible(true);
     this.beginIntro();
+    this.startLoop();
+  }
+
+  /** Start the main frame loop with a fresh clock, without changing overlays. */
+  private startLoop(): void {
+    if (this.running) return;
+    this.running = true;
     this.last = performance.now();
     this.raf = requestAnimationFrame(this.frame);
+  }
+
+  /** Stop the main frame loop without opening the pause menu. */
+  private stopLoop(): void {
+    if (!this.running) return;
+    this.running = false;
+    cancelAnimationFrame(this.raf);
   }
 
   /** Open the run-opening cinematic: raise the location card; the sim keeps running. */
@@ -171,8 +190,7 @@ export class Game {
   /** Stop the loop and raise the pause menu (zero cost while up). */
   private pause(): void {
     if (!this.running) return;
-    this.running = false;
-    cancelAnimationFrame(this.raf);
+    this.stopLoop();
     this.input.setTouchVisible(false);
     this.menu.show();
   }
@@ -183,9 +201,7 @@ export class Game {
     this.menu.hide();
     this.input.reset();
     this.input.setTouchVisible(true);
-    this.running = true;
-    this.last = performance.now();
-    this.raf = requestAnimationFrame(this.frame);
+    this.startLoop();
   }
 
   /** Persist and apply a settings change from the menu. */
@@ -265,6 +281,10 @@ export class Game {
       }),
     };
     this.save.bankScrap(this.state.scrap);
+    // The garage owns the screen now. Stop the world loop before starting the
+    // preview turntable so the dead run cannot coast behind the overlay, drift
+    // away from its frozen result, or compete for a second WebGL frame loop.
+    this.stopLoop();
     this.openGarage();
   }
 
@@ -367,6 +387,7 @@ export class Game {
   private driveAgain(): void {
     this.reset();
     this.input.setTouchVisible(true);
+    this.startLoop();
   }
 
   private readonly frame = (now: number): void => {
@@ -409,6 +430,10 @@ export class Game {
     // garage's Drive button) starts the next run wearing the new loadout.
     if (this.state.dead) {
       if (!this.wreckHandled) this.handleWreck();
+      // `handleWreck` stops the loop. Do not advance or render a dead run behind
+      // the garage; the Play Again button or the window-level R shortcut starts
+      // a fresh loop.
+      if (!this.running) return;
       if (this.input.takeRestart()) this.driveAgain();
     }
 
