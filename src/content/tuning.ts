@@ -42,6 +42,9 @@ export const CHUNK_LENGTH = 50;
 /** How far ahead of the car the world is materialized, in meters. */
 export const LOOKAHEAD = 250;
 
+/** Hard minimum warning time for every lethal set-piece, at any reachable speed. */
+export const MIN_LETHAL_TELEGRAPH_SECONDS = 2;
+
 /** Car kinematics. Speeds in m/s, acceleration in m/s². */
 export const CAR_TUNING = {
   /** Base cruising speed the car ramps up to at the start of a run. */
@@ -400,12 +403,12 @@ export const DRIFT_TUNING = {
  * its target lane. The descent itself is the telegraph, a glowing meteor you see
  * coming from the sky, not a marker painted on the road. At `impactGap` it lands
  * and turns lethal. `telegraphGap` is well over two seconds of road at cruising
- * speed (~50–66 m/s), so the threatened lane reads long before impact, and the
- * rock lands just ahead of the bumper, never on the player's head from nowhere.
+ * speed, including the capped mow surge, so the threatened lane reads long before
+ * impact and the rock never lands on the player's head from nowhere.
  */
 export const METEOR_TUNING = {
   /** Gap (m) at which the shadow appears and the rock starts to fall. */
-  telegraphGap: 150,
+  telegraphGap: 195,
   /** Gap (m) at which the rock lands and becomes a lethal blocker. */
   impactGap: 6,
   /** Height (m) the rock falls from when the telegraph begins. */
@@ -416,9 +419,10 @@ export const METEOR_TUNING = {
  * The quake-split event (docs/DESIGN.md → Pillar 1: the road is the boss). A run of
  * gaps that tear open in a wave across the non-safe lanes. Each starts as a harmless
  * telegraph crack, visible from the spawn horizon, and only opens into a lethal hole
- * once the car is within `openGap` meters. That is ~1.5 s of road at cruising speed,
- * enough to jump it or be on a lane that holds, while the crack itself reads from
- * far off. The safe lane never cracks, so fleeing to it is always an out.
+ * once the car is within `openGap` meters. The opening wave is the final cue, while
+ * the harmless crack itself reads from the materialization horizon more than two
+ * seconds earlier at any reachable speed. The safe lane never cracks, so fleeing
+ * to it is always an out.
  */
 export const QUAKE_TUNING = {
   /** Gap (m) at which a telegraph crack tears open into a lethal hole. */
@@ -435,7 +439,7 @@ export const QUAKE_TUNING = {
  */
 export const BEAM_TUNING = {
   /** Gap (m) at which the sweep begins. */
-  startGap: 150,
+  startGap: 195,
   /** Gap (m) by which the sweep has finished and the strip holds its target lane. */
   endGap: 30,
 } as const;
