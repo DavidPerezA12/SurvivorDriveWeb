@@ -39,11 +39,11 @@ Runs last two to five minutes. Death is always your call, never the dice.
 
 ## Status
 
-Clean rebuild in progress. The driving feel (M1) is in place and the core loop
-(M2) is closing. You can drive a survivor car down a streaming road, cross biomes
-that change visibility and grip, survive telegraphed set pieces and boss barrages,
-shoot or ram zombies for scrap, and die into a garage that carries permanent
-upgrades across runs.
+Clean rebuild in progress. The driving feel is in place and the core loop is
+closed in code, with its final playtest gates still open. You can drive a survivor
+car down a streaming road, cross biomes that change visibility and grip, survive
+telegraphed set pieces and boss barrages, shoot or ram zombies for scrap, and die
+into a garage that carries permanent upgrades across runs.
 
 Still to come: the final browser tuning passes, landmark act transitions, the full
 multiplier, and the Radio.

@@ -51,9 +51,10 @@ Fixed-timestep simulation with interpolated rendering:
 - Tuning constants are **per second**, never per tick.
 - Time-scale effects (hitstop, slow-mo) scale the accumulator feed, not tick size,
   so the sim still advances in whole ticks and determinism holds.
-- **Pausing stops the loop**, it does not gate it: the menu cancels the rAF
-  callback, so an open menu allocates nothing. Menu and HUD are DOM, built once and
-  toggled by `display`.
+- **Pausing and the wreck garage stop the world loop**, they do not gate it: the
+  active rAF callback is cancelled, so an open overlay does not keep simulating or
+  rendering the road. The garage preview owns its own loop only while it is visible.
+  Menu and HUD are DOM, built once and toggled by `display`.
 
 ## World model
 
@@ -103,22 +104,18 @@ constraints validated in tests:
 
 ## Events (set pieces)
 
-An event is a **declarative timeline**, not code:
+Set pieces use the same typed formation data as the rest of the road. A formation
+declares an id, act weights, hardness, and ordered cells. Each cell carries a
+relative lane, a position within the chunk, a role, and an optional lateral offset.
+Quakes, beam sweeps, collapse ramps, surges, and boss barrages are larger authored
+formations whose roles activate deterministic position-driven phases in the sim.
 
-```ts
-interface EventDef {
-  id: 'buildingCollapse' | 'ufoStrafe' | …;
-  telegraphMs: number;          // ≥ 2000, enforced by a unit test
-  phases: EventPhase[];         // { atMs, laneMask, effect }
-  loot: LootRule[];
-  linesOpened: number;          // ≥ 1, asserted in tests
-}
-```
-
-The scheduler lives in `sim/`: per act it draws events (seeded RNG), assigns chunk
-slots, and resolves conflicts (min spacing, no compound events before act III).
-Because phases are lane masks on a timeline, the whole pillar is headlessly
-testable. `render/` and `audio/` consume the same timeline via frame events.
+There is no separate wall-clock scheduler. Warning phases are measured in road
+distance and evaluated against the fastest reachable car speed. CI asserts that a
+lethal moving phase gives at least two seconds of warning, that each named event is
+present in typed data, and that no event writes into its relative safe line. One
+formation is selected per chunk, which prevents accidental event overlap. Explicit
+multi-chunk compound scheduling remains future work.
 
 ## Damage and weapons
 
@@ -217,18 +214,16 @@ assets are short loops/one-shots, lazily decoded after first input, ≤ 3 MB tot
 | --- | --- | --- |
 | Determinism | Same `(seed, intents)` twice → deep-equal state | CI |
 | Safe-line invariant | Greedy pathing over generated windows | CI |
-| Event contracts | telegraph ≥ 2000 ms, `linesOpened ≥ 1`, phases in bounds | CI |
+| Event contracts | Warning time at max speed, named data, safe line open | CI |
 | Hull & gun | Hull-loss scales with impact and armor; shots drop fodder by tier | CI |
-| Economy | Bot runs assert scrap/min within tuning bands | CI, advisory |
-| Render budget | Headless scene-stats: ≤ 150 draws, ≤ 200k tris | CI |
+| Economy | Headless smoke runs catch payout and spawn regressions | CI, advisory |
+| Render budget | Browser overlay: ≤ 150 draws, ≤ 200k tris | PR review |
 | Feel & frame stability | Human, in browser, on the preview, with the overlay | PR review |
 
-The economy bot is the secret weapon: a headless policy driver playing thousands of
-runs per second, catching balance regressions no unit test would phrase.
-
-> The full greedy windowed safe-line pather is not built yet; it is stood in for by
-> per-chunk safe-lane tests plus an economy smoke test. Build it out as hazard
-> variety grows.
+The safe-line gate searches 1,992 overlapping three-chunk windows with the stock
+car's acceleration, the weakest biome steering response, the maximum forward speed,
+and conservative blocker footprints. It complements the structural rule that the
+safe lane contains neither threats nor rewards.
 
 ## Performance practices
 
