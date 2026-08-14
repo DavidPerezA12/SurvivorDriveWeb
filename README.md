@@ -66,7 +66,9 @@ npm run build    # typecheck and production build to dist/
 ```
 
 Other scripts: `npm run typecheck`, `npm run lint`, `npm run preview`,
-`npm run format`. The full pre-push gate, the same one CI runs, is
+`npm run format`. After exporting authored Blender models, run
+`npm run models:optimize` to quantize the runtime GLBs. The full pre-push gate,
+the same one CI runs, is
 `npm run typecheck && npm run lint && npm test && npm run build`.
 
 ## Controls

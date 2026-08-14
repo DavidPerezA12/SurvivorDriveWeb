@@ -31,9 +31,9 @@ export default tseslint.config(
         {
           patterns: [
             {
-              group: ['three', 'three/*'],
+              group: ['three', 'three/*', 'node:*'],
               message:
-                'sim/ and content/ must stay renderer-agnostic — no three.js here (docs/ARCHITECTURE.md).',
+                'sim/ and content/ must stay renderer-agnostic and browser/Node independent (docs/ARCHITECTURE.md).',
             },
             {
               group: [
@@ -55,6 +55,14 @@ export default tseslint.config(
         { name: 'document', message: 'No DOM in the pure core.' },
         { name: 'window', message: 'No window in the pure core.' },
         { name: 'performance', message: 'No wall-clock time in the sim — determinism.' },
+        { name: 'crypto', message: 'No ambient randomness in the sim — use src/sim/rng.ts.' },
+        { name: 'setTimeout', message: 'No wall-clock timers in the fixed-timestep core.' },
+        { name: 'setInterval', message: 'No wall-clock timers in the fixed-timestep core.' },
+        { name: 'requestAnimationFrame', message: 'Animation scheduling belongs in app/render.' },
+        { name: 'fetch', message: 'No network access in the pure core.' },
+        { name: 'localStorage', message: 'Persistence belongs in app/.' },
+        { name: 'navigator', message: 'Platform state must not enter deterministic simulation.' },
+        { name: 'AudioContext', message: 'Audio belongs in the impure audio layer.' },
       ],
       'no-restricted-properties': [
         'error',
