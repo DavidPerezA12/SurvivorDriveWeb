@@ -73,7 +73,7 @@ export class MeteorStreaks {
     this.reduced = reduced;
   }
 
-  update(state: ReadonlyState, dt: number): void {
+  update(state: ReadonlyState, dt: number, renderDistance = state.distance): void {
     // Read the storm straight off the sim: how many meteors are falling right now.
     let falling = 0;
     for (const h of state.hazards) if (h.kind === 'meteor' && !h.landed) falling += 1;
@@ -92,7 +92,7 @@ export class MeteorStreaks {
       if (fy < 0) fy += TOP_Y;
       this.y[i] = fy;
 
-      const raw = state.distance - this.zPhase[i];
+      const raw = renderDistance - this.zPhase[i];
       const z = (((raw + Z_AHEAD) % SPAN) + SPAN) % SPAN - Z_AHEAD;
       // The diagonal lean ties horizontal offset to how far it has fallen.
       const x = this.baseX[i] + (TOP_Y - fy) * this.driftX[i] * 0.05 * drift;

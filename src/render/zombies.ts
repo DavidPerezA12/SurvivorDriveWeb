@@ -250,7 +250,12 @@ export class ZombieField {
     }
   }
 
-  update(state: ReadonlyState, dt: number, elevation: Elevation): void {
+  update(
+    state: ReadonlyState,
+    dt: number,
+    elevation: Elevation,
+    renderDistance = state.distance,
+  ): void {
     this.clock += dt;
     let count = 0;
     let countB = 0;
@@ -268,10 +273,10 @@ export class ZombieField {
       // Brutes shamble slow and rock hard; jumpers tense fast (a quick coil-bob).
       const rate = brute ? 3 : jumper ? 7 : 5;
       const sway = Math.sin(this.clock * rate + z.phase * TWO_PI);
-      const groundY = elevation.yAt(z.forward, state.distance);
+      const groundY = elevation.yAt(z.forward, renderDistance);
       // A jumper bobs in its crouch (a coiling tell); others bob on their feet.
       const bob = jumper ? Math.abs(sway) * 0.07 : Math.abs(sway) * 0.04;
-      this.dummy.position.set(z.x, groundY + bob, state.distance - z.forward);
+      this.dummy.position.set(z.x, groundY + bob, renderDistance - z.forward);
       // Static facing variety from phase, plus a small live rock from the sway. A
       // jumper mostly faces the road (it is aimed at the car), with only a slight rock.
       const yaw = jumper ? (z.phase - 0.5) * 0.5 : (z.phase - 0.5) * 1.6;

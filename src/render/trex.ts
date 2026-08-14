@@ -85,15 +85,15 @@ export class StompField {
     }
   }
 
-  update(state: ReadonlyState, elevation: Elevation): void {
+  update(state: ReadonlyState, elevation: Elevation, renderDistance = state.distance): void {
     const t = METEOR_TUNING;
     let feet = 0;
     let prints = 0;
     let shadows = 0;
     for (const h of state.hazards) {
       if (h.kind !== 'stomp') continue;
-      const screenZ = state.distance - h.forward;
-      const ground = elevation.yAt(h.forward, state.distance);
+      const screenZ = renderDistance - h.forward;
+      const ground = elevation.yAt(h.forward, renderDistance);
       if (h.landed) {
         if (prints < MAX_FEET) {
           this.place(this.print, prints, h.x, ground + 0.02, screenZ, 1, 0);
@@ -112,7 +112,7 @@ export class StompField {
       }
       // Falling: the foot descends in its lane as the gap closes (the telegraph), and
       // a shadow on the ground grows toward full as it nears — read the doomed lane.
-      const gap = h.forward - state.distance;
+      const gap = h.forward - renderDistance;
       let p = (t.telegraphGap - gap) / (t.telegraphGap - t.impactGap);
       p = p < 0 ? 0 : p > 1 ? 1 : p;
       const y = ground + FOOT_REST_Y + t.fallHeight * (1 - p);
@@ -253,17 +253,22 @@ export class TrexSilhouette {
     this.reduced = reduced;
   }
 
-  update(state: ReadonlyState, dt: number, elevation: Elevation): void {
+  update(
+    state: ReadonlyState,
+    dt: number,
+    elevation: Elevation,
+    renderDistance = state.distance,
+  ): void {
     // Active while the rampage has live stomps; pick the side and the forward point
     // from the nearest one so the beast looms where the next slam lands.
     let active = false;
     let side = -1;
-    let nearestForward = state.distance + 40;
+    let nearestForward = renderDistance + 40;
     let nearestGap = Infinity;
     for (const h of state.hazards) {
       if (h.kind !== 'stomp') continue;
       active = true;
-      const gap = Math.abs(h.forward - state.distance);
+      const gap = Math.abs(h.forward - renderDistance);
       if (gap < nearestGap) {
         nearestGap = gap;
         side = h.x >= 0 ? 1 : -1;
@@ -284,8 +289,8 @@ export class TrexSilhouette {
     this.gait += this.reduced ? 0 : dt * 6;
 
     // Off the shoulder on the slam side, a touch ahead of the car, riding the ground.
-    const z = state.distance - (nearestForward + 6);
-    const ground = elevation.yAt(nearestForward + 6, state.distance);
+    const z = renderDistance - (nearestForward + 6);
+    const ground = elevation.yAt(nearestForward + 6, renderDistance);
     const bob = this.reduced ? 0 : Math.sin(this.gait) * 0.6;
     // Close enough to the shoulder that the beast and its foot-slams read as one
     // hunter, not a backdrop plus some craters.

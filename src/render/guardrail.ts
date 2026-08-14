@@ -30,6 +30,8 @@ const REACH = LOOKAHEAD * 0.78;
 const OFFSET = roadHalfWidth() + 1.1;
 const RAIL_TOP = 0.82;
 const MAX = 96;
+/** Shared iteration order; keeping it at module scope avoids a tiny array per frame. */
+const SIDES = [-1, 1] as const;
 /** Distance over which the rail decays from "just neglected" to "mostly ruined":
  *  the five act spans up to Static, so the shoulder rots as the world ends. */
 const DECAY_SPAN = ACT_SPAN * 5;
@@ -90,7 +92,7 @@ export class Guardrail {
     let n = 0;
 
     for (let slot = first; slot <= last && n < MAX; slot += 1) {
-      for (const side of [-1, 1] as const) {
+      for (const side of SIDES) {
         if (n >= MAX) break;
         const key = slot * 2 + (side < 0 ? 0 : 1);
 

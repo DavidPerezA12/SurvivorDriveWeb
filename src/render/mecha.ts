@@ -83,7 +83,7 @@ export class ShellField {
     }
   }
 
-  update(state: ReadonlyState, elevation: Elevation): void {
+  update(state: ReadonlyState, elevation: Elevation, renderDistance = state.distance): void {
     const t = METEOR_TUNING;
     let shells = 0;
     let tips = 0;
@@ -91,8 +91,8 @@ export class ShellField {
     let shadows = 0;
     for (const h of state.hazards) {
       if (h.kind !== 'shell') continue;
-      const screenZ = state.distance - h.forward;
-      const ground = elevation.yAt(h.forward, state.distance);
+      const screenZ = renderDistance - h.forward;
+      const ground = elevation.yAt(h.forward, renderDistance);
       if (h.landed) {
         if (craters < MAX_SHELLS) {
           this.placeFlat(this.crater, craters, h.x, ground + 0.02, screenZ, 1);
@@ -110,7 +110,7 @@ export class ShellField {
       }
       // Falling: the shell drops nose-down as the gap closes (the telegraph), and a
       // shadow on the ground grows toward full as it nears — read the doomed lane.
-      const gap = h.forward - state.distance;
+      const gap = h.forward - renderDistance;
       let p = (t.telegraphGap - gap) / (t.telegraphGap - t.impactGap);
       p = p < 0 ? 0 : p > 1 ? 1 : p;
       const y = ground + SHELL_REST_Y + t.fallHeight * (1 - p);
@@ -258,15 +258,20 @@ export class MechaSilhouette {
     this.reduced = reduced;
   }
 
-  update(state: ReadonlyState, dt: number, elevation: Elevation): void {
+  update(
+    state: ReadonlyState,
+    dt: number,
+    elevation: Elevation,
+    renderDistance = state.distance,
+  ): void {
     let active = false;
     let side = 1;
-    let nearestForward = state.distance + 40;
+    let nearestForward = renderDistance + 40;
     let nearestGap = Infinity;
     for (const h of state.hazards) {
       if (h.kind !== 'shell') continue;
       active = true;
-      const gap = Math.abs(h.forward - state.distance);
+      const gap = Math.abs(h.forward - renderDistance);
       if (gap < nearestGap) {
         nearestGap = gap;
         side = h.x >= 0 ? 1 : -1;
@@ -286,8 +291,8 @@ export class MechaSilhouette {
     this.group.visible = true;
     this.stride += this.reduced ? 0 : dt * 4.5;
 
-    const z = state.distance - (nearestForward + 8);
-    const ground = elevation.yAt(nearestForward + 8, state.distance);
+    const z = renderDistance - (nearestForward + 8);
+    const ground = elevation.yAt(nearestForward + 8, renderDistance);
     const bob = this.reduced ? 0 : Math.abs(Math.sin(this.stride)) * 0.7;
     // Close enough to the shoulder that the machine and its shellfire read as one
     // attacker, not a backdrop plus some craters.

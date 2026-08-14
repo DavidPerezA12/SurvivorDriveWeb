@@ -61,13 +61,18 @@ export class GasField {
     this.reduced = reduced;
   }
 
-  update(state: ReadonlyState, dt: number, elevation: Elevation): void {
+  update(
+    state: ReadonlyState,
+    dt: number,
+    elevation: Elevation,
+    renderDistance = state.distance,
+  ): void {
     this.clock += dt;
     let n = 0;
     for (const g of state.gas) {
       const frac = g.life / g.maxLife; // 1 fresh → 0 gone
-      const baseY = elevation.yAt(g.forward, state.distance);
-      const z0 = state.distance - g.forward;
+      const baseY = elevation.yAt(g.forward, renderDistance);
+      const z0 = renderDistance - g.forward;
       for (let p = 0; p < PUFFS_PER_CLOUD && n < MAX_PUFFS; p += 1) {
         const wob = this.reduced ? 0 : Math.sin(this.clock * 1.3 + p * 1.7 + g.forward) * 0.18;
         // Full-bodied while fresh, shrinking to nothing as it dissipates.

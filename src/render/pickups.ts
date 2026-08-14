@@ -377,7 +377,12 @@ export class PickupField {
     );
   }
 
-  update(state: ReadonlyState, dt: number, elevation: Elevation): void {
+  update(
+    state: ReadonlyState,
+    dt: number,
+    elevation: Elevation,
+    renderDistance = state.distance,
+  ): void {
     this.clock += dt;
     this.lift.begin();
     this.health.begin();
@@ -387,7 +392,7 @@ export class PickupField {
     this.shield.begin();
     for (const p of state.pickups) {
       if (p.taken) continue;
-      const z = state.distance - p.forward;
+      const z = renderDistance - p.forward;
       const layer =
         p.kind === 'jump'
           ? this.lift
@@ -400,7 +405,7 @@ export class PickupField {
                 : p.kind === 'shield'
                   ? this.shield
                   : this.ammo;
-      layer.place(p.x, z, this.clock, p.phase, elevation.yAt(p.forward, state.distance));
+      layer.place(p.x, z, this.clock, p.phase, elevation.yAt(p.forward, renderDistance));
     }
     this.lift.commit();
     this.health.commit();
@@ -408,7 +413,7 @@ export class PickupField {
     this.scrap.commit();
     this.shield.commit();
     this.coin.commit();
-    this.sparks.update(state.distance, dt);
+    this.sparks.update(renderDistance, dt);
   }
 
   /** Fire the cool collect burst for a pickup gathered at lateral `x`, world `forward`. */

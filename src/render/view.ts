@@ -404,32 +404,35 @@ export class GameView {
     this.guardrail.update(distance, this.elevation);
     this.overpass.update(distance, this.elevation);
     this.tunnelRoof.update(distance, this.elevation);
-    this.hazards.update(curr, this.elevation);
-    this.meteors.update(curr, this.elevation);
-    this.stomps.update(curr, this.elevation);
-    this.trex.update(curr, dt, this.elevation);
-    this.shells.update(curr, this.elevation);
-    this.mecha.update(curr, dt, this.elevation);
-    this.storm.update(curr, dt);
-    this.zombies.update(curr, dt, this.elevation);
+    // Interactives share the same interpolated world origin as the road and car.
+    // Using curr.distance here made them jump a full fixed-tick (up to ~1.38 m)
+    // while every non-interactive surface moved smoothly between ticks.
+    this.hazards.update(curr, this.elevation, distance);
+    this.meteors.update(curr, this.elevation, distance);
+    this.stomps.update(curr, this.elevation, distance);
+    this.trex.update(curr, dt, this.elevation, distance);
+    this.shells.update(curr, this.elevation, distance);
+    this.mecha.update(curr, dt, this.elevation, distance);
+    this.storm.update(curr, dt, distance);
+    this.zombies.update(curr, dt, this.elevation, distance);
     this.clingers.update(curr.car.clinging, dt);
     this.shield.update(curr.car.shieldTicks, dt);
-    this.gas.update(curr, dt, this.elevation);
-    this.pickups.update(curr, dt, this.elevation);
+    this.gas.update(curr, dt, this.elevation, distance);
+    this.pickups.update(curr, dt, this.elevation, distance);
     // Hull wear: swap the dent/scorch overlay on threshold crossings, and trail
     // engine smoke that thickens as the hull empties (from ~40% down).
     this.updateDamage(curr.car.health);
     const smoke = curr.car.health < 0.4 ? (0.4 - curr.car.health) / 0.4 : 0;
-    this.damageSmoke.update(curr.distance, dt, carX, smoke);
+    this.damageSmoke.update(distance, dt, carX, smoke);
 
-    this.mowFx.update(curr.distance, dt);
-    this.gunFx.update(curr.distance, dt);
-    this.explosionFx.update(curr.distance, dt, this.elevation);
+    this.mowFx.update(distance, dt);
+    this.gunFx.update(distance, dt);
+    this.explosionFx.update(distance, dt, this.elevation);
     this.groundFx.update(carX, carHeight, dt);
     if (intro) this.stage.camera.frameIntro(carX, intro.dolly, intro.settle);
     else this.stage.camera.update(carX, carHeight, curr.car.speed, dt);
 
-    this.lastDistance = curr.distance;
+    this.lastDistance = distance;
     this.stage.renderer.render(this.stage.scene, this.stage.camera.camera);
   }
 

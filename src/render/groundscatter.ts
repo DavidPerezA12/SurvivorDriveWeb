@@ -6,6 +6,9 @@ import { ACT_SPAN, TRANSITION } from './mood';
 import { BIOME_BAND_M, BIOME_TRANSITION_M, biomeForBand, type BiomeId } from '../content/biomes';
 import type { Elevation } from './elevation';
 
+/** Shared iteration order; keeping it at module scope avoids a tiny array per frame. */
+const SIDES = [-1, 1] as const;
+
 /**
  * Flat detail scattered on the dirt either side of the road, with its own look in
  * every act — the floor tells the same story the horizon does (docs/DESIGN.md →
@@ -587,7 +590,7 @@ export class GroundScatter {
     const last = Math.ceil((distance + REACH) / SPACING);
 
     for (let slot = first; slot <= last; slot += 1) {
-      for (const side of [-1, 1] as const) {
+      for (const side of SIDES) {
         const key = slot * 2 + (side < 0 ? 0 : 1);
         // 70% of slots dress the dirt (was 50%): the floor should read busy.
         if (this.rand(key, 1) < 0.3) continue;

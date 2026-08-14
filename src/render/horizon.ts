@@ -29,6 +29,8 @@ import type { Elevation } from './elevation';
  */
 
 const TWO_PI = Math.PI * 2;
+/** Shared iteration order; keeping it at module scope avoids a tiny array per frame. */
+const SIDES = [-1, 1] as const;
 
 type SilKind =
   | 'mesa'
@@ -1865,7 +1867,7 @@ export class Horizon {
     const last = Math.ceil((distance + band.reach) / band.spacing);
 
     for (let slot = first; slot <= last; slot += 1) {
-      for (const side of [-1, 1] as const) {
+      for (const side of SIDES) {
         const key = band.salt + slot * 4 + (side < 0 ? 0 : 2);
         if (this.rand(key, 1) < band.skip) continue;
 

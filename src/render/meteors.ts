@@ -48,13 +48,16 @@ export class MeteorField {
   private readonly rock: THREE.InstancedMesh;
   private readonly core: THREE.InstancedMesh;
   private readonly crater: THREE.InstancedMesh;
+  /** Fixed update set, allocated once with the field rather than once per frame. */
+  private readonly meshes: readonly THREE.InstancedMesh[];
   private readonly dummy = new THREE.Object3D();
 
   constructor(scene: THREE.Scene) {
     this.rock = new THREE.InstancedMesh(meteorRockGeometry(), propMaterial, MAX_INSTANCES);
     this.core = new THREE.InstancedMesh(box(0.7, 0.5, 0.7, palette.meteorCore, 0), lightMaterial, MAX_INSTANCES);
     this.crater = new THREE.InstancedMesh(disc(1.35, palette.meteorCrater), propMaterial, MAX_INSTANCES);
-    for (const mesh of [this.rock, this.core, this.crater]) {
+    this.meshes = [this.rock, this.core, this.crater];
+    for (const mesh of this.meshes) {
       mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       mesh.frustumCulled = false;
       mesh.count = 0;
@@ -62,16 +65,16 @@ export class MeteorField {
     }
   }
 
-  update(state: ReadonlyState, elevation: Elevation): void {
+  update(state: ReadonlyState, elevation: Elevation, renderDistance = state.distance): void {
     const t = METEOR_TUNING;
     let rocks = 0;
     let cores = 0;
     let craters = 0;
     for (const h of state.hazards) {
       if (h.kind !== 'meteor') continue;
-      const screenZ = state.distance - h.forward;
+      const screenZ = renderDistance - h.forward;
       // The crater and the impact point ride the road profile.
-      const ground = elevation.yAt(h.forward, state.distance);
+      const ground = elevation.yAt(h.forward, renderDistance);
       if (h.landed) {
         if (craters < MAX_INSTANCES) {
           this.place(this.crater, craters, h.x, ground + 0.02, screenZ, 0);
@@ -88,11 +91,11 @@ export class MeteorField {
         continue;
       }
       // Falling: the rock descends in its lane as the gap closes — the telegraph.
-      const gap = h.forward - state.distance;
+      const gap = h.forward - renderDistance;
       let p = (t.telegraphGap - gap) / (t.telegraphGap - t.impactGap);
       p = p < 0 ? 0 : p > 1 ? 1 : p;
       const y = ground + REST_Y + t.fallHeight * (1 - p);
-      const spin = h.forward * 0.3 + state.distance * 0.4;
+      const spin = h.forward * 0.3 + renderDistance * 0.4;
       if (rocks < MAX_INSTANCES) {
         this.place(this.rock, rocks, h.x, y, screenZ, spin);
         rocks += 1;
@@ -105,7 +108,7 @@ export class MeteorField {
     this.rock.count = rocks;
     this.core.count = cores;
     this.crater.count = craters;
-    for (const mesh of [this.rock, this.core, this.crater]) {
+    for (const mesh of this.meshes) {
       mesh.instanceMatrix.needsUpdate = true;
     }
   }
