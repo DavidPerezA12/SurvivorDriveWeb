@@ -80,6 +80,15 @@ describe('garage persistence', () => {
     expect(s.ownedChassis().filter((id) => id === 'rig')).toHaveLength(1);
   });
 
+  it('rejects a tampered chassis id or price at the save boundary', () => {
+    const s = new SaveStore(memoryStore());
+    s.bankScrap(1000);
+    s.buyCar('rig', 0);
+    s.buyCar('unknown' as never, 0);
+    expect(s.ownsChassis('rig')).toBe(false);
+    expect(s.wallet).toBe(1000);
+  });
+
   it('refuses to unlock a chassis without enough scrap', () => {
     const s = new SaveStore(memoryStore());
     s.bankScrap(399);
@@ -189,8 +198,59 @@ describe('garage persistence', () => {
   it('does not let a stored upgrade list be mutated through the getter', () => {
     const store = memoryStore();
     const s = new SaveStore(store);
-    s.buyGlobal('liftTank', 0);
+    s.bankScrap(50);
+    s.buyGlobal('liftTank', 50);
     s.globalUpgrades().push('gunMkII'); // mutate the returned copy
     expect(s.globalUpgrades()).toEqual(['liftTank']); // the save is untouched
+  });
+
+  it('ignores invalid scrap deposits instead of corrupting the wallet', () => {
+    const s = new SaveStore(memoryStore());
+    s.bankScrap(25);
+    s.bankScrap(Number.NaN);
+    s.bankScrap(Number.POSITIVE_INFINITY);
+    s.bankScrap(0);
+    s.bankScrap(-10);
+    expect(s.wallet).toBe(25);
+  });
+
+  it('rejects invalid, duplicate, wrong-scope, unaffordable, and out-of-order buys', () => {
+    const s = new SaveStore(memoryStore());
+    s.bankScrap(200);
+
+    s.buyGlobal('stickyTires', 0);
+    s.buyGlobal('unknown' as never, 0);
+    s.buyGlobal('liftTank2', 0);
+    s.buyGlobal('liftTank', Number.NaN);
+    s.buyGlobal('liftTank', 201);
+    expect(s.globalUpgrades()).toEqual([]);
+    expect(s.wallet).toBe(200);
+
+    s.buyGlobal('liftTank', 0);
+    expect(s.globalUpgrades()).toEqual([]);
+    s.buyGlobal('liftTank', 50);
+    s.buyGlobal('liftTank', 50);
+    expect(s.globalUpgrades()).toEqual(['liftTank']);
+    expect(s.wallet).toBe(150);
+
+    s.buyChassis('survivor', 'liftTank2', 0);
+    s.buyChassis('survivor', 'unknown' as never, 0);
+    s.buyChassis('survivor', 'reinforcedPlating2', 0);
+    s.buyChassis('survivor', 'reinforcedPlating', -1);
+    expect(s.chassisUpgrades('survivor')).toEqual([]);
+
+    s.buyChassis('survivor', 'reinforcedPlating', 0);
+    expect(s.chassisUpgrades('survivor')).toEqual([]);
+    s.buyChassis('survivor', 'reinforcedPlating', 60);
+    s.buyChassis('survivor', 'reinforcedPlating', 60);
+    expect(s.chassisUpgrades('survivor')).toEqual(['reinforcedPlating']);
+    expect(s.wallet).toBe(90);
+  });
+
+  it('ignores an invalid paint id at the mutation boundary', () => {
+    const s = new SaveStore(memoryStore());
+    s.setPaint('toxic');
+    s.setPaint('ultraviolet' as never);
+    expect(s.paint).toBe('toxic');
   });
 });

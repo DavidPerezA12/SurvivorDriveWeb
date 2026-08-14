@@ -1,6 +1,12 @@
 import { DEFAULT_SETTINGS, normalizeSettings, type Settings } from './settings';
-import { UPGRADES, isGlobalUpgrade, type UpgradeId } from '../content/upgrades';
-import { CHASSIS, type ChassisId } from '../content/chassis';
+import {
+  UPGRADES,
+  isGlobalUpgrade,
+  upgradeDef,
+  upgradePrereq,
+  type UpgradeId,
+} from '../content/upgrades';
+import { CHASSIS, chassisDef, type ChassisId } from '../content/chassis';
 import { PAINTS, type PaintId } from '../content/paint';
 
 /**
@@ -55,7 +61,9 @@ function freshSave(): SaveData {
 }
 
 function normalizeWallet(raw: unknown): number {
-  return typeof raw === 'number' && Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 0;
+  if (typeof raw !== 'number' || !Number.isFinite(raw) || raw <= 0) return 0;
+  const wallet = Math.floor(raw);
+  return Number.isSafeInteger(wallet) ? wallet : 0;
 }
 
 function normalizeChassis(raw: unknown): ChassisId {
@@ -210,13 +218,17 @@ export class SaveStore {
   }
 
   setSettings(settings: Settings): void {
-    this.data = { ...this.data, settings };
+    this.data = { ...this.data, settings: normalizeSettings(settings) };
     this.schedule();
   }
 
   /** Bank a run's scrap into the wallet. */
   bankScrap(amount: number): void {
-    this.data = { ...this.data, wallet: Math.max(0, this.data.wallet + Math.floor(amount)) };
+    if (!Number.isFinite(amount) || amount <= 0) return;
+    const banked = Math.floor(amount);
+    const wallet = this.data.wallet + banked;
+    if (banked <= 0 || !Number.isSafeInteger(wallet)) return;
+    this.data = { ...this.data, wallet };
     this.schedule();
   }
 
@@ -230,9 +242,11 @@ export class SaveStore {
   /** Spend `cost` and unlock a chassis body. No-op if it is already owned. */
   buyCar(id: ChassisId, cost: number): void {
     if (
+      !CHASSIS_IDS.has(id) ||
       this.data.ownedChassis.includes(id) ||
       !Number.isFinite(cost) ||
       cost < 0 ||
+      cost !== chassisDef(id).price ||
       this.data.wallet < cost
     )
       return;
@@ -246,15 +260,30 @@ export class SaveStore {
 
   /** Set the paint job applied to the driven car. */
   setPaint(id: PaintId): void {
+    if (!PAINT_IDS.has(id)) return;
     this.data = { ...this.data, paint: id };
     this.schedule();
   }
 
   /** Spend `cost` and add a global upgrade (jump charges, gun). */
   buyGlobal(id: UpgradeId, cost: number): void {
+    if (
+      !UPGRADE_IDS.has(id) ||
+      !isGlobalUpgrade(id) ||
+      !Number.isFinite(cost) ||
+      cost < 0 ||
+      this.data.wallet < cost ||
+      this.data.globalUpgrades.includes(id)
+    )
+      return;
+    // The public mutation boundary must not trust a stale/tampered caller to
+    // supply a cheaper price than the content table.
+    if (cost !== upgradeDef(id).cost) return;
+    const prereq = upgradePrereq(id);
+    if (prereq !== null && !this.data.globalUpgrades.includes(prereq)) return;
     this.data = {
       ...this.data,
-      wallet: Math.max(0, this.data.wallet - cost),
+      wallet: this.data.wallet - cost,
       globalUpgrades: [...this.data.globalUpgrades, id],
     };
     this.schedule();
@@ -262,11 +291,24 @@ export class SaveStore {
 
   /** Spend `cost` and add a per-chassis upgrade to an owned car (armor, tires, …). */
   buyChassis(chassis: ChassisId, id: UpgradeId, cost: number): void {
-    if (!this.data.ownedChassis.includes(chassis)) return;
-    const list = [...(this.data.chassisUpgrades[chassis] ?? []), id];
+    const owned = this.data.chassisUpgrades[chassis] ?? [];
+    if (
+      !this.data.ownedChassis.includes(chassis) ||
+      !UPGRADE_IDS.has(id) ||
+      isGlobalUpgrade(id) ||
+      !Number.isFinite(cost) ||
+      cost < 0 ||
+      this.data.wallet < cost ||
+      owned.includes(id)
+    )
+      return;
+    if (cost !== upgradeDef(id).cost) return;
+    const prereq = upgradePrereq(id);
+    if (prereq !== null && !owned.includes(prereq)) return;
+    const list = [...owned, id];
     this.data = {
       ...this.data,
-      wallet: Math.max(0, this.data.wallet - cost),
+      wallet: this.data.wallet - cost,
       chassisUpgrades: { ...this.data.chassisUpgrades, [chassis]: list },
     };
     this.schedule();

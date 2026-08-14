@@ -73,6 +73,24 @@ describe('save persistence', () => {
     expect(b.settings).toEqual(changed);
   });
 
+  it('normalizes settings passed directly to the save mutation boundary', () => {
+    const store = memoryStore();
+    const save = new SaveStore(store);
+    save.setSettings({
+      quality: 'ultra',
+      motion: 'always',
+      shake: 4,
+      volume: -2,
+      debugOverlay: 'yes',
+    } as unknown as Settings);
+
+    expect(save.settings).toEqual({
+      ...DEFAULT_SETTINGS,
+      shake: 1,
+      volume: 0,
+    });
+  });
+
   it('recovers from a corrupt blob instead of throwing', () => {
     const store = memoryStore();
     store.map.set('sdw.save.v1', '{not json');
