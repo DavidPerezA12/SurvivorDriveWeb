@@ -25,8 +25,8 @@ function approaching(lane: number, speed: number, health = 1): SimState {
 
 describe('concrete barrier (lethal wall)', () => {
   it('a square hit at speed empties the hull and is attributed to the barrier', () => {
-    const s = approaching(2, 60);
-    s.hazards.push({ kind: 'barrier', lane: 2, x: laneCenterX(2), forward: 8, hit: false });
+    const s = approaching(1, 60);
+    s.hazards.push({ kind: 'barrier', lane: 1, x: laneCenterX(1), forward: 8, hit: false });
     resolveCollisions(s);
     expect(s.hazards[0].hit).toBe(true);
     expect(s.car.health).toBe(0);
@@ -35,19 +35,19 @@ describe('concrete barrier (lethal wall)', () => {
   });
 
   it('cannot be jumped — it hits even mid-air, unlike a wreck', () => {
-    const s = approaching(2, 50);
+    const s = approaching(1, 50);
     s.car.height = 1.2; // airborne, well above the jump clearance
-    s.hazards.push({ kind: 'barrier', lane: 2, x: laneCenterX(2), forward: 8, hit: false });
+    s.hazards.push({ kind: 'barrier', lane: 1, x: laneCenterX(1), forward: 8, hit: false });
     resolveCollisions(s);
     expect(s.hazards[0].hit).toBe(true);
     expect(s.car.health).toBeLessThan(1);
   });
 
   it('breaks the streak on contact', () => {
-    const s = approaching(2, 40, 0.5);
+    const s = approaching(1, 40, 0.5);
     s.combo = 7;
     s.comboTicks = 50;
-    s.hazards.push({ kind: 'barrier', lane: 2, x: laneCenterX(2), forward: 8, hit: false });
+    s.hazards.push({ kind: 'barrier', lane: 1, x: laneCenterX(1), forward: 8, hit: false });
     resolveCollisions(s);
     expect(s.combo).toBe(0);
   });
@@ -55,17 +55,17 @@ describe('concrete barrier (lethal wall)', () => {
 
 describe('crashed bus (lethal, but jumpable)', () => {
   it('a square hit at speed empties the hull and is attributed to the bus', () => {
-    const s = approaching(2, 60);
-    s.hazards.push({ kind: 'bus', lane: 2, x: laneCenterX(2), forward: 8, hit: false });
+    const s = approaching(1, 60);
+    s.hazards.push({ kind: 'bus', lane: 1, x: laneCenterX(1), forward: 8, hit: false });
     resolveCollisions(s);
     expect(s.car.health).toBe(0);
     expect(s.deathCause).toBe('bus');
   });
 
   it('a well-timed jump clears it — airborne above its hitbox, the car is untouched', () => {
-    const s = approaching(2, 50);
+    const s = approaching(1, 50);
     s.car.height = 1.05; // above BUS_CLEAR
-    s.hazards.push({ kind: 'bus', lane: 2, x: laneCenterX(2), forward: 8, hit: false });
+    s.hazards.push({ kind: 'bus', lane: 1, x: laneCenterX(1), forward: 8, hit: false });
     resolveCollisions(s);
     expect(s.hazards[0].hit).toBe(false);
     expect(s.car.health).toBe(1);
@@ -74,8 +74,8 @@ describe('crashed bus (lethal, but jumpable)', () => {
 
 describe('spike strip (lethal ground trap)', () => {
   it('is an outright, attributable death when hit grounded', () => {
-    const s = approaching(2, 40, 0.8);
-    s.hazards.push({ kind: 'spikes', lane: 2, x: laneCenterX(2), forward: 8, hit: false });
+    const s = approaching(1, 40, 0.8);
+    s.hazards.push({ kind: 'spikes', lane: 1, x: laneCenterX(1), forward: 8, hit: false });
     resolveCollisions(s);
     expect(s.hazards[0].hit).toBe(true);
     expect(s.car.health).toBe(0);
@@ -84,9 +84,9 @@ describe('spike strip (lethal ground trap)', () => {
   });
 
   it('a jump clears it — airborne, the car is untouched (unlike a wall)', () => {
-    const s = approaching(2, 50);
+    const s = approaching(1, 50);
     s.car.height = 1.2; // airborne above the jump clearance
-    s.hazards.push({ kind: 'spikes', lane: 2, x: laneCenterX(2), forward: 8, hit: false });
+    s.hazards.push({ kind: 'spikes', lane: 1, x: laneCenterX(1), forward: 8, hit: false });
     resolveCollisions(s);
     expect(s.hazards[0].hit).toBe(false);
     expect(s.car.health).toBe(1);

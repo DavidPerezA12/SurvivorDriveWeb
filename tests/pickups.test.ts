@@ -18,7 +18,7 @@ function putPickup(state: SimState, lane: number, forward: number): void {
 /** A state with the car cruising in the centre lane at a known place. */
 function cruising(): SimState {
   const s = createSim(1);
-  s.car.lateralX = laneCenterX(2);
+  s.car.lateralX = laneCenterX(1);
   s.distance = 10;
   s.car.jumpCharges = 0; // start empty so a refill is unambiguous
   return s;
@@ -27,7 +27,7 @@ function cruising(): SimState {
 describe('lift pickups', () => {
   it('banks one jump charge and consumes the pickup', () => {
     const s = cruising();
-    putPickup(s, 2, 8);
+    putPickup(s, 1, 8);
     resolvePickups(s);
 
     expect(s.pickups[0].taken).toBe(true);
@@ -38,7 +38,7 @@ describe('lift pickups', () => {
   it('never refills past the cap', () => {
     const s = cruising();
     s.car.jumpCharges = CAR_TUNING.jumpMaxCharges;
-    putPickup(s, 2, 8);
+    putPickup(s, 1, 8);
     resolvePickups(s);
     expect(s.car.jumpCharges).toBe(CAR_TUNING.jumpMaxCharges);
     // The pickup is still consumed even when it tops out — no free re-grab later.
@@ -48,7 +48,7 @@ describe('lift pickups', () => {
   it('cannot be gathered while jumping — the air trades the fuel away', () => {
     const s = cruising();
     s.car.height = 1.0; // above the jump clearance
-    putPickup(s, 2, 8);
+    putPickup(s, 1, 8);
     resolvePickups(s);
     expect(s.pickups[0].taken).toBe(false);
     expect(s.car.jumpCharges).toBe(0);
@@ -56,7 +56,7 @@ describe('lift pickups', () => {
 
   it('pays each pickup exactly once', () => {
     const s = cruising();
-    putPickup(s, 2, 8);
+    putPickup(s, 1, 8);
     resolvePickups(s);
     resolvePickups(s);
     expect(s.car.jumpCharges).toBe(1);
@@ -64,7 +64,7 @@ describe('lift pickups', () => {
 
   it('ignores a pickup in another lane', () => {
     const s = cruising();
-    putPickup(s, 0, 8); // far lane, car is in lane 2
+    putPickup(s, 0, 8); // opposite lane; car is in lane 1
     resolvePickups(s);
     expect(s.pickups[0].taken).toBe(false);
     expect(s.car.jumpCharges).toBe(0);
@@ -74,10 +74,10 @@ describe('lift pickups', () => {
 describe('health and ammo pickups', () => {
   it('a health pickup repairs the hull, capped at full', () => {
     const s = createSim(1);
-    s.car.lateralX = laneCenterX(2);
+    s.car.lateralX = laneCenterX(1);
     s.distance = 10;
     s.car.health = 0.5;
-    s.pickups.push({ kind: 'health', lane: 2, x: laneCenterX(2), forward: 8, phase: 0, taken: false });
+    s.pickups.push({ kind: 'health', lane: 1, x: laneCenterX(1), forward: 8, phase: 0, taken: false });
     resolvePickups(s);
     expect(s.car.health).toBeCloseTo(
       Math.min(0.5 + PICKUP_TUNING.healthRestore, CAR_TUNING.maxHealth),
@@ -88,10 +88,10 @@ describe('health and ammo pickups', () => {
 
   it('never repairs past full hull', () => {
     const s = createSim(1);
-    s.car.lateralX = laneCenterX(2);
+    s.car.lateralX = laneCenterX(1);
     s.distance = 10;
     s.car.health = CAR_TUNING.maxHealth;
-    s.pickups.push({ kind: 'health', lane: 2, x: laneCenterX(2), forward: 8, phase: 0, taken: false });
+    s.pickups.push({ kind: 'health', lane: 1, x: laneCenterX(1), forward: 8, phase: 0, taken: false });
     resolvePickups(s);
     expect(s.car.health).toBe(CAR_TUNING.maxHealth);
     expect(s.pickups[0].taken).toBe(true);
@@ -99,10 +99,10 @@ describe('health and ammo pickups', () => {
 
   it('an ammo box refills the gun, capped at the max', () => {
     const s = createSim(1);
-    s.car.lateralX = laneCenterX(2);
+    s.car.lateralX = laneCenterX(1);
     s.distance = 10;
     s.car.ammo = 0;
-    s.pickups.push({ kind: 'ammo', lane: 2, x: laneCenterX(2), forward: 8, phase: 0, taken: false });
+    s.pickups.push({ kind: 'ammo', lane: 1, x: laneCenterX(1), forward: 8, phase: 0, taken: false });
     resolvePickups(s);
     expect(s.car.ammo).toBe(PICKUP_TUNING.ammoRestore);
     expect(s.pickups[0].taken).toBe(true);
@@ -113,10 +113,10 @@ describe('health and ammo pickups', () => {
 describe('scrap caches', () => {
   it('a scrap cache banks scrap on the spot — a grab, no fight', () => {
     const s = createSim(1);
-    s.car.lateralX = laneCenterX(2);
+    s.car.lateralX = laneCenterX(1);
     s.distance = 10;
     const before = s.scrap;
-    s.pickups.push({ kind: 'scrap', lane: 2, x: laneCenterX(2), forward: 8, phase: 0, taken: false });
+    s.pickups.push({ kind: 'scrap', lane: 1, x: laneCenterX(1), forward: 8, phase: 0, taken: false });
     resolvePickups(s);
     expect(s.scrap).toBe(before + PICKUP_TUNING.scrapValue);
     expect(s.pickups[0].taken).toBe(true);
@@ -125,11 +125,11 @@ describe('scrap caches', () => {
 
   it('cannot be scooped mid-jump, like every refill', () => {
     const s = createSim(1);
-    s.car.lateralX = laneCenterX(2);
+    s.car.lateralX = laneCenterX(1);
     s.distance = 10;
     s.car.height = 1.0; // airborne
     const before = s.scrap;
-    s.pickups.push({ kind: 'scrap', lane: 2, x: laneCenterX(2), forward: 8, phase: 0, taken: false });
+    s.pickups.push({ kind: 'scrap', lane: 1, x: laneCenterX(1), forward: 8, phase: 0, taken: false });
     resolvePickups(s);
     expect(s.pickups[0].taken).toBe(false);
     expect(s.scrap).toBe(before);
@@ -139,10 +139,10 @@ describe('scrap caches', () => {
 describe('coins', () => {
   it('a coin banks its small value on the spot', () => {
     const s = createSim(1);
-    s.car.lateralX = laneCenterX(2);
+    s.car.lateralX = laneCenterX(1);
     s.distance = 10;
     const before = s.scrap;
-    s.pickups.push({ kind: 'coin', lane: 2, x: laneCenterX(2), forward: 8, phase: 0, taken: false });
+    s.pickups.push({ kind: 'coin', lane: 1, x: laneCenterX(1), forward: 8, phase: 0, taken: false });
     resolvePickups(s);
     expect(s.scrap).toBe(before + PICKUP_TUNING.coinValue);
     expect(s.pickups[0].taken).toBe(true);
@@ -155,11 +155,11 @@ describe('coins', () => {
 
   it('a trail banks the sum of the coins ridden over', () => {
     const s = createSim(1);
-    s.car.lateralX = laneCenterX(2);
+    s.car.lateralX = laneCenterX(1);
     const before = s.scrap;
     // A short trail down the lane; sweep the car forward over each so it scoops them.
     for (let i = 0; i < 4; i += 1) {
-      s.pickups.push({ kind: 'coin', lane: 2, x: laneCenterX(2), forward: i * 2.6, phase: 0, taken: false });
+      s.pickups.push({ kind: 'coin', lane: 1, x: laneCenterX(1), forward: i * 2.6, phase: 0, taken: false });
     }
     for (let d = 0; d <= 8; d += 0.4) {
       s.distance = d;
@@ -171,11 +171,11 @@ describe('coins', () => {
 
   it('cannot be scooped mid-jump, like every grab', () => {
     const s = createSim(1);
-    s.car.lateralX = laneCenterX(2);
+    s.car.lateralX = laneCenterX(1);
     s.distance = 10;
     s.car.height = 1.0; // airborne
     const before = s.scrap;
-    s.pickups.push({ kind: 'coin', lane: 2, x: laneCenterX(2), forward: 8, phase: 0, taken: false });
+    s.pickups.push({ kind: 'coin', lane: 1, x: laneCenterX(1), forward: 8, phase: 0, taken: false });
     resolvePickups(s);
     expect(s.pickups[0].taken).toBe(false);
     expect(s.scrap).toBe(before);

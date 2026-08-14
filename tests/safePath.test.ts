@@ -38,7 +38,11 @@ function moveTowards(value: number, target: number, maxDelta: number): number {
   return value + Math.sign(diff) * maxDelta;
 }
 
-/** Conservative collision footprint for a spawned road blocker. */
+/**
+ * Conservative static footprint. Jumpable and moving threats are deliberately
+ * over-approximated here, so this proves steering clearance, not full playability.
+ * Dynamic timing, jump charges and jumper pressure belong to their sim tests.
+ */
 function blockerAt(spawn: Spawn, base: number): Blocker | null {
   if (
     spawn.kind === 'jump' ||
@@ -178,18 +182,22 @@ function hasSteeringPath(seed: number, startChunk: number): boolean {
   return candidates.length > 0 && distance >= endDistance;
 }
 
-describe('windowed safe-line path', () => {
-  it('finds a crash-free steering route through thousands of three-chunk windows', () => {
-    const failures: string[] = [];
-    // 8 seeds × 249 overlapping windows = 1,992 windows. The sweep reaches
-    // 12.65 km, covering every authored act and the deep speed ramp.
-    for (let seed = 1; seed <= 8; seed += 1) {
-      for (let startChunk = 2; startChunk <= 250; startChunk += 1) {
-        if (!hasSteeringPath(seed, startChunk)) failures.push(`seed ${seed}, chunk ${startChunk}`);
+describe('conservative static steering path', () => {
+  it(
+    'finds a steering-only route through every act and deep biome band',
+    () => {
+      const failures: string[] = [];
+      // 8 seeds × 399 overlapping windows = 3,192 windows through 20.15 km. This
+      // reaches all six authored acts plus the late bridge/lava biome bands.
+      for (let seed = 1; seed <= 8; seed += 1) {
+        for (let startChunk = 2; startChunk <= 400; startChunk += 1) {
+          if (!hasSteeringPath(seed, startChunk)) failures.push(`seed ${seed}, chunk ${startChunk}`);
+          if (failures.length >= 12) break;
+        }
         if (failures.length >= 12) break;
       }
-      if (failures.length >= 12) break;
-    }
-    expect(failures).toEqual([]);
-  });
+      expect(failures).toEqual([]);
+    },
+    15_000,
+  );
 });

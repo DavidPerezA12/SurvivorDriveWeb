@@ -100,9 +100,9 @@ describe('upgrade effects in the sim', () => {
 
     // Sit on the stock cap, then scoop one more pickup: the raised cap lets it in.
     tank.car.jumpCharges = CAR_TUNING.jumpMaxCharges;
-    tank.car.lateralX = laneCenterX(2);
+    tank.car.lateralX = laneCenterX(1);
     tank.distance = 10;
-    tank.pickups.push({ kind: 'jump', lane: 2, x: laneCenterX(2), forward: 8, phase: 0, taken: false });
+    tank.pickups.push({ kind: 'jump', lane: 1, x: laneCenterX(1), forward: 8, phase: 0, taken: false });
     resolvePickups(tank);
     expect(tank.car.jumpCharges).toBeGreaterThan(CAR_TUNING.jumpMaxCharges);
   });
@@ -115,7 +115,7 @@ describe('upgrade effects in the sim', () => {
       step(stock, i === 0 ? intent(1) : NO_INTENT);
       step(sticky, i === 0 ? intent(1) : NO_INTENT);
     }
-    const target = laneCenterX(2);
+    const target = laneCenterX(1);
     // Closer to the new lane centre after the same number of ticks.
     expect(target - sticky.car.lateralX).toBeLessThan(target - stock.car.lateralX);
   });
@@ -124,15 +124,15 @@ describe('upgrade effects in the sim', () => {
     const stock = createSim(0);
     stock.car.speed = 40;
     stock.distance = 10;
-    stock.car.lateralX = laneCenterX(2);
-    putWreck(stock, 2, 10);
+    stock.car.lateralX = laneCenterX(1);
+    putWreck(stock, 1, 10);
     resolveCollisions(stock);
 
     const plated = createSim(0, computeLoadout(['reinforcedPlating']));
     plated.car.speed = 40;
     plated.distance = 10;
-    plated.car.lateralX = laneCenterX(2);
-    putWreck(plated, 2, 10);
+    plated.car.lateralX = laneCenterX(1);
+    putWreck(plated, 1, 10);
     resolveCollisions(plated);
 
     // The plated hull keeps more health after an identical head-on.
@@ -142,9 +142,9 @@ describe('upgrade effects in the sim', () => {
   it('Scrap Magnet mows fodder the stock bumper skims past', () => {
     const offset = 1.7; // beyond stock reach (~1.55 m), inside the magnet's (~1.9 m)
     const place = (s: SimState): void => {
-      s.car.lateralX = laneCenterX(2);
+      s.car.lateralX = laneCenterX(1);
       s.distance = 10;
-      s.zombies.push({ lane: 2, x: laneCenterX(2) + offset, forward: 8, phase: 0, mowed: false });
+      s.zombies.push({ lane: 1, x: laneCenterX(1) + offset, forward: 8, phase: 0, mowed: false });
     };
 
     const stock = createSim(0);

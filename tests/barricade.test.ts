@@ -30,17 +30,17 @@ function putWreck(s: SimState, lane: number, forward: number): void {
 describe('ramming a light barricade', () => {
   it('barely dents the hull and barely slows — far cheaper than a wreck', () => {
     const barricadeRun = createSim(1);
-    barricadeRun.car.lateralX = laneCenterX(2);
+    barricadeRun.car.lateralX = laneCenterX(1);
     barricadeRun.car.speed = 50;
     barricadeRun.distance = 6;
-    putBarricade(barricadeRun, 2, 6);
+    putBarricade(barricadeRun, 1, 6);
     resolveCollisions(barricadeRun);
 
     const wreckRun = createSim(1);
-    wreckRun.car.lateralX = laneCenterX(2);
+    wreckRun.car.lateralX = laneCenterX(1);
     wreckRun.car.speed = 50;
     wreckRun.distance = 6;
-    putWreck(wreckRun, 2, 6);
+    putWreck(wreckRun, 1, 6);
     resolveCollisions(wreckRun);
 
     // It did cost something (it is a blocker), but the soft barricade chews far less
@@ -53,11 +53,11 @@ describe('ramming a light barricade', () => {
 
   it('is attributable if it ever empties an already-battered hull', () => {
     const s = createSim(1);
-    s.car.lateralX = laneCenterX(2);
+    s.car.lateralX = laneCenterX(1);
     s.car.speed = 50;
     s.car.health = 0.02; // limping in
     s.distance = 6;
-    putBarricade(s, 2, 6);
+    putBarricade(s, 1, 6);
     resolveCollisions(s);
     expect(s.dead).toBe(true);
     expect(s.deathCause).toBe('barricade');
@@ -67,8 +67,8 @@ describe('ramming a light barricade', () => {
 describe('shooting a light barricade', () => {
   it('pops in a single shot, even with the stock gun', () => {
     const s = createSim(1);
-    s.car.lateralX = laneCenterX(2);
-    putBarricade(s, 2, 40); // dead ahead, in range
+    s.car.lateralX = laneCenterX(1);
+    putBarricade(s, 1, 40); // dead ahead, in range
     resolveShots(s, FIRE);
     expect(s.hazards[0].hit).toBe(true);
   });
@@ -77,11 +77,11 @@ describe('shooting a light barricade', () => {
 describe('jumping a light barricade', () => {
   it('a hop near the top of the arc clears it (it is low, ground-class)', () => {
     const s = createSim(1);
-    s.car.lateralX = laneCenterX(2);
+    s.car.lateralX = laneCenterX(1);
     s.car.speed = 50;
     s.distance = 6;
     s.car.height = 1.0; // airborne, above the barricade's clearance
-    putBarricade(s, 2, 6);
+    putBarricade(s, 1, 6);
     resolveCollisions(s);
     expect(s.hazards[0].hit).toBe(false);
     expect(s.car.health).toBe(1);

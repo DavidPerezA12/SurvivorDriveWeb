@@ -18,7 +18,7 @@ function putZombie(state: SimState, lane: number, forward: number): void {
 function cruising(speed: number): SimState {
   const s = createSim(1);
   s.car.speed = speed;
-  s.car.lateralX = laneCenterX(2);
+  s.car.lateralX = laneCenterX(1);
   s.distance = 10;
   return s;
 }
@@ -26,7 +26,7 @@ function cruising(speed: number): SimState {
 describe('mowing', () => {
   it('mows a zombie in the car’s lane: scrap, a kill, a streak, one event', () => {
     const s = cruising(50);
-    putZombie(s, 2, 8);
+    putZombie(s, 1, 8);
     resolveMows(s, 50);
 
     expect(s.zombies[0].mowed).toBe(true);
@@ -38,7 +38,7 @@ describe('mowing', () => {
 
   it('never dents the hull — fodder is safe', () => {
     const s = cruising(50);
-    putZombie(s, 2, 8);
+    putZombie(s, 1, 8);
     resolveMows(s, 50);
     expect(s.car.health).toBe(1);
     expect(s.dead).toBe(false);
@@ -46,14 +46,14 @@ describe('mowing', () => {
 
   it('surges the car forward and never slows it', () => {
     const s = cruising(50);
-    putZombie(s, 2, 8);
+    putZombie(s, 1, 8);
     resolveMows(s, 50);
     expect(s.car.speed).toBeCloseTo(50 + MOW_TUNING.speedBoost, 6);
 
     // At the overspeed ceiling a mow cannot push past it — but it must not drag
     // the car back down either.
     const capped = cruising(50 + MOW_TUNING.overspeedCap + 5);
-    putZombie(capped, 2, 8);
+    putZombie(capped, 1, 8);
     const before = capped.car.speed;
     resolveMows(capped, 50);
     expect(capped.car.speed).toBe(before);
@@ -62,7 +62,7 @@ describe('mowing', () => {
   it('does not mow while jumping — the air trades the scrap away', () => {
     const s = cruising(50);
     s.car.height = 1.0; // above the jump clearance
-    putZombie(s, 2, 8);
+    putZombie(s, 1, 8);
     resolveMows(s, 50);
     expect(s.zombies[0].mowed).toBe(false);
     expect(s.scrap).toBe(0);
@@ -71,7 +71,7 @@ describe('mowing', () => {
 
   it('pays each zombie exactly once', () => {
     const s = cruising(50);
-    putZombie(s, 2, 8);
+    putZombie(s, 1, 8);
     resolveMows(s, 50);
     const after = s.scrap;
     resolveMows(s, 50);
@@ -81,7 +81,7 @@ describe('mowing', () => {
 
   it('does not mow a zombie a lane over', () => {
     const s = cruising(50);
-    putZombie(s, 4, 8); // car is in lane 2
+    putZombie(s, 0, 8); // opposite lane; car is in lane 1
     resolveMows(s, 50);
     expect(s.zombies[0].mowed).toBe(false);
     expect(s.scrap).toBe(0);
@@ -90,9 +90,9 @@ describe('mowing', () => {
   it('racks the streak across a cluster and scales scrap with it', () => {
     const s = cruising(50);
     // Three zombies all inside the car’s swept span this tick.
-    putZombie(s, 2, 6);
-    putZombie(s, 2, 8);
-    putZombie(s, 2, 10);
+    putZombie(s, 1, 6);
+    putZombie(s, 1, 8);
+    putZombie(s, 1, 10);
     resolveMows(s, 50);
 
     expect(s.combo).toBe(3);

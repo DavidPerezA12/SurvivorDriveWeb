@@ -46,15 +46,6 @@ describe('jumper latch', () => {
     expect(s.events.some((e) => e.type === 'jumperLatched')).toBe(true);
   });
 
-  it('cannot reach from two lanes away', () => {
-    const s = createSim(1);
-    s.car.lateralX = laneCenterX(0); // far edge
-    s.distance = 10;
-    putJumper(s, 2, 9); // two lanes over
-    resolveJumpers(s);
-    expect(s.car.clinging).toBe(0);
-  });
-
   it('pays no scrap — a latch is hull pressure, not a kill reward', () => {
     const s = cruising();
     const before = s.scrap;

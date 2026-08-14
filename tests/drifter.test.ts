@@ -11,32 +11,36 @@ import { DRIFT_TUNING, LANE_WIDTH, SPAWN_TUNING, laneCenterX } from '../src/cont
  * sim tests; the slide is a pure function of position, so it is fully determinate.
  */
 
-function drifter(from: number, to: number, forward: number): Hazard {
+function drifter(lane: number, fromX: number, toX: number, forward: number): Hazard {
   return {
     kind: 'drifter',
-    lane: from,
-    x: laneCenterX(from),
+    lane,
+    x: fromX,
     forward,
     hit: false,
-    driftFromX: laneCenterX(from),
-    driftToX: laneCenterX(to),
+    driftFromX: fromX,
+    driftToX: toX,
   };
 }
+
+const THREAT_LANE = 1;
+const FROM_X = laneCenterX(THREAT_LANE) - 0.8;
+const TO_X = laneCenterX(THREAT_LANE) + 0.8;
 
 describe('drifting wreck', () => {
   it('sits in its origin lane while far away', () => {
     const s = createSim(1);
-    const h = drifter(1, 2, 500);
+    const h = drifter(THREAT_LANE, FROM_X, TO_X, 500);
     s.hazards.push(h);
     s.distance = 0; // gap 500 ≫ startGap
     updateDrifters(s);
-    expect(h.x).toBeCloseTo(laneCenterX(1), 5);
+    expect(h.x).toBeCloseTo(FROM_X, 5);
   });
 
   it('eases toward the target lane as the gap closes, monotonically', () => {
-    const h = drifter(1, 2, 1000);
-    const from = laneCenterX(1);
-    const to = laneCenterX(2);
+    const h = drifter(THREAT_LANE, FROM_X, TO_X, 1000);
+    const from = FROM_X;
+    const to = TO_X;
     let prev = from;
     // Walk the car forward in big steps and sample the drifter's X.
     for (let distance = 0; distance <= 1000; distance += 50) {
@@ -57,17 +61,17 @@ describe('drifting wreck', () => {
     const s = createSim(1);
     // Place it so the gap is below endGap: the slide must be complete.
     const forward = 100;
-    const h = drifter(1, 2, forward);
+    const h = drifter(THREAT_LANE, FROM_X, TO_X, forward);
     s.hazards.push(h);
     s.distance = forward - (DRIFT_TUNING.endGap - 5); // gap < endGap
     updateDrifters(s);
-    expect(h.x).toBeCloseTo(laneCenterX(2), 5);
+    expect(h.x).toBeCloseTo(TO_X, 5);
   });
 
   it('a settled drifter crashes like a wreck in its target lane', () => {
     const s = createSim(1);
     // A drifter already settled in the car's start lane (lane 1), dead ahead.
-    const h = drifter(0, 1, 6);
+    const h = drifter(1, laneCenterX(1) - 0.8, laneCenterX(1), 6);
     h.x = laneCenterX(1);
     s.hazards.push(h);
     s.distance = 6;
@@ -79,7 +83,7 @@ describe('drifting wreck', () => {
 
   it('a jump sails over a drifter (it is ground-class)', () => {
     const s = createSim(1);
-    const h = drifter(0, 1, 6);
+    const h = drifter(1, laneCenterX(1) - 0.8, laneCenterX(1), 6);
     h.x = laneCenterX(1);
     s.hazards.push(h);
     s.distance = 6;
