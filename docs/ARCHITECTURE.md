@@ -220,10 +220,13 @@ assets are short loops/one-shots, lazily decoded after first input, ≤ 3 MB tot
 | Render budget | Browser overlay: ≤ 150 draws, ≤ 200k tris | PR review |
 | Feel & frame stability | Human, in browser, on the preview, with the overlay | PR review |
 
-The safe-line gate searches 1,992 overlapping three-chunk windows with the stock
-car's acceleration, the weakest biome steering response, the maximum forward speed,
-and conservative blocker footprints. It complements the structural rule that the
-safe lane contains neither threats nor rewards.
+The safe-line gate searches 3,192 overlapping three-chunk windows through 20.15 km,
+covering every act and the late biome bands. It uses the stock car's acceleration,
+the weakest biome steering response, the maximum forward speed, and conservative
+static blocker footprints. It proves steering clearance and complements the
+structural rule that the safe lane contains neither threats nor rewards. Dynamic
+timing, jump charges, and moving threats remain covered by focused simulation tests,
+not this static path search.
 
 ## Performance practices
 
@@ -234,8 +237,9 @@ safe lane contains neither threats nor rewards.
   mid-run; nothing leaks across runs.
 - `sim/` state is plain objects and arrays (serializable for replays, worker-ready
   if profiling ever demands it).
-- Asset pipeline: glTF + meshopt, atlas textures, ≤ 5 MB total, first playable
-  frame ≤ 3 s on 4G mid-range.
+- Asset pipeline: glTF with quantized positions, normals, and vertex colors,
+  ≤ 5 MB total, first playable frame ≤ 3 s on 4G mid-range. Authored models
+  keep a procedural fallback so one failed asset cannot block a run.
 
 ## CI
 
