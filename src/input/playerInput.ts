@@ -37,4 +37,10 @@ export class PlayerInput {
     this.keyboard.reset();
     this.touch.reset();
   }
+
+  /** Tear down both device adapters. Safe to call more than once. */
+  destroy(): void {
+    this.keyboard.destroy();
+    this.touch.destroy();
+  }
 }

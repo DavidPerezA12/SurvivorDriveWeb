@@ -75,10 +75,53 @@ export class Game {
   private introActive = false;
   /** Sim ticks stepped so far in the current intro (drives the camera and ends it). */
   private introTicks = 0;
+  /** Tracks the OS preference while the setting is `auto`. */
+  private readonly motionQuery: MediaQueryList | null;
+  private destroyed = false;
+
+  private readonly onVisibilityChange = (): void => {
+    if (document.hidden) {
+      // A hidden tab may never receive keyup/pagehide (especially when a mobile
+      // OS kills it). Drop held controls and persist immediately before it goes.
+      this.input.reset();
+      this.save.flush();
+    } else {
+      this.last = performance.now();
+    }
+  };
+
+  private readonly onMotionPreferenceChange = (): void => {
+    if (this.save.settings.motion === 'auto') this.applySettings(this.save.settings);
+  };
+
+  private readonly onResize = (): void => this.resizeGaragePreview();
+
+  private readonly onKeyDown = (event: KeyboardEvent): void => {
+    if (
+      (event.key === 'r' || event.key === 'R') &&
+      this.state.dead &&
+      this.garage.isOpen()
+    ) {
+      if (event.repeat) return;
+      event.preventDefault();
+      this.driveAgain();
+      return;
+    }
+    if (event.key !== 'Escape' || this.state.dead) return;
+    event.preventDefault();
+    // A garage opened from pause closes straight back to the run.
+    if (this.garage.isOpen()) this.exitGarageToGame();
+    else if (!this.menu.isOpen()) this.pause();
+    else if (this.menu.inSettings()) this.menu.showRoot();
+    else this.resume();
+  };
+
+  private readonly onPageHide = (): void => this.save.flush();
 
   constructor(seed: number, renderAssets: RenderAssets) {
     this.seed = seed;
     this.save = new SaveStore();
+    this.motionQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)') ?? null;
     this.selectedChassis = this.save.chassis;
     this.selectedPaint = this.save.paint;
     // A returning player starts in their chosen car, already wearing what they bought.
@@ -111,36 +154,21 @@ export class Game {
 
     // Returning to a backgrounded tab reports one huge frame; reset the clock so
     // the loop resumes cleanly instead of catching up across the whole gap.
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) this.last = performance.now();
-    });
-
-    window.addEventListener('resize', () => this.resizeGaragePreview());
+    document.addEventListener('visibilitychange', this.onVisibilityChange);
+    this.motionQuery?.addEventListener('change', this.onMotionPreferenceChange);
+    window.addEventListener('resize', this.onResize);
 
     // Esc owns the pause menu: open it, step back out of settings, or resume.
     // The death screen keeps its own R-to-restart flow, so pausing is disabled
     // while wrecked.
-    window.addEventListener('keydown', (e) => {
-      if ((e.key === 'r' || e.key === 'R') && this.state.dead && this.garage.isOpen()) {
-        if (e.repeat) return;
-        e.preventDefault();
-        this.driveAgain();
-        return;
-      }
-      if (e.key !== 'Escape' || this.state.dead) return;
-      e.preventDefault();
-      // A garage opened from pause closes straight back to the run.
-      if (this.garage.isOpen()) this.exitGarageToGame();
-      else if (!this.menu.isOpen()) this.pause();
-      else if (this.menu.inSettings()) this.menu.showRoot();
-      else this.resume();
-    });
+    window.addEventListener('keydown', this.onKeyDown);
 
     // Last-chance flush so a setting changed seconds before a close survives.
-    window.addEventListener('pagehide', () => this.save.flush());
+    window.addEventListener('pagehide', this.onPageHide);
   }
 
   start(): void {
+    if (this.destroyed) return;
     this.input.setTouchVisible(true);
     this.beginIntro();
     this.startLoop();
@@ -148,7 +176,7 @@ export class Game {
 
   /** Start the main frame loop with a fresh clock, without changing overlays. */
   private startLoop(): void {
-    if (this.running) return;
+    if (this.destroyed || this.running) return;
     this.running = true;
     this.last = performance.now();
     this.raf = requestAnimationFrame(this.frame);
@@ -159,6 +187,7 @@ export class Game {
     if (!this.running) return;
     this.running = false;
     cancelAnimationFrame(this.raf);
+    this.raf = 0;
   }
 
   /** Open the run-opening cinematic: raise the location card; the sim keeps running. */
@@ -391,6 +420,7 @@ export class Game {
   }
 
   private readonly frame = (now: number): void => {
+    if (this.destroyed) return;
     const frameMs = now - this.last;
     this.last = now;
 
@@ -403,7 +433,12 @@ export class Game {
     if (this.introActive) {
       this.input.takeIntent();
       this.accumulator += Math.min(frameMs / 1000, MAX_FRAME_S);
-      while (this.accumulator >= FIXED_DT && this.introTicks < INTRO_TUNING.ticks) {
+      let ticks = 0;
+      while (
+        this.accumulator >= FIXED_DT &&
+        this.introTicks < INTRO_TUNING.ticks &&
+        ticks < MAX_CATCHUP
+      ) {
         this.snapshot();
         step(this.state, NO_INTENT);
         for (const event of this.state.events) {
@@ -412,8 +447,13 @@ export class Game {
         }
         this.accumulator -= FIXED_DT;
         this.introTicks += 1;
+        ticks += 1;
       }
-      const alpha = this.accumulator / FIXED_DT;
+      // The cinematic obeys the same anti-spiral rule as gameplay. A stalled
+      // frame may lengthen the intro in wall-clock time, but never creates a
+      // second long frame or an interpolation alpha above one.
+      if (ticks === MAX_CATCHUP) this.accumulator = 0;
+      const alpha = Math.min(this.accumulator / FIXED_DT, 1);
       const p = Math.min((this.introTicks + alpha) / INTRO_TUNING.ticks, 1);
       const pose = this.introPose(p);
       // The card belongs to the hood shot: fade it out as the orbit takes over.
@@ -452,9 +492,18 @@ export class Game {
 
       this.accumulator -= FIXED_DT;
       ticks += 1;
+      // Death freezes the authoritative result on the exact lethal tick. Never
+      // let catch-up batching add dead-coast distance or alter the run title.
+      if (this.state.dead) break;
     }
     // Drop the backlog instead of spiraling if we hit the catch-up ceiling.
     if (ticks === MAX_CATCHUP) this.accumulator = 0;
+
+    if (this.state.dead) {
+      this.accumulator = 0;
+      if (!this.wreckHandled) this.handleWreck();
+      return;
+    }
 
     const alpha = this.accumulator / FIXED_DT;
     const dt = frameMs / 1000;
@@ -465,4 +514,24 @@ export class Game {
     // Reschedule only while running — pausing cancels the loop entirely.
     if (this.running) this.raf = requestAnimationFrame(this.frame);
   };
+
+  /** Tear down every global listener, DOM surface, animation loop, and renderer we own. */
+  destroy(): void {
+    if (this.destroyed) return;
+    this.destroyed = true;
+    this.stopLoop();
+    document.removeEventListener('visibilitychange', this.onVisibilityChange);
+    this.motionQuery?.removeEventListener('change', this.onMotionPreferenceChange);
+    window.removeEventListener('resize', this.onResize);
+    window.removeEventListener('keydown', this.onKeyDown);
+    window.removeEventListener('pagehide', this.onPageHide);
+    this.save.flush();
+    this.carPreview.destroy();
+    this.view.destroy();
+    this.input.destroy();
+    this.hud.destroy();
+    this.overlay.destroy();
+    this.menu.destroy();
+    this.garage.destroy();
+  }
 }

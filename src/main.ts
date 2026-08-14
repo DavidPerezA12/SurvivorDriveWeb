@@ -2,6 +2,9 @@ import './styles/main.css';
 import { Game } from './app/game';
 import { loadRenderAssets } from './render';
 
+let game: Game | null = null;
+let disposed = false;
+
 /**
  * Entry point. Picks a seed (from `?seed=` for shareable/repeatable runs, else
  * the wall clock — which is fine here, in the impure app layer) and starts the
@@ -19,8 +22,21 @@ function readSeed(): number {
 async function boot(): Promise<void> {
   const bootCard = document.querySelector<HTMLElement>('#sdw-boot');
   const assets = await loadRenderAssets();
-  new Game(readSeed(), assets).start();
+  if (disposed) {
+    for (const geometry of Object.values(assets)) geometry?.dispose();
+    return;
+  }
+  game = new Game(readSeed(), assets);
+  game.start();
   bootCard?.remove();
+}
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    disposed = true;
+    game?.destroy();
+    game = null;
+  });
 }
 
 void boot().catch((error: unknown) => {

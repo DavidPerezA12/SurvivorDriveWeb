@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { FrameEvent, ReadonlyState } from '../sim';
-import { createStage, type Stage } from './scene';
+import { createStage, disposeSceneGeometry, type Stage } from './scene';
 import { buildUpgradeLayer, buildDamageLayer, gunMuzzle } from './car';
 import { createChassis } from './chassis';
 import type { UpgradeId } from '../content/upgrades';
@@ -66,6 +66,7 @@ function lerp(a: number, b: number, t: number): number {
  */
 export class GameView {
   private readonly stage: Stage;
+  private destroyed = false;
   private readonly environment: EnvironmentDirector;
   /** The road's vertical profile; everything road-locked rides it (the car/camera stay level). */
   private readonly elevation: Elevation;
@@ -73,6 +74,8 @@ export class GameView {
   private chassisId: ChassisId = 'survivor';
   /** The garage COLOR override baked into the body, or `undefined` for factory. */
   private paintColor: number | undefined = undefined;
+  /** Reused debug snapshot; the overlay reads it synchronously. */
+  private readonly renderStats: RenderStats = { drawCalls: 0, triangles: 0 };
   /** The merged bolt-on mesh for the current garage loadout, parented to the car. */
   private upgradeMesh: THREE.Mesh | null = null;
   /** The merged hull-wear overlay, parented to the car; swapped on hull thresholds. */
@@ -370,6 +373,7 @@ export class GameView {
     dt: number,
     intro: { dolly: number; settle: number } | null = null,
   ): void {
+    if (this.destroyed) return;
     const carX = lerp(prev.carLateralX, curr.car.lateralX, alpha);
     const carVel = lerp(prev.carLateralVel, curr.car.lateralVel, alpha);
     const distance = lerp(prev.distance, curr.distance, alpha);
@@ -439,6 +443,16 @@ export class GameView {
   /** Live render stats for the debug overlay. */
   stats(): RenderStats {
     const info = this.stage.renderer.info.render;
-    return { drawCalls: info.calls, triangles: info.triangles };
+    this.renderStats.drawCalls = info.calls;
+    this.renderStats.triangles = info.triangles;
+    return this.renderStats;
+  }
+
+  /** Release the owned scene graph, canvas, listener, and WebGL context. */
+  destroy(): void {
+    if (this.destroyed) return;
+    this.destroyed = true;
+    disposeSceneGeometry(this.stage.scene);
+    this.stage.destroy();
   }
 }

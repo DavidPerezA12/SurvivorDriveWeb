@@ -74,6 +74,7 @@ export class Hud {
   private lastBiomeName: string | null = null;
   private reducedMotion = false;
   private accum = 0;
+  private destroyed = false;
 
   constructor() {
     this.stats = document.createElement('div');
@@ -286,6 +287,23 @@ export class Hud {
 
   setReducedMotion(reduced: boolean): void {
     this.reducedMotion = reduced;
+  }
+
+  /** Remove every HUD node owned by this instance. Idempotent for app teardown. */
+  destroy(): void {
+    if (this.destroyed) return;
+    this.destroyed = true;
+    for (const element of [
+      this.stats,
+      this.econ,
+      this.dead,
+      this.comboCallout,
+      this.biomeBanner,
+      this.introCard,
+    ]) {
+      for (const animation of element.getAnimations()) animation.cancel();
+      element.remove();
+    }
   }
 
   /**

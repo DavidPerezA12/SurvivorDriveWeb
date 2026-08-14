@@ -3,6 +3,7 @@ import { buildUpgradeLayer } from './car';
 import { createChassis } from './chassis';
 import { box, lightMaterial, merged, paint, propMaterial } from './materials';
 import { prefersReducedMotion } from './mowFx';
+import { disposeSceneGeometry } from './scene';
 import type { UpgradeId } from '../content/upgrades';
 import type { ChassisId } from '../content/chassis';
 
@@ -40,6 +41,7 @@ export class CarPreview {
   private raf = 0;
   private running = false;
   private lastT = 0;
+  private destroyed = false;
 
   constructor(width = 720, height = 380) {
     this.reduced = prefersReducedMotion();
@@ -83,6 +85,7 @@ export class CarPreview {
   }
 
   setReducedMotion(reduced: boolean): void {
+    if (this.destroyed) return;
     this.reduced = reduced;
   }
 
@@ -244,6 +247,7 @@ export class CarPreview {
 
   /** Match the renderer + camera to the slot the canvas fills (called on open). */
   resize(width: number, height: number): void {
+    if (this.destroyed) return;
     if (width <= 0 || height <= 0) return;
     this.renderer.setSize(width, height, false);
     this.camera.aspect = width / height;
@@ -253,12 +257,14 @@ export class CarPreview {
 
   /** Re-dress the previewed car for the owned upgrades (called on open and buy). */
   setLoadout(owned: ReadonlySet<UpgradeId>): void {
+    if (this.destroyed) return;
     this.owned = owned;
     this.dressCar();
   }
 
   /** Swap the previewed chassis, keeping the current bolt-on upgrades dressed on it. */
   setChassis(id: ChassisId): void {
+    if (this.destroyed) return;
     if (id === this.chassisId) return;
     this.chassisId = id;
     this.rebuildCar();
@@ -266,6 +272,7 @@ export class CarPreview {
 
   /** Repaint the previewed body for the COLOR tab (`undefined` = factory). */
   setPaint(bodyColor: number | undefined): void {
+    if (this.destroyed) return;
     if (bodyColor === this.paintColor) return;
     this.paintColor = bodyColor;
     this.rebuildCar();
@@ -299,7 +306,7 @@ export class CarPreview {
 
   /** Begin the turntable loop. Idempotent. */
   start(): void {
-    if (this.running) return;
+    if (this.destroyed || this.running) return;
     this.running = true;
     this.lastT = performance.now();
     this.raf = requestAnimationFrame(this.frame);
@@ -309,9 +316,11 @@ export class CarPreview {
   stop(): void {
     this.running = false;
     cancelAnimationFrame(this.raf);
+    this.raf = 0;
   }
 
   private readonly frame = (now: number): void => {
+    if (this.destroyed) return;
     const dt = Math.min((now - this.lastT) / 1000, 0.1);
     this.lastT = now;
     if (!this.reduced) {
@@ -323,7 +332,19 @@ export class CarPreview {
   };
 
   private renderOnce(): void {
+    if (this.destroyed) return;
     this.renderer.render(this.scene, this.camera);
+  }
+
+  /** Stop the owned loop and release its scene, canvas, and WebGL context. */
+  destroy(): void {
+    if (this.destroyed) return;
+    this.destroyed = true;
+    this.stop();
+    disposeSceneGeometry(this.scene);
+    this.renderer.dispose();
+    this.renderer.forceContextLoss();
+    this.element.remove();
   }
 }
 

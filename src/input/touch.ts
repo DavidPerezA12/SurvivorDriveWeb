@@ -14,6 +14,7 @@ type TouchAction = 'left' | 'right' | 'jump' | 'fire' | 'pause';
 export class TouchControls {
   private readonly root: HTMLDivElement;
   private readonly buttons: HTMLButtonElement[] = [];
+  private destroyed = false;
   // Held steer is tracked per pointer (like fire) so multitouch and a pointer that
   // slides off the button both resolve cleanly. The axis is right minus left.
   private readonly leftPointers = new Set<number>();
@@ -67,6 +68,18 @@ export class TouchControls {
     this.jumpLatched = false;
     this.restartLatched = false;
     for (const button of this.buttons) button.classList.remove('is-held');
+  }
+
+  /** Remove the owned control surface and release its detached button graph. */
+  destroy(): void {
+    if (this.destroyed) return;
+    this.destroyed = true;
+    this.reset();
+    this.root.dataset.active = 'false';
+    this.root.setAttribute('aria-hidden', 'true');
+    this.root.remove();
+    this.root.replaceChildren();
+    this.buttons.length = 0;
   }
 
   private button(action: TouchAction, glyph: string, label: string): HTMLButtonElement {

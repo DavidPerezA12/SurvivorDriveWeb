@@ -12,6 +12,25 @@ export interface Stage {
   hemi: THREE.HemisphereLight;
   /** Re-cap the device pixel ratio for the graphics-quality setting. */
   setPixelCap(cap: number): void;
+  /** Remove the owned listener/canvas and release the WebGL context. Idempotent. */
+  destroy(): void;
+}
+
+/**
+ * Dispose each geometry reachable from a scene exactly once, then detach its
+ * graph. Materials are deliberately left alone: the gameplay stage and garage
+ * preview share module-level materials, while destroying their renderers releases
+ * the context-owned GPU programs safely.
+ */
+export function disposeSceneGeometry(scene: THREE.Scene): void {
+  const geometries = new Set<THREE.BufferGeometry>();
+  scene.traverse((object) => {
+    if (object instanceof THREE.Mesh || object instanceof THREE.Points || object instanceof THREE.Line) {
+      geometries.add(object.geometry);
+    }
+  });
+  for (const geometry of geometries) geometry.dispose();
+  scene.clear();
 }
 
 /**
@@ -44,18 +63,30 @@ export function createStage(): Stage {
 
   const camera = new ChaseCamera();
 
-  window.addEventListener('resize', () => {
+  let destroyed = false;
+  const onResize = (): void => {
     camera.setAspect(window.innerWidth / window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, pixelCap));
     renderer.setSize(window.innerWidth, window.innerHeight);
-  });
+  };
+  window.addEventListener('resize', onResize);
 
   const setPixelCap = (cap: number): void => {
+    if (destroyed) return;
     if (cap === pixelCap) return;
     pixelCap = cap;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, pixelCap));
     renderer.setSize(window.innerWidth, window.innerHeight);
   };
 
-  return { renderer, scene, camera, key, hemi, setPixelCap };
+  const destroy = (): void => {
+    if (destroyed) return;
+    destroyed = true;
+    window.removeEventListener('resize', onResize);
+    renderer.dispose();
+    renderer.forceContextLoss();
+    renderer.domElement.remove();
+  };
+
+  return { renderer, scene, camera, key, hemi, setPixelCap, destroy };
 }

@@ -19,6 +19,7 @@ export class DebugOverlay {
   private cursor = 0;
   private warmup = 0;
   private accum = 0;
+  private destroyed = false;
 
   constructor() {
     this.root = document.createElement('div');
@@ -60,6 +61,14 @@ export class DebugOverlay {
     if (visible && !this.visible) this.resetStats();
     this.visible = visible;
     this.root.style.display = visible ? 'block' : 'none';
+  }
+
+  /** Remove the overlay canvas/readout owned by this instance. */
+  destroy(): void {
+    if (this.destroyed) return;
+    this.destroyed = true;
+    this.visible = false;
+    this.root.remove();
   }
 
   /** Feed one rendered frame. `frameMs` is the real wall-clock frame time. */
