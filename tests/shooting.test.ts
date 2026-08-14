@@ -124,12 +124,12 @@ describe('weapon tiers', () => {
 
   it('a wider tier shreds the neighbouring lane; the base gun cannot', () => {
     const wide = gunner(computeLoadout(['gunMkII', 'gunMkIII'])); // spread 3
-    putZombie(wide, CAR_LANE + 1, wide.distance + 12);
+    putZombie(wide, CAR_LANE - 1, wide.distance + 12);
     resolveShots(wide, FIRE);
     expect(wide.zombies[0].mowed).toBe(true);
 
     const narrow = gunner(); // level 1, one lane
-    putZombie(narrow, CAR_LANE + 1, narrow.distance + 12);
+    putZombie(narrow, CAR_LANE - 1, narrow.distance + 12);
     resolveShots(narrow, FIRE);
     expect(narrow.zombies[0].mowed).toBe(false);
   });
@@ -193,6 +193,36 @@ describe('the gun blows up cars', () => {
     resolveShots(s, FIRE);
     expect(s.zombies[0].mowed).toBe(true);
     expect(s.hazards[0].hp).toBe(WEAPON_TUNING.wreckHp); // untouched
+  });
+
+  it('does not detonate a barrel through a nearer car', () => {
+    const s = gunner();
+    putWreck(s, CAR_LANE, s.distance + 10);
+    s.hazards.push({
+      kind: 'barrel',
+      lane: CAR_LANE,
+      x: laneCenterX(CAR_LANE),
+      forward: s.distance + 20,
+      hit: false,
+    });
+
+    resolveShots(s, FIRE);
+
+    expect(s.hazards[0].hp).toBe(WEAPON_TUNING.wreckHp - 1);
+    expect(s.hazards[1].hit).toBe(false);
+  });
+
+  it('a multi-kill shot cannot pass through a car after dropping a nearer zombie', () => {
+    const s = gunner(computeLoadout(['gunMkII', 'gunMkIII']));
+    putZombie(s, CAR_LANE, s.distance + 8);
+    putWreck(s, CAR_LANE, s.distance + 15);
+    putZombie(s, CAR_LANE, s.distance + 22);
+
+    resolveShots(s, FIRE);
+
+    expect(s.zombies[0].mowed).toBe(true);
+    expect(s.hazards[0].hp).toBe(WEAPON_TUNING.wreckHp - 2);
+    expect(s.zombies[1].mowed).toBe(false);
   });
 
   it('cannot destroy a rig — it must still be dodged', () => {

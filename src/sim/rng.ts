@@ -1,10 +1,11 @@
 /**
- * The single seeded RNG stream for the whole simulation.
+ * Small seeded RNG streams for deterministic simulation work.
  *
- * State is one 32-bit integer, so it is trivially serializable for replays and
- * structured-clone-able to a worker later. The algorithm is mulberry32: fast,
- * tiny, and good enough for spawn weighting and event scheduling — never used
- * for anything cryptographic.
+ * Each stream is one 32-bit integer, so it is trivially serializable and
+ * structured-clone-able. Callers derive independent streams for each world
+ * chunk or deterministic composition task. The algorithm is mulberry32: fast,
+ * tiny, and good enough for spawn weighting and titles — never used for anything
+ * cryptographic.
  *
  * Determinism contract: a given `(seed, call sequence)` always yields the same
  * numbers, on every platform. No `Math.random`, ever (enforced by lint).

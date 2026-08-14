@@ -74,6 +74,35 @@ describe('collision', () => {
     const crashes = events.filter((e) => e.type === 'crashed').length;
     expect(crashes).toBe(1);
   });
+
+  it('stops resolving overlapping hazards as soon as one ends the run', () => {
+    const state = createSim(1);
+    const lane = state.car.lane;
+    state.car.lateralX = laneCenterX(lane);
+    state.distance = 10;
+    state.hazards.push({
+      kind: 'gap',
+      lane,
+      x: laneCenterX(lane),
+      forward: 10,
+      hit: false,
+    });
+    state.hazards.push({
+      kind: 'wreck',
+      lane,
+      x: laneCenterX(lane),
+      forward: 10,
+      hit: false,
+    });
+
+    resolveCollisions(state);
+
+    expect(state.dead).toBe(true);
+    expect(state.hazards[0].hit).toBe(true);
+    expect(state.hazards[1].hit).toBe(false);
+    expect(state.events.filter((event) => event.type === 'crashed')).toHaveLength(1);
+    expect(state.events.at(-1)).toEqual({ type: 'died' });
+  });
 });
 
 describe('boulder', () => {

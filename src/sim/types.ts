@@ -1,4 +1,3 @@
-import type { Rng } from './rng';
 import type { Loadout } from '../content/upgrades';
 import type { DeathCause } from '../content/runTitles';
 
@@ -456,14 +455,21 @@ export interface SimState {
    * player's decision).
    */
   deathCause: DeathCause | null;
-  /** The one RNG stream (world gen, scheduling). */
-  rng: Rng;
   /** Events produced during the current tick. Reused; never reallocated. */
   events: FrameEvent[];
 }
 
-/** A read-only view handed to the impure layers. */
-export type ReadonlyState = Readonly<SimState>;
+/** Recursively freeze the type surface handed across the sim/render border. */
+type DeepReadonly<T> = T extends (...args: never[]) => unknown
+  ? T
+  : T extends readonly (infer Item)[]
+    ? readonly DeepReadonly<Item>[]
+    : T extends object
+      ? { readonly [Key in keyof T]: DeepReadonly<T[Key]> }
+      : T;
+
+/** A deeply read-only view handed to the impure layers. */
+export type ReadonlyState = DeepReadonly<SimState>;
 
 /**
  * Normalized player input for one tick. The only channel from input → sim.

@@ -1,5 +1,4 @@
 import type { Intent, SimState } from './types';
-import { makeRng } from './rng';
 import { cruisingSpeed, makeCar, stepCar } from './car';
 import {
   materializeSpawns,
@@ -24,9 +23,6 @@ import { biomeStateAt, createBiomeState } from '../content/biomes';
  * by this, so changing the rate is a one-line edit (docs/ARCHITECTURE.md).
  */
 export const FIXED_DT = 1 / 60;
-
-/** Deceleration (m/s²) of the wreck once the run is over. */
-const DEAD_DECEL = 16;
 
 /** Reused biome sample; sampling the current grip allocates nothing per tick. */
 const BIOME_STATE = createBiomeState();
@@ -56,7 +52,6 @@ export function createSim(seed: number, loadout: Loadout = BASE_LOADOUT): SimSta
     comboTicks: 0,
     dead: false,
     deathCause: null,
-    rng: makeRng(seed),
     events: [],
   };
 }
@@ -66,8 +61,9 @@ export function createSim(seed: number, loadout: Loadout = BASE_LOADOUT): SimSta
  *
  * Pure with respect to its inputs: `(state, intent)` fully determines the next
  * state and the events emitted — no wall-clock time, no `Math.random`. Mutates
- * `state` in place (events array reused, length-reset) so the tick path
- * allocates nothing after warm-up. Returns the same reference for convenience.
+ * `state` in place and reuses its event array. Streamed entity materialization
+ * and frame-event records are not pooled yet. Returns the same reference for
+ * convenience.
  *
  * Determinism contract (CI replay test): two sims created from the same seed
  * and fed the same intent sequence end byte-for-byte equal.
@@ -76,10 +72,8 @@ export function step(state: SimState, intent: Intent): SimState {
   state.events.length = 0;
 
   if (state.dead) {
-    // The run is over: the wreck coasts to a stop and input is ignored.
-    state.car.speed = Math.max(0, state.car.speed - DEAD_DECEL * FIXED_DT);
-    state.distance += state.car.speed * FIXED_DT;
-    state.tick += 1;
+    // Terminal state is absorbing. Render-only wreck motion, if wanted, must not
+    // mutate the authoritative distance, speed, tick, score, or replay result.
     return state;
   }
 
@@ -128,13 +122,29 @@ export function step(state: SimState, intent: Intent): SimState {
   // kills just built). Finally the clinging jumpers drain the hull for the tick.
   resolveJumpers(state);
   resolveMows(state, topSpeed);
+  if (state.dead) {
+    state.tick += 1;
+    return state;
+  }
   resolveShots(state, intent);
   resolvePickups(state);
   resolveCollisions(state);
+  if (state.dead) {
+    state.tick += 1;
+    return state;
+  }
   updateClingers(state);
+  if (state.dead) {
+    state.tick += 1;
+    return state;
+  }
   // Age the toxic gas clouds and drain the hull for any the car is sitting in. After
   // collisions, so a drum ruptured this tick blooms its cloud before it is ticked.
   resolveGas(state);
+  if (state.dead) {
+    state.tick += 1;
+    return state;
+  }
   pruneSpawns(state);
 
   state.tick += 1;

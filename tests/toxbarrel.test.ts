@@ -92,6 +92,21 @@ describe('gas cloud', () => {
     expect(s.deathCause).toBe('toxbarrel');
     expect(s.events.some((e) => e.type === 'died')).toBe(true);
   });
+
+  it('does not age or remove later clouds after a lethal drain', () => {
+    const s = cruising();
+    s.car.health = GAS_TUNING.drainPerTick / 2;
+    putGas(s, 1, 9);
+    putGas(s, 0, 9, 1);
+    const untouched = s.gas[1];
+
+    resolveGas(s);
+
+    expect(s.dead).toBe(true);
+    expect(s.gas).toContain(untouched);
+    expect(untouched.life).toBe(1);
+    expect(s.events.at(-1)?.type).toBe('died');
+  });
 });
 
 describe('toxic barrels in world gen', () => {

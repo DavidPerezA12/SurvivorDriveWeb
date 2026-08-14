@@ -333,6 +333,7 @@ export function updateQuakes(state: SimState): void {
  * glancing scrape. One hazard damages the car once.
  */
 export function resolveCollisions(state: SimState): void {
+  if (state.dead) return;
   const car = state.car;
   for (const h of state.hazards) {
     if (h.hit) continue;
@@ -501,7 +502,7 @@ export function resolveCollisions(state: SimState): void {
         state.deathCause = gap ? 'gap' : spikes ? 'spikes' : 'livewire';
         state.events.push({ type: 'died' });
       }
-      continue;
+      return;
     }
     const impact = car.speed;
     const glancing = dx > halfWidth;
@@ -575,6 +576,7 @@ export function resolveCollisions(state: SimState): void {
       // is a DeathCause, so the kind maps straight through for the death card.
       state.deathCause = h.kind;
       state.events.push({ type: 'died' });
+      return;
     }
   }
 }
@@ -627,6 +629,7 @@ function releaseGas(state: SimState, h: Hazard): void {
  * compacts the array in place.
  */
 export function resolveGas(state: SimState): void {
+  if (state.dead) return;
   const car = state.car;
   const grounded = car.height <= JUMP_CLEARANCE;
   let write = 0;
@@ -650,6 +653,18 @@ export function resolveGas(state: SimState): void {
             state.dead = true;
             state.deathCause = 'toxbarrel';
             state.events.push({ type: 'died' });
+            // Preserve every later cloud exactly as it was. Compact only the
+            // entries already processed before this terminal hit, then stop.
+            if (g.life > 0) {
+              state.gas[write] = g;
+              write += 1;
+            }
+            for (let tail = read + 1; tail < state.gas.length; tail += 1) {
+              state.gas[write] = state.gas[tail];
+              write += 1;
+            }
+            state.gas.length = write;
+            return;
           }
         }
       }
@@ -736,6 +751,7 @@ function damageZombie(state: SimState, z: Zombie, damage: number): boolean {
  * `killsPerShot` nearest-scans, no temporary arrays.
  */
 export function resolveShots(state: SimState, intent: Intent): void {
+  if (state.dead) return;
   const car = state.car;
   if (car.fireCooldown > 0) car.fireCooldown -= 1;
   if (!intent.fire || car.airborne || car.ammo <= 0 || car.fireCooldown > 0) return;
@@ -754,97 +770,68 @@ export function resolveShots(state: SimState, intent: Intent): void {
   // side. laneSpread 1 = own lane, 3 = ±1, 5 = ±2.
   const halfWidth = WEAPON_TUNING.laneHalfWidth + ((w.laneSpread - 1) / 2) * LANE_WIDTH;
 
-  // A barrel in the column is the priority target: if one is at least as near as
-  // the nearest zombie, the shot detonates it and its blast clears the crowd
-  // behind it (docs/DESIGN.md → roster: the gun's area tool). The shot is spent
-  // on the barrel; the blast does the killing, so we return before the zombie
-  // pass. A far barrel never steals a shot from a zombie at the bumper.
-  let drum: Hazard | null = null;
-  let drumAhead = Infinity;
-  for (const h of state.hazards) {
-    if ((h.kind !== 'barrel' && h.kind !== 'toxbarrel') || h.hit) continue;
-    const ahead = h.forward - state.distance;
-    if (ahead <= 0 || ahead > w.range) continue;
-    if (Math.abs(h.x - car.lateralX) > halfWidth) continue;
-    if (ahead < drumAhead) {
-      drumAhead = ahead;
-      drum = h;
-    }
-  }
-  if (drum) {
-    let nearestZombie = Infinity;
+  // Spend the shot's damage points nearest-first across one ordered column. Every
+  // point re-scans both zombies and shootable hazards, so a target exposed after a
+  // kill can take the next point, but a car, barricade, or drum always shields what
+  // sits behind it. Ties go to the physical blocker. A blocker absorbs all damage
+  // left in this shot (even when it breaks); drums consume the shot by detonating.
+  for (let spent = 0; spent < w.killsPerShot; spent += 1) {
+    let zombie: Zombie | null = null;
+    let zombieAhead = Infinity;
     for (const z of state.zombies) {
       if (z.mowed) continue;
       const ahead = z.forward - state.distance;
       if (ahead <= 0 || ahead > w.range) continue;
       if (Math.abs(z.x - car.lateralX) > halfWidth) continue;
-      if (ahead < nearestZombie) nearestZombie = ahead;
+      if (ahead < zombieAhead) {
+        zombieAhead = ahead;
+        zombie = z;
+      }
     }
-    if (drumAhead <= nearestZombie) {
-      // The explosive drum chain-clears; the toxic drum ruptures into a denial cloud.
-      // Either way the shot is spent on the drum (it blocks the column like a car).
-      if (drum.kind === 'barrel') detonateBarrel(state, drum);
-      else detonateToxBarrel(state, drum);
-      return;
-    }
-  }
 
-  // A car (wreck or drifting wreck) or a flimsy barricade in the column is shot
-  // apart by the gun: a shot chips its integrity by `killsPerShot`, and at 0 it
-  // breaks. It blocks the shot, so one nearer than the nearest zombie eats this shot
-  // (the zombies behind it are spared this round). The bigger the cannon, the fewer
-  // shots a car takes; a barricade pops in one (`WEAPON_TUNING.barricadeHp`).
-  let wreck: Hazard | null = null;
-  let wreckAhead = Infinity;
-  for (const h of state.hazards) {
-    if ((h.kind !== 'wreck' && h.kind !== 'drifter' && h.kind !== 'barricade') || h.hit) continue;
-    const ahead = h.forward - state.distance;
-    if (ahead <= 0 || ahead > w.range) continue;
-    if (Math.abs(h.x - car.lateralX) > halfWidth) continue;
-    if (ahead < wreckAhead) {
-      wreckAhead = ahead;
-      wreck = h;
-    }
-  }
-  if (wreck) {
-    let nearestZombie = Infinity;
-    for (const z of state.zombies) {
-      if (z.mowed) continue;
-      const ahead = z.forward - state.distance;
+    let blocker: Hazard | null = null;
+    let blockerAhead = Infinity;
+    for (const h of state.hazards) {
+      if (h.hit) continue;
+      if (
+        h.kind !== 'barrel' &&
+        h.kind !== 'toxbarrel' &&
+        h.kind !== 'wreck' &&
+        h.kind !== 'drifter' &&
+        h.kind !== 'barricade'
+      )
+        continue;
+      const ahead = h.forward - state.distance;
       if (ahead <= 0 || ahead > w.range) continue;
-      if (Math.abs(z.x - car.lateralX) > halfWidth) continue;
-      if (ahead < nearestZombie) nearestZombie = ahead;
+      if (Math.abs(h.x - car.lateralX) > halfWidth) continue;
+      if (ahead < blockerAhead) {
+        blockerAhead = ahead;
+        blocker = h;
+      }
     }
-    if (wreckAhead <= nearestZombie) {
-      wreck.hp = (wreck.hp ?? WEAPON_TUNING.wreckHp) - w.killsPerShot;
-      if (wreck.hp <= 0) {
-        wreck.hit = true;
-        state.events.push({ type: 'exploded', x: wreck.x, forward: wreck.forward });
+
+    if (blocker && blockerAhead <= zombieAhead) {
+      if (blocker.kind === 'barrel') {
+        detonateBarrel(state, blocker);
+        return;
+      }
+      if (blocker.kind === 'toxbarrel') {
+        detonateToxBarrel(state, blocker);
+        return;
+      }
+
+      const remainingDamage = w.killsPerShot - spent;
+      const defaultHp = blocker.kind === 'barricade' ? WEAPON_TUNING.barricadeHp : WEAPON_TUNING.wreckHp;
+      blocker.hp = (blocker.hp ?? defaultHp) - remainingDamage;
+      if (blocker.hp <= 0) {
+        blocker.hit = true;
+        state.events.push({ type: 'exploded', x: blocker.x, forward: blocker.forward });
       }
       return;
     }
-  }
 
-  // Spend `killsPerShot` points of damage, nearest first, within range and column.
-  // A normal zombie costs one point (one kill); a brute soaks several before it
-  // drops, so a strong cannon can fell one in a single shot while a weak one chips
-  // it over several. Each point re-scans for the current nearest, so once a brute
-  // drops the remaining points spill onto the crowd behind it.
-  for (let k = 0; k < w.killsPerShot; k += 1) {
-    let target: Zombie | null = null;
-    let nearest = Infinity;
-    for (const z of state.zombies) {
-      if (z.mowed) continue;
-      const ahead = z.forward - state.distance;
-      if (ahead <= 0 || ahead > w.range) continue;
-      if (Math.abs(z.x - car.lateralX) > halfWidth) continue;
-      if (ahead < nearest) {
-        nearest = ahead;
-        target = z;
-      }
-    }
-    if (!target) break;
-    damageZombie(state, target, 1);
+    if (!zombie) break;
+    damageZombie(state, zombie, 1);
   }
 }
 
@@ -861,6 +848,7 @@ export function resolveShots(state: SimState, intent: Intent): void {
  * play; the crash is the price of ramming it.
  */
 export function resolveMows(state: SimState, topSpeed: number): void {
+  if (state.dead) return;
   const car = state.car;
   if (car.height > JUMP_CLEARANCE) return;
   // Scrap Magnet widens the bumper's reach so you mow fodder you used to skim.
@@ -899,6 +887,7 @@ export function resolveMows(state: SimState, topSpeed: number): void {
         state.dead = true;
         state.deathCause = 'brute';
         state.events.push({ type: 'died' });
+        return;
       }
       continue;
     }
@@ -985,6 +974,7 @@ export function updateClingers(state: SimState): void {
  * Pillar 3). Each pickup pays once.
  */
 export function resolvePickups(state: SimState): void {
+  if (state.dead) return;
   const car = state.car;
   if (car.height > JUMP_CLEARANCE) return;
   // Scrap Magnet widens the scoop; Lift Tank raises the jump-charge cap.

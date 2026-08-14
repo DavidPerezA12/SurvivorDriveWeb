@@ -35,6 +35,22 @@ describe('determinism', () => {
     expect(a).toEqual(b);
   });
 
+  it('keeps a finished run frozen if a caller steps it again', () => {
+    const state = createSim(9);
+    state.dead = true;
+    state.deathCause = 'rig';
+    state.distance = 4321;
+    state.car.speed = 71;
+    state.tick = 88;
+
+    step(state, { steer: 1, jump: true, fire: true });
+
+    expect(state.distance).toBe(4321);
+    expect(state.car.speed).toBe(71);
+    expect(state.tick).toBe(88);
+    expect(state.events).toEqual([]);
+  });
+
   it('keeps the car path seed-independent inside the opening grace zone', () => {
     // Before any spawned content is reached, the car path cannot depend on the
     // seed — there is nothing seeded to interact with yet. 50 ticks at the opening
