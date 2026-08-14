@@ -13,6 +13,8 @@ import {
 import { palette } from './palette';
 import { BIOME_BAND_M, BIOME_TRANSITION_M, biomeForBand, type BiomeId } from '../content/biomes';
 import type { Elevation } from './elevation';
+import type { RenderAssets } from './assets';
+import { BEAM_TUNING, DRIFT_TUNING } from '../content/tuning';
 
 const MAX_INSTANCES = 48;
 
@@ -258,7 +260,9 @@ function wreckTruckGeometry(): THREE.BufferGeometry {
     // The load it died carrying: a lashed crate, a tarp roll, and a jerry can.
     box(0.55, 0.42, 0.55, p.wreckRust, 0.45).rotateY(0.4).translate(-0.3, 0.78, -0.9),
     paint(
-      new THREE.CylinderGeometry(0.16, 0.16, 1.2, 8).rotateZ(Math.PI / 2).translate(0.15, 0.66, -1.65),
+      new THREE.CylinderGeometry(0.16, 0.16, 1.2, 8)
+        .rotateZ(Math.PI / 2)
+        .translate(0.15, 0.66, -1.65),
       p.wreckCabin,
       0.4,
     ),
@@ -395,46 +399,67 @@ function rigGeometry(): THREE.BufferGeometry {
 function barrierGeometry(): THREE.BufferGeometry {
   const p = palette;
   const parts = [
-    // A massive slab wall: nearly three meters of solid concrete, unmistakably
-    // impassable from the spawn horizon (docs/DESIGN.md → lethal looks lethal).
-    box(2.5, 2.9, 1.0, p.barrierConcrete, 0.5).translate(0, 1.6, 0),
-    // Sloped Jersey foot, wider at the base (the cast-concrete profile).
-    box(2.7, 0.55, 1.35, p.barrierConcreteDark, 0.55).translate(0, 0.27, 0),
-    // A heavy crown cap along the top.
-    box(2.6, 0.24, 1.1, p.barrierConcreteDark, 0.45).translate(0, 3.06, 0),
-    // White hazard bands wrapping the face toward the player.
-    box(2.54, 0.4, 0.06, p.barrierStripe, 0.2).translate(0, 2.35, 0.52),
-    box(2.54, 0.4, 0.06, p.barrierStripe, 0.2).translate(0, 1.0, 0.52),
-    // Big red danger chevrons between the bands — the lethal read.
-    box(0.62, 0.5, 0.08, p.barrierDanger, 0.2).translate(-0.8, 1.68, 0.53),
-    box(0.62, 0.5, 0.08, p.barrierDanger, 0.2).translate(0, 1.68, 0.53),
-    box(0.62, 0.5, 0.08, p.barrierDanger, 0.2).translate(0.8, 1.68, 0.53),
-    // Grime streaks down the face + a spalled top corner for craft. A hair
-    // prouder than the hazard bands they cross, so the faces never share a
-    // plane (z-fighting flicker).
-    box(0.26, 2.1, 0.08, p.barrierGrime, 0.5).translate(-1.0, 1.5, 0.535),
-    box(0.2, 1.8, 0.08, p.barrierGrime, 0.5).translate(0.85, 1.4, 0.535),
+    // Jersey body: a stepped cast profile (wide foot → waist → crown) so the
+    // wall reads as real concrete mass from the spawn horizon, not a billboard
+    // slab (docs/DESIGN.md → lethal looks lethal).
+    box(2.72, 0.58, 1.4, p.barrierConcreteDark, 0.55).translate(0, 0.29, 0), // foot kick-out
+    box(2.55, 1.15, 1.12, p.barrierConcrete, 0.5).translate(0, 1.05, 0), // lower body
+    box(2.42, 1.05, 1.0, p.barrierConcrete, 0.48).translate(0, 2.1, 0), // upper body
+    box(2.6, 0.28, 1.14, p.barrierConcreteDark, 0.45).translate(0, 3.08, 0), // crown cap
+    box(2.64, 0.1, 1.18, p.barrierConcrete, 0.4).translate(0, 3.24, 0), // crown lip
+    // Cast vertical seams so a row of barriers never clones as one long wall.
+    box(0.08, 2.6, 1.16, p.barrierConcreteDark, 0.5).translate(-0.85, 1.55, 0),
+    box(0.08, 2.6, 1.16, p.barrierConcreteDark, 0.5).translate(0.85, 1.55, 0),
+    // White hazard bands + thick red chevrons on the approach face (proud ≥10 mm).
+    box(2.56, 0.44, 0.08, p.barrierStripe, 0.2).translate(0, 2.4, 0.58),
+    box(2.56, 0.44, 0.08, p.barrierStripe, 0.2).translate(0, 0.95, 0.58),
+    box(0.7, 0.58, 0.1, p.barrierDanger, 0.15).translate(-0.82, 1.68, 0.6),
+    box(0.7, 0.58, 0.1, p.barrierDanger, 0.15).translate(0, 1.68, 0.6),
+    box(0.7, 0.58, 0.1, p.barrierDanger, 0.15).translate(0.82, 1.68, 0.6),
+    // Dark chevron outlines so the red survives warm act haze.
+    box(0.76, 0.64, 0.06, p.barrierConcreteDark, 0.35).translate(-0.82, 1.68, 0.545),
+    box(0.76, 0.64, 0.06, p.barrierConcreteDark, 0.35).translate(0, 1.68, 0.545),
+    box(0.76, 0.64, 0.06, p.barrierConcreteDark, 0.35).translate(0.82, 1.68, 0.545),
+    // Quiet back-face bands so the wall is authored from both sides.
+    box(2.4, 0.3, 0.06, p.barrierStripe, 0.35).translate(0, 2.35, -0.54),
+    box(2.4, 0.3, 0.06, p.barrierStripe, 0.35).translate(0, 1.05, -0.54),
+    // Grime streaks + rust weeps (proud of the bands they cross).
+    box(0.28, 2.2, 0.09, p.barrierGrime, 0.5).translate(-1.05, 1.5, 0.61),
+    box(0.22, 1.9, 0.09, p.barrierGrime, 0.5).translate(0.95, 1.35, 0.61),
+    box(0.16, 0.55, 0.07, p.wreckRust, 0.4).translate(-0.95, 0.7, 0.62),
+    box(0.14, 0.4, 0.07, p.wreckRust, 0.4).translate(0.55, 0.65, 0.62),
+    // Spalled crown corner with bent rebar clawing out.
     paint(
-      new THREE.BoxGeometry(0.5, 0.45, 0.6).rotateY(0.4).translate(1.2, 2.85, 0.1),
+      new THREE.BoxGeometry(0.55, 0.5, 0.65).rotateY(0.35).translate(1.18, 2.95, 0.12),
       p.barrierConcreteDark,
       0.55,
     ),
-    // Bent rebar clawing out of the spalled corner, and a lift-hook recess.
     paint(
-      new THREE.BoxGeometry(0.06, 0.6, 0.06).rotateZ(0.5).translate(1.18, 3.2, 0.1),
+      new THREE.BoxGeometry(0.07, 0.7, 0.07).rotateZ(0.55).translate(1.22, 3.3, 0.12),
       p.rampRebar,
       0.35,
     ),
     paint(
-      new THREE.BoxGeometry(0.05, 0.45, 0.05).rotateZ(-0.4).translate(1.0, 3.15, 0.2),
+      new THREE.BoxGeometry(0.06, 0.5, 0.06).rotateZ(-0.45).translate(1.02, 3.22, 0.22),
       p.rampRebar,
       0.35,
     ),
-    box(0.3, 0.14, 0.06, p.barrierConcreteDark, 0.4).translate(-0.6, 2.6, 0.52),
-    // Chunks of broken rubble spilled at the foot, breaking the clean slab.
-    rockChunk(0.3, 0.7, 0.6, p.barrierConcreteDark, 0.5).rotateY(0.6).translate(-1.25, 0.16, 0.7),
-    rockChunk(0.22, 0.65, 0.7, p.barrierConcrete, 0.45).rotateY(1.2).translate(-1.0, 0.1, 0.95),
-    rockChunk(0.18, 0.6, 0.7, p.barrierConcreteDark, 0.45).rotateY(0.2).translate(1.35, 0.09, 0.75),
+    paint(
+      new THREE.BoxGeometry(0.05, 0.4, 0.05).rotateX(0.3).rotateZ(0.2).translate(1.3, 3.1, -0.05),
+      p.rampRebar,
+      0.35,
+    ),
+    // Lift-hook recess + bolt pockets on the foot ends (Jersey join hardware).
+    box(0.34, 0.16, 0.08, p.barrierConcreteDark, 0.4).translate(-0.55, 2.65, 0.58),
+    box(0.24, 0.14, 0.24, p.barrierConcreteDark, 0.45).translate(-1.2, 0.42, 0.45),
+    box(0.24, 0.14, 0.24, p.barrierConcreteDark, 0.45).translate(1.2, 0.42, 0.45),
+    // Rubble apron toward the player — breaks the clean slab into a crash wall.
+    rockChunk(0.32, 0.7, 0.55, p.barrierConcreteDark, 0.5)
+      .rotateY(0.6)
+      .translate(-1.28, 0.16, 0.82),
+    rockChunk(0.24, 0.65, 0.65, p.barrierConcrete, 0.45).rotateY(1.2).translate(-0.95, 0.11, 1.05),
+    rockChunk(0.2, 0.6, 0.65, p.barrierConcreteDark, 0.45).rotateY(0.2).translate(1.32, 0.1, 0.88),
+    rockChunk(0.16, 0.55, 0.6, p.barrierConcrete, 0.4).rotateY(0.9).translate(0.35, 0.08, 1.0),
   ];
   // `merged` (not the raw mergeGeometries) because the rubble chunks are
   // non-indexed icosahedra while the slab boxes are indexed.
@@ -442,78 +467,73 @@ function barrierGeometry(): THREE.BufferGeometry {
 }
 
 /**
- * A crashed bus blocking a lane: the longest blocker. A long dead coach along the
- * lane, with dead glass, rust, and red hazard chevrons on the rear facing the
- * player. Its hitbox is low enough that a well-timed jump clears it (the sim's
- * `BUS_CLEAR`), but a square hit at speed is still a lethal crash. One merged
- * geometry, instanced.
+ * Procedural fallback for the crashed bus (Blender GLB is preferred at runtime).
+ * Kept tall and massive so lethal still reads lethal if the asset fails to load.
+ * The sim hitbox stays low (`BUS_CLEAR` 0.95) by design — a hop clears the
+ * collision even when the mesh roof is above; the open window band is the visual
+ * "you can jump through here" cue so the height mismatch reads intentional.
  */
 function busGeometry(): THREE.BufferGeometry {
   const p = palette;
   const parts: THREE.BufferGeometry[] = [
-    // The long body along the lane, on a dark underframe.
+    // Underframe + long body. Roof kept, but the mid-body is a dark open window
+    // gallery so a hop visually threads the glass line instead of solid metal.
     box(2.05, 0.42, 8.8, p.busDark, 0.45).translate(0, 0.36, -0.4),
-    box(2.0, 1.6, 8.7, p.busBody, 0.5).translate(0, 1.2, -0.4),
-    // Lighter roof cap with two escape hatches and a sagging AC pod.
-    box(1.9, 0.14, 8.5, p.busRust, 0.5).translate(0, 2.0, -0.4),
-    box(0.7, 0.1, 0.7, p.busDark, 0.35).translate(0, 2.1, 1.2),
-    box(0.7, 0.1, 0.7, p.busDark, 0.35).translate(0, 2.1, -2.0),
-    box(1.1, 0.18, 1.6, p.busDark, 0.45).rotateZ(0.05).translate(0.1, 2.14, -0.4),
-    // Black rub rail + dead window strip along each flank.
-    box(0.06, 0.18, 8.4, p.busRail, 0.4).translate(-1.0, 1.05, -0.4),
-    box(0.06, 0.18, 8.4, p.busRail, 0.4).translate(1.0, 1.05, -0.4),
-    box(0.05, 0.5, 7.6, p.busGlass, 0.3).translate(-1.0, 1.45, -0.4),
-    box(0.05, 0.5, 7.6, p.busGlass, 0.3).translate(1.0, 1.45, -0.4),
-    // A faded livery stripe running the flank under the windows.
-    box(0.055, 0.12, 8.0, p.coupeStripe, 0.35).translate(-1.0, 1.24, -0.4),
-    box(0.055, 0.12, 8.0, p.coupeStripe, 0.35).translate(1.0, 1.24, -0.4),
-    // The passenger door ajar at the front right: a dark opening and the leaf
-    // folded out of it.
-    box(0.1, 1.3, 0.7, p.busDark, 0.3).translate(1.0, 0.95, 2.9),
+    box(2.0, 0.95, 8.7, p.busBody, 0.5).translate(0, 0.88, -0.4), // solid skirt
+    // Roof rail / canopy sitting above the open window band (hop corridor ~0.95–1.55).
+    box(1.95, 0.22, 8.5, p.busBody, 0.48).translate(0, 1.72, -0.4),
+    box(1.9, 0.14, 8.5, p.busRust, 0.5).translate(0, 1.9, -0.4),
+    box(0.7, 0.1, 0.7, p.busDark, 0.35).translate(0, 2.0, 1.2),
+    box(0.7, 0.1, 0.7, p.busDark, 0.35).translate(0, 2.0, -2.0),
+    box(1.1, 0.16, 1.6, p.busDark, 0.45).rotateZ(0.05).translate(0.1, 2.04, -0.4),
+    // Black rub rail + faded livery on the solid skirt (below hop line).
+    box(0.06, 0.16, 8.4, p.busRail, 0.4).translate(-1.0, 0.95, -0.4),
+    box(0.06, 0.16, 8.4, p.busRail, 0.4).translate(1.0, 0.95, -0.4),
+    box(0.055, 0.1, 8.0, p.coupeStripe, 0.35).translate(-1.0, 1.12, -0.4),
+    box(0.055, 0.1, 8.0, p.coupeStripe, 0.35).translate(1.0, 1.12, -0.4),
+    // Window pillars only (no filled glass strip) — the open gallery is the hop cue.
+    // Passenger door ajar at the front right.
+    box(0.1, 1.15, 0.7, p.busDark, 0.3).translate(1.0, 0.9, 2.9),
     paint(
-      new THREE.BoxGeometry(0.08, 1.25, 0.55).rotateY(-0.7).translate(1.15, 0.95, 3.4),
+      new THREE.BoxGeometry(0.08, 1.1, 0.55).rotateY(-0.7).translate(1.15, 0.9, 3.4),
       p.busBody,
       0.4,
     ),
-    // Rear facing the player: dark panel, dead lights, red hazard chevrons, a
-    // dented bumper, and the engine grille under the panel.
-    box(2.0, 1.5, 0.16, p.busDark, 0.45).translate(0, 1.2, 3.98),
-    box(0.62, 1.34, 0.2, p.busDanger, 0.2).translate(-0.65, 1.2, 4.04),
-    box(0.62, 1.34, 0.2, p.busBody, 0.2).translate(0, 1.2, 4.04),
-    box(0.62, 1.34, 0.2, p.busDanger, 0.2).translate(0.65, 1.2, 4.04),
-    box(0.36, 0.16, 0.1, p.carTaillightDim, 0.2).translate(-0.7, 0.6, 4.06),
-    box(0.36, 0.16, 0.1, p.carTaillightDim, 0.2).translate(0.7, 0.6, 4.06),
-    box(1.4, 0.3, 0.1, p.carGrille, 0.3).translate(0, 0.42, 4.05), // engine grille
+    // Rear face: still a solid lethal wall with red chevrons (you cannot hop the rear).
+    box(2.0, 1.55, 0.16, p.busDark, 0.45).translate(0, 1.05, 3.98),
+    box(0.68, 1.4, 0.2, p.busDanger, 0.15).translate(-0.68, 1.1, 4.06),
+    box(0.58, 1.4, 0.2, p.busBody, 0.2).translate(0, 1.1, 4.06),
+    box(0.68, 1.4, 0.2, p.busDanger, 0.15).translate(0.68, 1.1, 4.06),
+    box(0.36, 0.16, 0.1, p.carTaillightDim, 0.2).translate(-0.7, 0.55, 4.08),
+    box(0.36, 0.16, 0.1, p.carTaillightDim, 0.2).translate(0.7, 0.55, 4.08),
+    box(1.4, 0.28, 0.1, p.carGrille, 0.3).translate(0, 0.4, 4.07),
     paint(
-      new THREE.BoxGeometry(1.9, 0.26, 0.22).rotateX(0.2).translate(0, 0.24, 4.02),
+      new THREE.BoxGeometry(1.95, 0.28, 0.22).rotateX(0.2).translate(0, 0.22, 4.04),
       p.busDark,
       0.4,
     ),
-    // Rust eating the flanks + a caved-in panel + a long body scrape.
-    box(0.5, 0.7, 1.2, p.busRust, 0.5).translate(-1.0, 1.2, 1.0),
-    box(0.5, 0.5, 0.9, p.busRust, 0.5).translate(1.0, 0.9, -2.2),
-    box(0.6, 0.5, 0.5, p.busDark, 0.5).rotateY(0.3).translate(0.7, 1.5, -3.6),
-    box(0.06, 0.16, 3.0, p.wreckScorch, 0.3).translate(-1.02, 0.85, -1.4),
-    // Wheel arches over each wheel, a darker recess.
+    // Rust, scrape, wheel arches, wheels.
+    box(0.5, 0.55, 1.2, p.busRust, 0.5).translate(-1.0, 0.85, 1.0),
+    box(0.5, 0.4, 0.9, p.busRust, 0.5).translate(1.0, 0.75, -2.2),
+    box(0.06, 0.14, 3.0, p.wreckScorch, 0.3).translate(-1.02, 0.7, -1.4),
     box(0.2, 0.5, 1.3, p.busDark, 0.5).translate(-0.95, 0.5, 2.6),
     box(0.2, 0.5, 1.3, p.busDark, 0.5).translate(0.95, 0.5, 2.6),
     box(0.2, 0.5, 1.3, p.busDark, 0.5).translate(-0.95, 0.5, -3.0),
     box(0.2, 0.5, 1.3, p.busDark, 0.5).translate(0.95, 0.5, -3.0),
-    // Wheels — two each side, one blown flat.
     wheel(0.5, 0.34, p.busDark).translate(-0.92, 0.42, 2.6),
     wheel(0.5, 0.34, p.busDark).translate(0.92, 0.42, 2.6),
     wheel(0.5, 0.34, p.busDark).translate(-0.92, 0.42, -3.0),
     paint(new THREE.BoxGeometry(0.86, 0.34, 0.78).translate(0.92, 0.26, -3.0), p.busDark, 0.4),
   ];
-  // Window pillars breaking the long glass strip into individual dead panes.
+  // Pillars spanning the open window band — hop reads through the gaps.
   for (const pz of [-3.4, -2.2, -1.0, 0.2, 1.4, 2.6]) {
-    parts.push(box(0.07, 0.54, 0.14, p.busBody, 0.45).translate(-1.0, 1.45, pz));
-    parts.push(box(0.07, 0.54, 0.14, p.busBody, 0.45).translate(1.0, 1.45, pz));
+    parts.push(box(0.08, 0.72, 0.16, p.busBody, 0.45).translate(-1.0, 1.4, pz));
+    parts.push(box(0.08, 0.72, 0.16, p.busBody, 0.45).translate(1.0, 1.4, pz));
   }
-  const geo = mergeGeometries(parts, false);
-  for (const part of parts) part.dispose();
-  if (!geo) throw new Error('Failed to merge bus geometry');
-  return geo;
+  // Thin roof edge rails so the canopy still reads as a coach roof from chase cam.
+  parts.push(box(0.08, 0.12, 8.4, p.busDark, 0.4).translate(-0.95, 1.78, -0.4));
+  parts.push(box(0.08, 0.12, 8.4, p.busDark, 0.4).translate(0.95, 1.78, -0.4));
+  return merged(parts);
 }
 
 /**
@@ -526,49 +546,61 @@ function busGeometry(): THREE.BufferGeometry {
 function barricadeGeometry(): THREE.BufferGeometry {
   const p = palette;
   const parts = [
-    // The striped plank across the lane.
-    box(2.2, 0.32, 0.12, p.barricadeStripe, 0.3).translate(0, 0.58, 0),
-    // Dark hazard stripes angled across the plank.
-    box(0.2, 0.34, 0.14, p.barricadeStripeDark, 0.2).rotateZ(0.5).translate(-0.72, 0.58, 0.01),
-    box(0.2, 0.34, 0.14, p.barricadeStripeDark, 0.2).rotateZ(0.5).translate(0, 0.58, 0.01),
-    box(0.2, 0.34, 0.14, p.barricadeStripeDark, 0.2).rotateZ(0.5).translate(0.72, 0.58, 0.01),
-    // A thin lower rail tying the legs together.
-    box(2.0, 0.08, 0.08, p.barricadeFrame, 0.4).translate(0, 0.32, 0),
-    // Splayed A-frame legs at each end.
+    // Soft blocker: a light trestle, clearly slighter than a lethal wall so a
+    // glance says "drive through / hop / shoot" (docs/DESIGN.md → roster).
+    // Twin planks read as roadworks, not a solid mass.
+    box(2.25, 0.28, 0.12, p.barricadeStripe, 0.3).translate(0, 0.72, 0),
+    box(2.15, 0.22, 0.1, p.barricadeStripe, 0.35).translate(0, 0.42, 0),
+    // Dark hazard stripes angled across both planks.
+    box(0.18, 0.3, 0.14, p.barricadeStripeDark, 0.2).rotateZ(0.5).translate(-0.75, 0.72, 0.02),
+    box(0.18, 0.3, 0.14, p.barricadeStripeDark, 0.2).rotateZ(0.5).translate(0, 0.72, 0.02),
+    box(0.18, 0.3, 0.14, p.barricadeStripeDark, 0.2).rotateZ(0.5).translate(0.75, 0.72, 0.02),
+    box(0.16, 0.24, 0.12, p.barricadeStripeDark, 0.25).rotateZ(0.5).translate(-0.55, 0.42, 0.02),
+    box(0.16, 0.24, 0.12, p.barricadeStripeDark, 0.25).rotateZ(0.5).translate(0.55, 0.42, 0.02),
+    // Frame rails tying the A-legs.
+    box(2.05, 0.07, 0.07, p.barricadeFrame, 0.4).translate(0, 0.28, 0),
+    box(0.08, 0.55, 0.08, p.barricadeFrame, 0.4).translate(-0.95, 0.55, 0),
+    box(0.08, 0.55, 0.08, p.barricadeFrame, 0.4).translate(0.95, 0.55, 0),
+    // Splayed A-frame legs at each end (thin timber — never wall mass).
     paint(
-      new THREE.BoxGeometry(0.1, 0.74, 0.1).rotateX(0.32).translate(-0.96, 0.36, 0.16),
+      new THREE.BoxGeometry(0.09, 0.82, 0.09).rotateX(0.35).translate(-0.98, 0.38, 0.18),
       p.barricadeLeg,
       0.4,
     ),
     paint(
-      new THREE.BoxGeometry(0.1, 0.74, 0.1).rotateX(-0.32).translate(-0.96, 0.36, -0.16),
+      new THREE.BoxGeometry(0.09, 0.82, 0.09).rotateX(-0.35).translate(-0.98, 0.38, -0.18),
       p.barricadeLeg,
       0.4,
     ),
     paint(
-      new THREE.BoxGeometry(0.1, 0.74, 0.1).rotateX(0.32).translate(0.96, 0.36, 0.16),
+      new THREE.BoxGeometry(0.09, 0.82, 0.09).rotateX(0.35).translate(0.98, 0.38, 0.18),
       p.barricadeLeg,
       0.4,
     ),
     paint(
-      new THREE.BoxGeometry(0.1, 0.74, 0.1).rotateX(-0.32).translate(0.96, 0.36, -0.16),
+      new THREE.BoxGeometry(0.09, 0.82, 0.09).rotateX(-0.35).translate(0.98, 0.38, -0.18),
       p.barricadeLeg,
       0.4,
     ),
-    // A dead battery beacon clamped to the plank top — housing and a murky amber
-    // lens, unlit (the city's power is gone).
-    box(0.14, 0.16, 0.14, p.barricadeFrame, 0.35).translate(-0.55, 0.82, 0),
-    box(0.1, 0.1, 0.1, palette.trafficDeadAmber, 0.15).translate(-0.55, 0.94, 0),
-    // Paint chipped off the plank in two worn notches, and a splintered rail end.
-    box(0.14, 0.34, 0.02, p.barricadeFrame, 0.2).translate(-0.25, 0.58, 0.07),
-    box(0.1, 0.2, 0.02, p.barricadeFrame, 0.2).translate(0.5, 0.52, 0.07),
+    // Foot plates under the legs.
+    box(0.22, 0.04, 0.28, p.barricadeFrame, 0.45).translate(-0.98, 0.02, 0.12),
+    box(0.22, 0.04, 0.28, p.barricadeFrame, 0.45).translate(0.98, 0.02, -0.12),
+    // Dead battery beacon on the top plank — housing + murky amber lens.
+    box(0.16, 0.18, 0.16, p.barricadeFrame, 0.35).translate(-0.5, 0.96, 0),
+    box(0.11, 0.11, 0.11, palette.trafficDeadAmber, 0.15).translate(-0.5, 1.1, 0),
+    // Paint chips + splintered rail end.
+    box(0.14, 0.3, 0.03, p.barricadeFrame, 0.2).translate(-0.2, 0.72, 0.08),
+    box(0.1, 0.18, 0.03, p.barricadeFrame, 0.2).translate(0.48, 0.42, 0.07),
     paint(
-      new THREE.BoxGeometry(0.3, 0.07, 0.07).rotateY(0.4).rotateZ(0.2).translate(1.1, 0.32, 0.05),
+      new THREE.BoxGeometry(0.32, 0.07, 0.07).rotateY(0.4).rotateZ(0.25).translate(1.15, 0.3, 0.06),
       p.barricadeLeg,
       0.3,
     ),
-    // A sandbag dumped against one leg to hold it in the wind.
-    rockChunk(0.18, 0.5, 0.4, palette.sandbagBody, 0.45).translate(0.92, 0.08, 0.3),
+    // Sandbag holding one leg + a kicked traffic cone (soft-blocker clutter).
+    rockChunk(0.18, 0.5, 0.4, palette.sandbagBody, 0.45).translate(0.95, 0.08, 0.32),
+    paint(new THREE.ConeGeometry(0.14, 0.38, 6), palette.coneShell, 0.35)
+      .rotateZ(1.15)
+      .translate(-1.15, 0.12, 0.35),
   ];
   return merged(parts);
 }
@@ -582,24 +614,22 @@ function barricadeGeometry(): THREE.BufferGeometry {
  */
 function boulderGeometry(): THREE.BufferGeometry {
   const p = palette;
+  // Teaching jump: a low warm mound, clearly hoppable (BOULDER_CLEAR 0.6). Mass
+  // first so it never reads as roadside gravel at speed.
   const parts = [
-    // Main mass: a broad flattened stone, the bulk of the mound.
-    rockChunk(0.85, 0.6, 0.5, p.boulderBody, 0.5).rotateY(0.4).translate(0, 0.42, 0),
-    // A second peak giving the mound its broken, two-lobe ridgeline.
-    rockChunk(0.58, 0.68, 0.6, p.boulderLight, 0.45).rotateY(0.9).translate(0.48, 0.36, 0.26),
-    // Shadowed stone wedged into the back — the dark crevice between the peaks.
-    rockChunk(0.48, 0.68, 0.7, p.boulderDark, 0.55).rotateY(1.4).translate(-0.48, 0.3, -0.38),
-    // Sunlit cap chunk — the high point you read first at the horizon.
-    rockChunk(0.38, 0.7, 0.6, p.boulderLight, 0.42).rotateY(0.2).translate(0.05, 0.6, -0.04),
-    // Spilled rubble around the base, breaking the outline into scattered rock.
-    rockChunk(0.26, 0.62, 0.7, p.boulderDark, 0.5).rotateY(0.6).translate(-0.86, 0.12, 0.62),
-    rockChunk(0.24, 0.62, 0.7, p.boulderBody, 0.45).rotateY(1.1).translate(0.9, 0.1, -0.6),
-    rockChunk(0.2, 0.6, 0.7, p.boulderDark, 0.4).rotateY(0.3).translate(0.22, 0.09, 0.92),
+    rockChunk(0.95, 0.55, 0.48, p.boulderBody, 0.5).rotateY(0.35).translate(0, 0.38, 0),
+    rockChunk(0.62, 0.65, 0.55, p.boulderLight, 0.42).rotateY(0.95).translate(0.52, 0.34, 0.28),
+    rockChunk(0.55, 0.62, 0.65, p.boulderDark, 0.55).rotateY(1.35).translate(-0.52, 0.28, -0.32),
+    rockChunk(0.42, 0.68, 0.55, p.boulderLight, 0.4).rotateY(0.15).translate(0.08, 0.55, -0.02),
+    rockChunk(0.36, 0.7, 0.6, p.boulderBody, 0.45).rotateY(0.7).translate(-0.2, 0.48, 0.35),
+    // Spilled rubble apron toward the player — owns the asphalt.
+    rockChunk(0.3, 0.6, 0.65, p.boulderDark, 0.5).rotateY(0.6).translate(-0.95, 0.12, 0.7),
+    rockChunk(0.28, 0.58, 0.65, p.boulderBody, 0.45).rotateY(1.1).translate(0.95, 0.1, -0.55),
+    rockChunk(0.24, 0.55, 0.65, p.boulderDark, 0.4).rotateY(0.3).translate(0.25, 0.09, 0.98),
+    rockChunk(0.2, 0.55, 0.6, p.boulderLight, 0.4).rotateY(0.9).translate(-0.35, 0.08, -0.9),
+    rockChunk(0.18, 0.5, 0.55, p.boulderDark, 0.4).rotateY(1.5).translate(0.7, 0.07, 0.75),
   ];
-  const geo = mergeGeometries(parts, false);
-  for (const part of parts) part.dispose();
-  if (!geo) throw new Error('Failed to merge boulder geometry');
-  return geo;
+  return merged(parts);
 }
 
 // Self-lit danger lights for the one-hit killers. Each lethal wall gets a twin
@@ -625,9 +655,9 @@ function rigGlowGeometry(): THREE.BufferGeometry {
 function barrierGlowGeometry(): THREE.BufferGeometry {
   const g = palette.dangerGlow;
   return merged([
-    box(2.56, 0.2, 0.08, g, 0).translate(0, 2.85, 0.53),
-    box(0.2, 0.2, 0.2, g, 0).translate(-0.95, 3.26, 0),
-    box(0.2, 0.2, 0.2, g, 0).translate(0.95, 3.26, 0),
+    box(2.58, 0.22, 0.1, g, 0).translate(0, 2.88, 0.62),
+    box(0.22, 0.22, 0.22, g, 0).translate(-0.95, 3.32, 0),
+    box(0.22, 0.22, 0.22, g, 0).translate(0.95, 3.32, 0),
   ]);
 }
 
@@ -652,25 +682,34 @@ function poleGeometry(): THREE.BufferGeometry {
   const timber = (r: number, len: number, c: number, ao: number): THREE.BufferGeometry =>
     paint(new THREE.CylinderGeometry(r, r, len, 9), c, ao).rotateZ(Math.PI / 2);
   const parts = [
-    // The pole itself, spanning the lane, resting on its crossarm at one end so
-    // it sits slightly proud of the deck.
-    timber(0.2, 4.5, p.poleWood, 0.5).rotateY(0.04).translate(0, 0.26, 0),
-    // The splintered butt where it snapped: jagged shards past the break.
-    rockChunk(0.2, 0.8, 0.8, p.poleWoodDark, 0.45).translate(-2.3, 0.26, 0.05),
-    box(0.1, 0.3, 0.1, p.poleWoodDark, 0.4).rotateZ(1.2).translate(-2.15, 0.3, -0.12),
-    // The crossarm under the far end, insulator pegs up.
-    box(0.14, 0.14, 1.5, p.poleWood, 0.45).translate(1.7, 0.12, 0),
-    box(0.1, 0.22, 0.1, p.carChrome, 0.35).translate(1.7, 0.32, 0.5),
-    box(0.1, 0.22, 0.1, p.carChrome, 0.35).translate(1.7, 0.32, -0.5),
-    // The transformer drum still bolted on, dented.
-    paint(new THREE.CylinderGeometry(0.32, 0.32, 0.7, 10), p.poleHardware, 0.4)
+    // Lane-wide low timber — hop or leave the lane (POLE_CLEAR 0.55). Never a wall.
+    timber(0.22, 4.55, p.poleWood, 0.5).rotateY(0.04).translate(0, 0.28, 0),
+    // Bark bands so it reads as wood, not a pipe.
+    timber(0.24, 0.35, p.poleWoodDark, 0.45).rotateY(0.04).translate(-0.8, 0.28, 0),
+    timber(0.24, 0.28, p.poleWoodDark, 0.45).rotateY(0.04).translate(1.1, 0.28, 0),
+    // Splintered butt where it snapped — jagged shards past the break.
+    rockChunk(0.22, 0.75, 0.75, p.poleWoodDark, 0.45).translate(-2.35, 0.28, 0.05),
+    box(0.12, 0.35, 0.12, p.poleWoodDark, 0.4).rotateZ(1.15).translate(-2.2, 0.32, -0.14),
+    box(0.1, 0.28, 0.1, p.poleWood, 0.4).rotateZ(-0.9).translate(-2.25, 0.35, 0.18),
+    box(0.08, 0.22, 0.08, p.poleWoodDark, 0.4).rotateX(0.8).translate(-2.1, 0.2, -0.05),
+    // Crossarm under the far end + insulator pegs + cracked ceramic.
+    box(0.16, 0.16, 1.65, p.poleWood, 0.45).translate(1.75, 0.12, 0),
+    box(0.12, 0.26, 0.12, p.carChrome, 0.35).translate(1.75, 0.35, 0.55),
+    box(0.12, 0.26, 0.12, p.carChrome, 0.35).translate(1.75, 0.35, -0.55),
+    box(0.1, 0.08, 0.1, p.carReverse, 0.3).translate(1.75, 0.48, 0.55),
+    box(0.1, 0.08, 0.1, p.carReverse, 0.3).translate(1.75, 0.48, -0.55),
+    // Transformer drum, dented, still bolted on with a mounting bracket.
+    paint(new THREE.CylinderGeometry(0.34, 0.34, 0.75, 10), p.poleHardware, 0.4)
       .rotateZ(Math.PI / 2)
-      .translate(0.8, 0.42, 0.2),
-    box(0.2, 0.1, 0.2, p.poleHardware, 0.3).translate(0.45, 0.6, 0.2),
+      .translate(0.75, 0.45, 0.18),
+    box(0.55, 0.08, 0.35, p.poleHardware, 0.35).translate(0.75, 0.22, 0.18),
+    box(0.22, 0.12, 0.22, p.poleHardware, 0.3).translate(0.4, 0.62, 0.18),
+    box(0.08, 0.18, 0.08, p.wreckScorch, 0.3).translate(1.05, 0.55, 0.35), // burn scar
     // Dead wires trailing off both ends along the deck.
-    box(1.6, 0.04, 0.04, p.wireCable, 0.25).rotateY(0.3).translate(2.6, 0.05, 0.4),
-    box(1.2, 0.04, 0.04, p.wireCable, 0.25).rotateY(-0.4).translate(-2.7, 0.05, -0.3),
-    box(0.9, 0.04, 0.04, p.wireCable, 0.25).rotateY(0.8).translate(2.2, 0.05, -0.5),
+    box(1.7, 0.045, 0.045, p.wireCable, 0.25).rotateY(0.3).translate(2.65, 0.05, 0.42),
+    box(1.35, 0.045, 0.045, p.wireCable, 0.25).rotateY(-0.4).translate(-2.75, 0.05, -0.32),
+    box(1.0, 0.04, 0.04, p.wireCable, 0.25).rotateY(0.85).translate(2.25, 0.05, -0.55),
+    box(0.7, 0.04, 0.04, p.wireCable, 0.25).rotateY(-0.7).translate(-2.4, 0.05, 0.4),
   ];
   return merged(parts);
 }
@@ -684,34 +723,42 @@ function poleGeometry(): THREE.BufferGeometry {
 function livewireGeometry(): THREE.BufferGeometry {
   const p = palette;
   const parts: THREE.BufferGeometry[] = [
-    // A fat transmission cable snaking across the lane in kinked runs — heavy
-    // industrial line, not a stray string.
-    box(1.75, 0.16, 0.16, p.wireCable, 0).rotateY(0.18).translate(-1.5, 0.09, -0.18),
-    box(1.65, 0.16, 0.16, p.wireCable, 0).rotateY(-0.3).translate(0, 0.09, 0.18),
-    box(1.75, 0.16, 0.16, p.wireCable, 0).rotateY(0.22).translate(1.5, 0.09, -0.12),
-    // The frayed tail curled at one end.
-    box(0.8, 0.14, 0.14, p.wireCable, 0).rotateY(1.1).translate(2.35, 0.08, 0.3),
-    // The torn stub posts it ripped from, dropped at both ends, tips still hot.
-    box(0.22, 0.6, 0.22, p.wireCable, 0).rotateZ(1.25).translate(-2.3, 0.16, 0.25),
-    box(0.2, 0.2, 0.2, p.wireSpark, 0).translate(-2.55, 0.3, 0.3),
-    box(0.2, 0.5, 0.2, p.wireCable, 0).rotateZ(-1.3).translate(2.5, 0.14, -0.2),
-    box(0.18, 0.18, 0.18, p.wireSpark, 0).translate(2.72, 0.24, -0.22),
-    // Scorch chewed wide into the asphalt under the arc points.
-    box(1.3, 0.02, 0.9, p.wireScorch, 0).rotateY(0.3).translate(-0.8, 0.012, 0),
-    box(1.1, 0.02, 0.8, p.wireScorch, 0).rotateY(-0.5).translate(0.9, 0.012, 0.05),
+    // Fat transmission cable snaking the whole lane — lethal trap, jump or die.
+    // Near-black cable barely registers; the sparks are the telegraph.
+    box(1.8, 0.18, 0.18, p.wireCable, 0).rotateY(0.18).translate(-1.5, 0.1, -0.18),
+    box(1.7, 0.18, 0.18, p.wireCable, 0).rotateY(-0.32).translate(0, 0.1, 0.2),
+    box(1.8, 0.18, 0.18, p.wireCable, 0).rotateY(0.24).translate(1.5, 0.1, -0.14),
+    // Frayed braid ends (multi-strand read).
+    box(0.85, 0.12, 0.12, p.wireCable, 0).rotateY(1.1).translate(2.4, 0.09, 0.32),
+    box(0.55, 0.08, 0.08, p.wireCable, 0).rotateY(0.9).translate(2.55, 0.12, 0.5),
+    box(0.5, 0.08, 0.08, p.wireCable, 0).rotateY(-1.0).translate(-2.5, 0.1, -0.45),
+    // Torn stub posts it ripped from, tips still hot.
+    box(0.26, 0.7, 0.26, p.wireCable, 0).rotateZ(1.2).translate(-2.35, 0.18, 0.28),
+    box(0.24, 0.24, 0.24, p.wireSpark, 0).translate(-2.62, 0.34, 0.32),
+    box(0.24, 0.58, 0.24, p.wireCable, 0).rotateZ(-1.25).translate(2.55, 0.16, -0.22),
+    box(0.22, 0.22, 0.22, p.wireSpark, 0).translate(2.8, 0.28, -0.24),
+    // Wide scorch under the whole span — owns the asphalt as a death zone.
+    box(4.2, 0.025, 1.15, p.wireScorch, 0).translate(0, 0.012, 0),
+    box(1.4, 0.02, 0.95, p.wireScorch, 0).rotateY(0.3).translate(-0.9, 0.015, 0.1),
+    box(1.2, 0.02, 0.85, p.wireScorch, 0).rotateY(-0.5).translate(1.0, 0.015, -0.05),
   ];
-  // Big spark bursts at three arc points: a hot white core with wide warm
-  // cross-flares — the death read, sized to be seen from the spawn horizon.
+  // Spark bursts at four arc points: white core + warm five-way flares.
   for (const [sx, sz] of [
-    [-0.8, -0.05],
-    [0.15, 0.15],
-    [1.1, -0.1],
+    [-1.2, -0.1],
+    [-0.2, 0.12],
+    [0.7, -0.08],
+    [1.5, 0.1],
   ] as const) {
-    parts.push(box(0.26, 0.26, 0.26, p.wireSparkCore, 0).translate(sx, 0.18, sz));
-    parts.push(box(0.95, 0.09, 0.09, p.wireSpark, 0).rotateY(0.5).translate(sx, 0.18, sz));
-    parts.push(box(0.09, 0.6, 0.09, p.wireSpark, 0).translate(sx, 0.32, sz));
-    parts.push(box(0.09, 0.09, 0.8, p.wireSpark, 0).rotateY(0.2).translate(sx, 0.18, sz));
-    parts.push(box(0.5, 0.07, 0.07, p.wireSpark, 0).rotateY(-0.7).rotateZ(0.5).translate(sx, 0.24, sz));
+    parts.push(box(0.3, 0.3, 0.3, p.wireSparkCore, 0).translate(sx, 0.2, sz));
+    parts.push(box(1.05, 0.1, 0.1, p.wireSpark, 0).rotateY(0.5).translate(sx, 0.2, sz));
+    parts.push(box(0.1, 0.7, 0.1, p.wireSpark, 0).translate(sx, 0.38, sz));
+    parts.push(box(0.1, 0.1, 0.9, p.wireSpark, 0).rotateY(0.2).translate(sx, 0.2, sz));
+    parts.push(
+      box(0.55, 0.08, 0.08, p.wireSpark, 0).rotateY(-0.7).rotateZ(0.5).translate(sx, 0.28, sz),
+    );
+    parts.push(
+      box(0.4, 0.08, 0.08, p.wireSpark, 0).rotateY(1.1).rotateZ(-0.4).translate(sx, 0.26, sz),
+    );
   }
   return merged(parts);
 }
@@ -726,22 +773,29 @@ function barrelGeometry(): THREE.BufferGeometry {
   const drum = (r: number, h: number, color: number, ao: number): THREE.BufferGeometry =>
     paint(new THREE.CylinderGeometry(r, r, h, 12), color, ao);
   const parts = [
-    // The body, slightly waisted by a darker mid section under the band.
+    // Explosive drum: red body + amber bands + flame diamond — blast, not gas.
     drum(0.5, 1.12, p.drumBody, 0.45).translate(0, 0.58, 0),
-    // Raised rims top and bottom — the drum's signature ribs.
     drum(0.53, 0.12, p.drumDark, 0.4).translate(0, 1.04, 0),
     drum(0.53, 0.12, p.drumDark, 0.4).translate(0, 0.12, 0),
-    // Two bright hazard bands so the warm-warning read survives the act haze.
-    drum(0.54, 0.16, p.drumBand, 0.2).translate(0, 0.78, 0),
-    drum(0.54, 0.16, p.drumBand, 0.2).translate(0, 0.4, 0),
-    // Worn lid with a small filler bung off-centre.
+    // Two bright amber hazard bands (warm = shoot-to-clear).
+    drum(0.54, 0.16, p.drumBand, 0.18).translate(0, 0.78, 0),
+    drum(0.54, 0.16, p.drumBand, 0.18).translate(0, 0.4, 0),
+    // Worn lid with filler bung + ring.
     drum(0.46, 0.06, p.drumLid, 0.3).translate(0, 1.16, 0),
+    drum(0.48, 0.04, p.drumDark, 0.35).translate(0, 1.12, 0),
     box(0.16, 0.1, 0.16, p.drumDark, 0.3).translate(0.2, 1.2, 0.1),
-    // The vertical weld seam and two kicked-in dents shading the shell.
+    // Flammable diamond sticker on the approach face (the blast class icon).
+    box(0.32, 0.32, 0.04, p.drumBand, 0.15)
+      .rotateZ(Math.PI / 4)
+      .translate(0, 0.62, 0.52),
+    box(0.14, 0.14, 0.05, p.drumBody, 0.2)
+      .rotateZ(Math.PI / 4)
+      .translate(0, 0.62, 0.54),
+    // Weld seam + kicked-in dents.
     box(0.04, 1.0, 0.05, p.drumDark, 0.25).translate(0.02, 0.58, 0.51),
     box(0.2, 0.24, 0.06, p.drumDark, 0.15).rotateY(0.6).translate(0.38, 0.55, 0.3),
     box(0.16, 0.18, 0.06, p.drumDark, 0.15).rotateY(-0.9).translate(-0.36, 0.6, -0.32),
-    // Fuel weeping from under the lid, and the slick pooled at the foot.
+    // Fuel weeping from under the lid, slick at the foot.
     box(0.05, 0.32, 0.04, p.wreckScorch, 0.15).translate(0.28, 0.96, 0.4),
     box(0.04, 0.22, 0.04, p.wreckScorch, 0.15).translate(-0.32, 1.0, 0.34),
     paint(new THREE.CylinderGeometry(0.62, 0.7, 0.025, 9), p.wreckScorch, 0).translate(
@@ -765,21 +819,29 @@ function toxBarrelGeometry(): THREE.BufferGeometry {
   const drum = (r: number, h: number, color: number, ao: number): THREE.BufferGeometry =>
     paint(new THREE.CylinderGeometry(r, r, h, 12), color, ao);
   const parts = [
+    // Toxic drum: green body + acid bands + trefoil vents — gas cloud, not blast.
     drum(0.5, 1.12, p.drumToxBody, 0.45).translate(0, 0.58, 0),
     drum(0.53, 0.12, p.drumToxDark, 0.4).translate(0, 1.04, 0),
     drum(0.53, 0.12, p.drumToxDark, 0.4).translate(0, 0.12, 0),
-    // Two acid hazard bands — the toxic warning, the gas colour.
-    drum(0.54, 0.16, p.drumToxBand, 0.2).translate(0, 0.78, 0),
-    drum(0.54, 0.16, p.drumToxBand, 0.2).translate(0, 0.4, 0),
-    // Worn lid with a raised vent cap (where the gas vents on rupture).
+    // Two acid hazard bands — the toxic warning (gas colour).
+    drum(0.54, 0.16, p.drumToxBand, 0.18).translate(0, 0.78, 0),
+    drum(0.54, 0.16, p.drumToxBand, 0.18).translate(0, 0.4, 0),
+    // Lid with a raised three-vent stack (where the gas vents on rupture).
     drum(0.46, 0.06, p.drumLid, 0.3).translate(0, 1.16, 0),
-    drum(0.14, 0.12, p.drumToxBand, 0.3).translate(0, 1.24, 0),
-    // The weld seam and two corrosion scars eating through the shell.
+    drum(0.16, 0.14, p.drumToxBand, 0.28).translate(0, 1.26, 0),
+    box(0.05, 0.1, 0.05, p.drumToxDark, 0.3).translate(0.08, 1.36, 0),
+    box(0.05, 0.1, 0.05, p.drumToxDark, 0.3).translate(-0.06, 1.36, 0.06),
+    box(0.05, 0.1, 0.05, p.drumToxDark, 0.3).translate(-0.06, 1.36, -0.06),
+    // Biohazard-ish trefoil: three petals on the approach face (class icon).
+    box(0.12, 0.22, 0.04, p.drumToxBand, 0.2).translate(0, 0.72, 0.52),
+    box(0.12, 0.22, 0.04, p.drumToxBand, 0.2).rotateZ(2.1).translate(-0.14, 0.55, 0.52),
+    box(0.12, 0.22, 0.04, p.drumToxBand, 0.2).rotateZ(-2.1).translate(0.14, 0.55, 0.52),
+    box(0.1, 0.1, 0.05, p.drumToxDark, 0.25).translate(0, 0.62, 0.54),
+    // Weld seam + corrosion scars eating through the shell.
     box(0.04, 1.0, 0.05, p.drumToxDark, 0.25).translate(-0.02, 0.58, 0.51),
     box(0.18, 0.22, 0.06, p.drumToxDark, 0.1).rotateY(0.7).translate(0.36, 0.5, 0.32),
     box(0.14, 0.16, 0.06, p.drumToxDark, 0.1).rotateY(-0.5).translate(-0.34, 0.72, -0.34),
-    // Acid weeping down from the upper band, pooled dim at the foot — sickly, far
-    // duller than the band, so it never reads as a pickup glow.
+    // Acid weeping from the upper band, pooled dim at the foot.
     box(0.05, 0.3, 0.04, p.drumToxBand, 0.35).translate(0.24, 0.58, 0.43),
     box(0.04, 0.2, 0.04, p.drumToxBand, 0.35).translate(-0.28, 0.52, 0.4),
     paint(new THREE.CylinderGeometry(0.58, 0.66, 0.025, 9), p.drumToxDark, 0).translate(
@@ -802,41 +864,60 @@ function spikesGeometry(): THREE.BufferGeometry {
   const parts: THREE.BufferGeometry[] = [
     // A heavy welded bed bolted across the lane — mass first, so it can never be
     // mistaken for roadside litter (docs/DESIGN.md → lethal looks lethal).
-    box(2.7, 0.3, 0.95, p.spikesBar, 0.45).translate(0, 0.16, 0),
-    box(2.85, 0.12, 1.15, p.spikesBar, 0.5).translate(0, 0.05, 0), // ground plate
-    // Chunky anchor blocks at both ends, bolted down.
-    box(0.45, 0.46, 1.05, p.spikesBar, 0.4).translate(-1.5, 0.23, 0),
-    box(0.45, 0.46, 1.05, p.spikesBar, 0.4).translate(1.5, 0.23, 0),
-    box(0.12, 0.12, 0.12, p.spikesTeeth, 0.4).translate(-1.5, 0.5, 0.35),
-    box(0.12, 0.12, 0.12, p.spikesTeeth, 0.4).translate(1.5, 0.5, -0.35),
-    // Red do-not-cross paint banding the whole bed face.
-    box(2.72, 0.14, 0.99, p.spikesDanger, 0.15).translate(0, 0.34, 0),
-    // A big red warning plate wired to one anchor, knocked askew.
+    box(2.9, 0.14, 1.25, p.spikesBar, 0.5).translate(0, 0.06, 0), // ground plate
+    box(2.75, 0.36, 1.0, p.spikesBar, 0.45).translate(0, 0.22, 0), // main bed
+    // Raised center rail the blades weld to — reads as industrial hardware.
+    box(2.55, 0.18, 0.28, p.spikesTeeth, 0.4).translate(0, 0.42, 0),
+    // Chunky anchor blocks at both ends, bolted down with plate feet.
+    box(0.55, 0.14, 1.2, p.spikesBar, 0.45).translate(-1.55, 0.07, 0),
+    box(0.55, 0.14, 1.2, p.spikesBar, 0.45).translate(1.55, 0.07, 0),
+    box(0.48, 0.55, 1.1, p.spikesBar, 0.4).translate(-1.55, 0.3, 0),
+    box(0.48, 0.55, 1.1, p.spikesBar, 0.4).translate(1.55, 0.3, 0),
+    box(0.14, 0.14, 0.14, p.spikesTeeth, 0.35).translate(-1.55, 0.6, 0.38),
+    box(0.14, 0.14, 0.14, p.spikesTeeth, 0.35).translate(-1.55, 0.6, -0.38),
+    box(0.14, 0.14, 0.14, p.spikesTeeth, 0.35).translate(1.55, 0.6, 0.38),
+    box(0.14, 0.14, 0.14, p.spikesTeeth, 0.35).translate(1.55, 0.6, -0.38),
+    // Red do-not-cross band across the whole bed face (the lethal trap read).
+    box(2.78, 0.18, 1.05, p.spikesDanger, 0.12).translate(0, 0.4, 0),
+    // Warning plate on the left anchor, knocked askew.
     paint(
-      new THREE.BoxGeometry(0.06, 0.5, 0.55).rotateZ(-0.2).rotateY(0.3).translate(-1.62, 0.55, 0.1),
+      new THREE.BoxGeometry(0.08, 0.62, 0.62)
+        .rotateZ(-0.18)
+        .rotateY(0.25)
+        .translate(-1.72, 0.7, 0.12),
       p.spikesDanger,
-      0.2,
+      0.15,
     ),
+    box(0.06, 0.2, 0.06, p.spikesTeeth, 0.4).translate(-1.7, 0.42, 0.12), // plate post
   ];
-  // Two staggered rows of big shark-fin blades leaning into the oncoming car —
-  // shredders, not caltrops.
-  const blade = (x: number, dz: number, h: number): THREE.BufferGeometry =>
-    paint(new THREE.ConeGeometry(0.2, h, 4), p.spikesTeeth, 0.5)
+  // Two staggered rows of tall shark-fin blades leaning into the oncoming car —
+  // shredders, not caltrops. Tips stay under SPIKES_CLEAR (0.5) + hop margin.
+  const blade = (x: number, dz: number, h: number, lean = -0.32): THREE.BufferGeometry =>
+    paint(new THREE.ConeGeometry(0.22, h, 4), p.spikesTeeth, 0.45)
       .rotateY(Math.PI / 4)
-      .rotateX(-0.28)
-      .translate(x, 0.28 + h * 0.42, dz);
+      .rotateX(lean)
+      .translate(x, 0.38 + h * 0.38, dz);
   for (let i = 0; i < 7; i += 1) {
     const x = -1.2 + i * 0.4;
-    parts.push(blade(x, 0.3, 0.8));
-    if (i < 6) parts.push(blade(x + 0.2, -0.26, 0.62));
+    parts.push(blade(x, 0.32, 0.95));
+    if (i < 6) parts.push(blade(x + 0.2, -0.28, 0.78, -0.38));
   }
   // One blade bent flat by a strike that did not end well.
   parts.push(
     paint(
-      new THREE.ConeGeometry(0.2, 0.8, 4).rotateY(Math.PI / 4).rotateX(1.35).translate(0.2, 0.44, 0.62),
+      new THREE.ConeGeometry(0.22, 0.9, 4)
+        .rotateY(Math.PI / 4)
+        .rotateX(1.4)
+        .translate(0.25, 0.48, 0.7),
       p.spikesTeeth,
-      0.5,
+      0.45,
     ),
+  );
+  // Scorch under the bed so it owns the asphalt, not floating litter.
+  parts.push(
+    paint(new THREE.CylinderGeometry(0.9, 1.15, 0.02, 8), p.wreckScorch, 0)
+      .rotateY(0.3)
+      .translate(0, 0.01, 0.15),
   );
   return merged(parts);
 }
@@ -846,9 +927,9 @@ function spikesGeometry(): THREE.BufferGeometry {
 function spikesGlowGeometry(): THREE.BufferGeometry {
   const g = palette.dangerGlow;
   return merged([
-    box(2.74, 0.1, 0.1, g, 0).translate(0, 0.34, 0.5),
-    box(0.16, 0.16, 0.16, g, 0).translate(-1.5, 0.52, 0),
-    box(0.16, 0.16, 0.16, g, 0).translate(1.5, 0.52, 0),
+    box(2.8, 0.12, 0.12, g, 0).translate(0, 0.42, 0.55),
+    box(0.2, 0.2, 0.2, g, 0).translate(-1.55, 0.62, 0),
+    box(0.2, 0.2, 0.2, g, 0).translate(1.55, 0.62, 0),
   ]);
 }
 
@@ -863,35 +944,41 @@ const GAP_WALL = 0x0c0d10; // pit walls, a touch lighter than the floor
 const GAP_LIP = 0x202227; // torn asphalt rim, near the road's own dark tone
 function gapGeometry(): THREE.BufferGeometry {
   const parts = [
-    // The deep void floor, well below the road so you see down into it.
-    box(2.7, 0.1, 6.7, GAP_VOID, 0).translate(0, -1.2, 0),
-    // Four pit walls dropping from the rim to the floor (read as depth, not a slab).
-    box(2.7, 1.3, 0.18, GAP_WALL, 0).translate(0, -0.55, 3.3),
-    box(2.7, 1.3, 0.18, GAP_WALL, 0).translate(0, -0.55, -3.3),
-    box(0.18, 1.3, 6.7, GAP_WALL, 0).translate(-1.35, -0.55, 0),
-    box(0.18, 1.3, 6.7, GAP_WALL, 0).translate(1.35, -0.55, 0),
-    // Broken asphalt lip around the rim: near and far edges, then the two sides.
-    box(2.98, 0.16, 0.6, GAP_LIP, 0).translate(0, 0.02, 3.4),
-    box(2.98, 0.16, 0.6, GAP_LIP, 0).translate(0, 0.02, -3.4),
-    box(0.55, 0.16, 7.0, GAP_LIP, 0).translate(-1.55, 0.02, 0),
-    box(0.55, 0.16, 7.0, GAP_LIP, 0).translate(1.55, 0.02, 0),
-    // A couple of jagged chunks of torn-up asphalt breaking the clean rectangle.
-    box(0.7, 0.18, 0.7, GAP_LIP, 0).rotateY(0.4).translate(-1.0, 0.05, 2.2),
-    box(0.6, 0.16, 0.6, GAP_LIP, 0).rotateY(0.9).translate(1.05, 0.05, -2.0),
-    // Torn rebar hooked over the rim, hanging into the void where the roadbed sheared.
-    new THREE.BoxGeometry(0.06, 0.7, 0.06).rotateX(2.4).translate(-0.6, -0.2, 3.15),
-    new THREE.BoxGeometry(0.05, 0.55, 0.05).rotateX(-2.5).translate(0.7, -0.15, -3.2),
-    new THREE.BoxGeometry(0.05, 0.6, 0.05).rotateZ(2.4).translate(1.3, -0.2, 0.8),
-    // A slab of roadbed still attached, sagging into the pit.
-    new THREE.BoxGeometry(0.9, 0.14, 0.6).rotateX(0.6).translate(-0.5, -0.25, 3.05),
-    // Fracture lines radiating from the rim into the surrounding asphalt.
-    box(0.1, 0.05, 1.1, GAP_VOID, 0).rotateY(0.35).translate(-1.7, 0.03, 3.6),
-    box(0.08, 0.05, 0.9, GAP_VOID, 0).rotateY(-0.5).translate(1.75, 0.03, 3.5),
-    box(0.08, 0.05, 1.0, GAP_VOID, 0).rotateY(0.55).translate(1.7, 0.03, -3.6),
-    box(0.08, 0.05, 0.8, GAP_VOID, 0).rotateY(-0.3).translate(-1.75, 0.03, -3.4),
+    // Deep void — must read as missing road, not a dark patch on asphalt.
+    box(2.75, 0.12, 6.8, GAP_VOID, 0).translate(0, -1.35, 0),
+    // Stepped pit walls (two tiers) so depth reads from the chase cam.
+    box(2.75, 0.75, 0.2, GAP_WALL, 0).translate(0, -0.35, 3.35),
+    box(2.55, 0.7, 0.18, GAP_VOID, 0).translate(0, -0.95, 3.2),
+    box(2.75, 0.75, 0.2, GAP_WALL, 0).translate(0, -0.35, -3.35),
+    box(2.55, 0.7, 0.18, GAP_VOID, 0).translate(0, -0.95, -3.2),
+    box(0.2, 0.75, 6.8, GAP_WALL, 0).translate(-1.4, -0.35, 0),
+    box(0.18, 0.7, 6.5, GAP_VOID, 0).translate(-1.25, -0.95, 0),
+    box(0.2, 0.75, 6.8, GAP_WALL, 0).translate(1.4, -0.35, 0),
+    box(0.18, 0.7, 6.5, GAP_VOID, 0).translate(1.25, -0.95, 0),
+    // Thick broken asphalt lip — the hop edge the player aims for.
+    box(3.1, 0.22, 0.7, GAP_LIP, 0).translate(0, 0.04, 3.5),
+    box(3.1, 0.22, 0.7, GAP_LIP, 0).translate(0, 0.04, -3.5),
+    box(0.65, 0.22, 7.2, GAP_LIP, 0).translate(-1.65, 0.04, 0),
+    box(0.65, 0.22, 7.2, GAP_LIP, 0).translate(1.65, 0.04, 0),
+    // Jagged torn chunks breaking the clean rectangle.
+    box(0.8, 0.22, 0.75, GAP_LIP, 0).rotateY(0.4).translate(-1.05, 0.08, 2.3),
+    box(0.7, 0.2, 0.65, GAP_LIP, 0).rotateY(0.9).translate(1.1, 0.07, -2.1),
+    box(0.55, 0.18, 0.55, GAP_LIP, 0).rotateY(-0.6).translate(0.9, 0.06, 2.8),
+    box(0.5, 0.16, 0.5, GAP_LIP, 0).rotateY(1.2).translate(-0.8, 0.06, -2.6),
+    // Torn rebar hooked over the rim, hanging into the void.
+    new THREE.BoxGeometry(0.07, 0.85, 0.07).rotateX(2.35).translate(-0.65, -0.25, 3.2),
+    new THREE.BoxGeometry(0.06, 0.7, 0.06).rotateX(-2.45).translate(0.75, -0.2, -3.25),
+    new THREE.BoxGeometry(0.06, 0.75, 0.06).rotateZ(2.35).translate(1.35, -0.25, 0.9),
+    new THREE.BoxGeometry(0.06, 0.55, 0.06).rotateZ(-2.1).translate(-1.3, -0.15, -1.2),
+    // Sagging roadbed slab still attached at the near lip.
+    new THREE.BoxGeometry(1.0, 0.16, 0.7).rotateX(0.65).translate(-0.45, -0.28, 3.1),
+    new THREE.BoxGeometry(0.7, 0.14, 0.5).rotateX(0.9).translate(0.6, -0.35, 3.0),
+    // Fracture lines radiating into surrounding asphalt.
+    box(0.12, 0.06, 1.25, GAP_VOID, 0).rotateY(0.35).translate(-1.75, 0.04, 3.7),
+    box(0.1, 0.06, 1.05, GAP_VOID, 0).rotateY(-0.5).translate(1.8, 0.04, 3.55),
+    box(0.1, 0.06, 1.15, GAP_VOID, 0).rotateY(0.55).translate(1.75, 0.04, -3.65),
+    box(0.1, 0.06, 0.95, GAP_VOID, 0).rotateY(-0.3).translate(-1.8, 0.04, -3.45),
   ];
-  // The raw BoxGeometry parts above take the lip/wall bake here (paint once, same
-  // dark unlit read as the rest of the pit).
   const painted = parts.map((part) =>
     part.getAttribute('color') ? part : paint(part, GAP_WALL, 0),
   );
@@ -1011,17 +1098,29 @@ function rampGeometry(): THREE.BufferGeometry {
       p.rampRebar,
       0.4,
     ),
-    // The yellow "up" chevron on the near lip — two angled bars meeting up-ramp, the
-    // verb cue the player reads at the spawn horizon.
+    // Big yellow "up" chevron on the near lip — two thick bars + a peak cap so it
+    // reads "^ drive up me" at the spawn horizon, never a wall stripe.
     paint(
-      new THREE.BoxGeometry(0.78, 0.07, 0.2).rotateY(0.6).translate(-0.32, 0.42, 1.55),
+      new THREE.BoxGeometry(0.95, 0.1, 0.28).rotateY(0.55).translate(-0.38, 0.48, 1.6),
       p.rampChevron,
-      0.15,
+      0.12,
     ),
     paint(
-      new THREE.BoxGeometry(0.78, 0.07, 0.2).rotateY(-0.6).translate(0.32, 0.42, 1.55),
+      new THREE.BoxGeometry(0.95, 0.1, 0.28).rotateY(-0.55).translate(0.38, 0.48, 1.6),
       p.rampChevron,
-      0.15,
+      0.12,
+    ),
+    box(0.35, 0.12, 0.22, p.rampChevron, 0.1).translate(0, 0.55, 1.35), // peak cap
+    // Second smaller chevron further up the face — reinforces the climb direction.
+    paint(
+      new THREE.BoxGeometry(0.55, 0.08, 0.18).rotateY(0.55).translate(-0.22, 0.85, 0.2),
+      p.rampChevron,
+      0.2,
+    ),
+    paint(
+      new THREE.BoxGeometry(0.55, 0.08, 0.18).rotateY(-0.55).translate(0.22, 0.85, 0.2),
+      p.rampChevron,
+      0.2,
     ),
   ];
   // `merged` (not the raw mergeGeometries): the rubble chunks are non-indexed
@@ -1059,6 +1158,8 @@ export class HazardField {
   private readonly crackMesh: THREE.InstancedMesh;
   private readonly beamMesh: THREE.InstancedMesh;
   private readonly rampMesh: THREE.InstancedMesh;
+  /** Fixed update set, allocated once with the field rather than once per frame. */
+  private readonly meshes: readonly THREE.InstancedMesh[];
   private readonly dummy = new THREE.Object3D();
   /** Reused per-instance tint, so a row of the same blocker never reads identical. */
   private readonly tint = new THREE.Color();
@@ -1098,17 +1199,33 @@ export class HazardField {
     return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
   }
 
-  constructor(scene: THREE.Scene) {
-    this.wreckMesh = new THREE.InstancedMesh(wreckGeometry(), propMaterial, MAX_INSTANCES);
-    this.wreckVanMesh = new THREE.InstancedMesh(wreckVanGeometry(), propMaterial, MAX_INSTANCES);
-    this.wreckTruckMesh = new THREE.InstancedMesh(
-      wreckTruckGeometry(),
+  constructor(scene: THREE.Scene, assets: Partial<RenderAssets> = {}) {
+    this.wreckMesh = new THREE.InstancedMesh(
+      assets.wreckSedan ?? wreckGeometry(),
       propMaterial,
       MAX_INSTANCES,
     );
-    this.rigMesh = new THREE.InstancedMesh(rigGeometry(), propMaterial, MAX_INSTANCES);
+    this.wreckVanMesh = new THREE.InstancedMesh(
+      assets.wreckVan ?? wreckVanGeometry(),
+      propMaterial,
+      MAX_INSTANCES,
+    );
+    this.wreckTruckMesh = new THREE.InstancedMesh(
+      assets.wreckTruck ?? wreckTruckGeometry(),
+      propMaterial,
+      MAX_INSTANCES,
+    );
+    this.rigMesh = new THREE.InstancedMesh(
+      assets.rig ?? rigGeometry(),
+      propMaterial,
+      MAX_INSTANCES,
+    );
     this.barrierMesh = new THREE.InstancedMesh(barrierGeometry(), propMaterial, MAX_INSTANCES);
-    this.busMesh = new THREE.InstancedMesh(busGeometry(), propMaterial, MAX_INSTANCES);
+    this.busMesh = new THREE.InstancedMesh(
+      assets.bus ?? busGeometry(),
+      propMaterial,
+      MAX_INSTANCES,
+    );
     // The lethal walls' self-lit danger lights: twin instanced meshes on the
     // shared pulsing danger material, driven with the same matrices as their
     // bodies. Everything that kills on contact breathes with the same light.
@@ -1159,7 +1276,7 @@ export class HazardField {
     this.beamMesh = new THREE.InstancedMesh(beamGeometry(), dangerPulseMaterial, MAX_INSTANCES);
     // The collapse ramp: lit like the solid props (it is dusty rubble, not a glow).
     this.rampMesh = new THREE.InstancedMesh(rampGeometry(), propMaterial, MAX_INSTANCES);
-    for (const mesh of [
+    this.meshes = [
       this.wreckMesh,
       this.wreckVanMesh,
       this.wreckTruckMesh,
@@ -1181,7 +1298,8 @@ export class HazardField {
       this.crackMesh,
       this.beamMesh,
       this.rampMesh,
-    ]) {
+    ];
+    for (const mesh of this.meshes) {
       mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       mesh.frustumCulled = false;
       mesh.count = 0;
@@ -1195,7 +1313,7 @@ export class HazardField {
     if (reduced) dangerPulseMaterial.color.setScalar(1);
   }
 
-  update(state: ReadonlyState, elevation: Elevation): void {
+  update(state: ReadonlyState, elevation: Elevation, renderDistance = state.distance): void {
     let wrecks = 0;
     let vans = 0;
     let trucks = 0;
@@ -1233,11 +1351,7 @@ export class HazardField {
       // been hit and the car lived (`!dead`), stop drawing it — you plowed through.
       // On a fatal hit `dead` is set the same tick, so the death freeze-frame keeps
       // the wall on screen.
-      if (
-        (h.kind === 'rig' || h.kind === 'barrier' || h.kind === 'bus') &&
-        h.hit &&
-        !state.dead
-      )
+      if ((h.kind === 'rig' || h.kind === 'barrier' || h.kind === 'bus') && h.hit && !state.dead)
         continue;
       // Falling boss hazards have dedicated fields. Skip the whole crater family
       // here so none also falls through to the generic wreck branch below.
@@ -1311,11 +1425,16 @@ export class HazardField {
         h.kind === 'boulder' ||
         h.kind === 'barrel' ||
         h.kind === 'toxbarrel';
-      const yaw = drifter ? this.driftYaw(h) : shaped ? (this.hv(h.forward, 1) - 0.5) * 0.7 : 0;
+      const renderX = this.renderX(h, renderDistance);
+      const yaw = drifter
+        ? this.driftYaw(h, renderX)
+        : shaped
+          ? (this.hv(h.forward, 1) - 0.5) * 0.7
+          : 0;
       this.dummy.position.set(
-        h.x,
-        elevation.yAt(h.forward, state.distance),
-        state.distance - h.forward,
+        renderX,
+        elevation.yAt(h.forward, renderDistance),
+        renderDistance - h.forward,
       );
       this.dummy.rotation.set(0, yaw, 0);
       if (shaped) {
@@ -1339,8 +1458,30 @@ export class HazardField {
       // reads as clones, folded with the biome weathering so it belongs to its stretch.
       if (h.kind !== 'gap' && h.kind !== 'beam' && h.kind !== 'livewire') {
         const shade = 0.8 + this.hv(h.forward, 4) * 0.38;
+        let red = 1;
+        let green = 1;
+        let blue = 1;
+        // The hero car owns clean saturated red. Wrecks keep the warm threat
+        // family but cycle through deterministic ash, ochre and old-olive
+        // weathering, so a convoy reads as abandoned traffic rather than clones.
+        if (h.kind === 'wreck' || drifter) {
+          const finish = Math.floor(this.hv(h.forward, 7) * 3);
+          if (finish === 0) {
+            red = 0.58;
+            green = 0.78;
+            blue = 0.82;
+          } else if (finish === 1) {
+            red = 1.08;
+            green = 0.68;
+            blue = 0.48;
+          } else {
+            red = 0.72;
+            green = 1.06;
+            blue = 0.64;
+          }
+        }
         this.weatherAt(state.seed, h.forward);
-        this.tint.setRGB(shade * this.wr, shade * this.wg, shade * this.wb);
+        this.tint.setRGB(shade * red * this.wr, shade * green * this.wg, shade * blue * this.wb);
         mesh.setColorAt(count, this.tint);
       }
       if (h.kind === 'rig') rigs += 1;
@@ -1382,29 +1523,7 @@ export class HazardField {
     this.crackMesh.count = cracks;
     this.beamMesh.count = beams;
     this.rampMesh.count = ramps;
-    for (const mesh of [
-      this.wreckMesh,
-      this.wreckVanMesh,
-      this.wreckTruckMesh,
-      this.rigMesh,
-      this.rigGlowMesh,
-      this.barrierMesh,
-      this.barrierGlowMesh,
-      this.busMesh,
-      this.busGlowMesh,
-      this.barricadeMesh,
-      this.boulderMesh,
-      this.poleMesh,
-      this.livewireMesh,
-      this.barrelMesh,
-      this.toxBarrelMesh,
-      this.spikesMesh,
-      this.spikesGlowMesh,
-      this.gapMesh,
-      this.crackMesh,
-      this.beamMesh,
-      this.rampMesh,
-    ]) {
+    for (const mesh of this.meshes) {
       mesh.instanceMatrix.needsUpdate = true;
       if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     }
@@ -1424,11 +1543,38 @@ export class HazardField {
    * lane," the telegraph that keeps it fair (docs/DESIGN.md → Juice as
    * information). Zero for every static blocker.
    */
-  private driftYaw(h: Hazard): number {
+  private driftYaw(h: Hazard, renderX: number): number {
     if (h.kind !== 'drifter' || h.driftFromX === undefined || h.driftToX === undefined) return 0;
     const span = h.driftToX - h.driftFromX;
     if (Math.abs(span) < 1e-4) return 0;
-    const progress = Math.min(1, Math.max(0, (h.x - h.driftFromX) / span));
+    const progress = Math.min(1, Math.max(0, (renderX - h.driftFromX) / span));
     return -Math.sign(span) * (1 - progress) * 0.35;
+  }
+
+  /** Derive moving-hazard X at the interpolated world origin without mutating sim state. */
+  private renderX(h: Hazard, renderDistance: number): number {
+    let from: number | undefined;
+    let to: number | undefined;
+    let startGap: number;
+    let endGap: number;
+    if (h.kind === 'drifter') {
+      from = h.driftFromX;
+      to = h.driftToX;
+      startGap = DRIFT_TUNING.startGap;
+      endGap = DRIFT_TUNING.endGap;
+    } else if (h.kind === 'beam') {
+      from = h.beamFromX;
+      to = h.beamToX;
+      startGap = BEAM_TUNING.startGap;
+      endGap = BEAM_TUNING.endGap;
+    } else {
+      return h.x;
+    }
+    if (from === undefined || to === undefined) return h.x;
+    const gap = h.forward - renderDistance;
+    const raw = (startGap - gap) / (startGap - endGap);
+    const t = raw < 0 ? 0 : raw > 1 ? 1 : raw;
+    const smooth = t * t * (3 - 2 * t);
+    return from + (to - from) * smooth;
   }
 }

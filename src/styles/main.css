@@ -25,6 +25,81 @@ button {
   font: inherit;
 }
 
+/* Static first-paint card. It exists in index.html before the module graph or
+   GLBs arrive, then main.ts removes it only after the game has actually started. */
+.sdw-boot {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 14px;
+  color: #ead9be;
+  background: radial-gradient(circle at 50% 55%, rgba(109, 53, 30, 0.28), transparent 42%), #0a0a0f;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.18em;
+}
+
+.sdw-boot__mark {
+  display: flex;
+  gap: 7px;
+  align-items: end;
+  height: 30px;
+}
+
+.sdw-boot__mark span {
+  width: 8px;
+  height: 12px;
+  background: #d56c32;
+  box-shadow: 0 0 14px rgba(213, 108, 50, 0.38);
+  animation: sdw-boot-pulse 0.9s ease-in-out infinite alternate;
+}
+
+.sdw-boot__mark span:nth-child(2) {
+  height: 22px;
+  animation-delay: -0.3s;
+}
+
+.sdw-boot__mark span:nth-child(3) {
+  height: 16px;
+  animation-delay: -0.6s;
+}
+
+.sdw-boot__title {
+  font-size: clamp(20px, 4vw, 34px);
+  font-weight: 900;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.8);
+}
+
+.sdw-boot__status {
+  color: #b38256;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.sdw-boot[data-state='error'] .sdw-boot__mark span {
+  background: #db3b32;
+  animation: none;
+}
+
+.sdw-boot[data-state='error'] .sdw-boot__status {
+  color: #f06b5f;
+}
+
+@keyframes sdw-boot-pulse {
+  to {
+    opacity: 0.35;
+    transform: translateY(5px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sdw-boot__mark span {
+    animation: none;
+  }
+}
+
 .sdw-touch-controls {
   position: fixed;
   inset: 0;
@@ -48,7 +123,11 @@ button {
     inset 0 1px 0 rgba(255, 255, 255, 0.14),
     0 6px 20px rgba(0, 0, 0, 0.45);
   cursor: pointer;
-  font: 900 24px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  font:
+    900 24px/1 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
   pointer-events: auto;
   touch-action: none;
   backdrop-filter: blur(3px);
@@ -199,14 +278,17 @@ button {
   height: 3px;
   border-radius: 2px;
   opacity: 0.55;
-  background: repeating-linear-gradient(45deg, rgba(232, 169, 58, 0.95) 0 9px, rgba(18, 14, 10, 0.95) 9px 18px);
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(232, 169, 58, 0.95) 0 9px,
+    rgba(18, 14, 10, 0.95) 9px 18px
+  );
 }
 
 /* Riveted, beveled gunmetal plates (CAR INFO, RUN, SCRAP). */
 .sdw-garage-plate {
   position: relative;
-  background:
-    linear-gradient(160deg, #545d68 0%, #353b43 48%, #23272d 100%) !important;
+  background: linear-gradient(160deg, #545d68 0%, #353b43 48%, #23272d 100%) !important;
   border: 1px solid #717b88 !important;
   border-top-color: #9aa4b2 !important;
   border-bottom-color: #21252b !important;
@@ -227,7 +309,11 @@ button {
     radial-gradient(circle 1.6px at 8px 8px, rgba(0, 0, 0, 0.55) 45%, transparent 50%),
     radial-gradient(circle 1.6px at calc(100% - 8px) 8px, rgba(0, 0, 0, 0.55) 45%, transparent 50%),
     radial-gradient(circle 1.6px at 8px calc(100% - 8px), rgba(0, 0, 0, 0.55) 45%, transparent 50%),
-    radial-gradient(circle 1.6px at calc(100% - 8px) calc(100% - 8px), rgba(0, 0, 0, 0.55) 45%, transparent 50%);
+    radial-gradient(
+      circle 1.6px at calc(100% - 8px) calc(100% - 8px),
+      rgba(0, 0, 0, 0.55) 45%,
+      transparent 50%
+    );
 }
 
 /* Green LCD readouts with a slow flicker. */
@@ -236,10 +322,20 @@ button {
 }
 
 @keyframes sdw-lcd-flicker {
-  0%, 96%, 100% { opacity: 1; }
-  97% { opacity: 0.82; }
-  98% { opacity: 1; }
-  99% { opacity: 0.9; }
+  0%,
+  96%,
+  100% {
+    opacity: 1;
+  }
+  97% {
+    opacity: 0.82;
+  }
+  98% {
+    opacity: 1;
+  }
+  99% {
+    opacity: 0.9;
+  }
 }
 
 /* Segmented stat meters (CAR INFO). */
@@ -261,7 +357,10 @@ button {
 
 /* The DRIVE / PLAY AGAIN button: tactile press + worklight glow. */
 .sdw-garage__drive {
-  transition: transform 0.12s ease, box-shadow 0.16s ease, filter 0.12s ease;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.16s ease,
+    filter 0.12s ease;
 }
 
 .sdw-garage__drive:hover {
@@ -279,7 +378,9 @@ button {
 
 /* Tabs. */
 .sdw-garage__tabs > button {
-  transition: filter 0.12s ease, transform 0.1s ease;
+  transition:
+    filter 0.12s ease,
+    transform 0.1s ease;
 }
 
 .sdw-garage__tabs > button:hover {
@@ -297,19 +398,28 @@ button {
     inset 0 1px 0 rgba(255, 255, 255, 0.18),
     inset 0 -2px 4px rgba(0, 0, 0, 0.38),
     0 3px 10px rgba(0, 0, 0, 0.55);
-  transition: transform 0.12s ease, box-shadow 0.15s ease, border-color 0.15s ease, filter 0.12s ease;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease,
+    filter 0.12s ease;
 }
 
 /* LCD level badge on an upgrade tile (the inspiration's "1/3" readout). */
 .sdw-garage-card__badge {
-  font: 800 11px/1 ui-monospace, Menlo, monospace;
+  font:
+    800 11px/1 ui-monospace,
+    Menlo,
+    monospace;
   letter-spacing: 0.5px;
   color: #7dd86a;
   padding: 2px 6px;
   background: linear-gradient(180deg, #0a0f08, #050803);
   border: 1px solid #000;
   border-radius: 3px;
-  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 0 6px rgba(0, 0, 0, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 /* LCD cost plate at the foot of an upgrade tile, with its coin marker. */
@@ -323,7 +433,9 @@ button {
   background: linear-gradient(180deg, #0a0f08, #050803);
   border: 1px solid #000;
   border-radius: 4px;
-  box-shadow: inset 0 0 7px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  box-shadow:
+    inset 0 0 7px rgba(0, 0, 0, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 /* The little brass coin that marks a scrap number. */
@@ -334,7 +446,9 @@ button {
   border-radius: 50%;
   background: radial-gradient(circle at 35% 30%, #ffe89a, #e0a93a 58%, #9c6f1e);
   border: 1px solid #6b4a12;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 0 5px rgba(224, 169, 58, 0.4);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 0 5px rgba(224, 169, 58, 0.4);
 }
 
 .sdw-garage-card:hover,
@@ -399,7 +513,8 @@ button {
 }
 
 @keyframes sdw-card-pulse {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.12),
       0 4px 12px rgba(0, 0, 0, 0.55),
@@ -575,7 +690,9 @@ button {
   }
 }
 
-@media (hover: none) and (orientation: landscape), (pointer: coarse) and (orientation: landscape), (max-width: 760px) and (orientation: landscape) {
+@media (hover: none) and (orientation: landscape),
+  (pointer: coarse) and (orientation: landscape),
+  (max-width: 760px) and (orientation: landscape) {
   .sdw-hud--stats {
     top: calc(env(safe-area-inset-top) + 10px) !important;
     left: calc(env(safe-area-inset-left) + 66px) !important;
@@ -602,7 +719,9 @@ button {
   }
 }
 
-@media (hover: none) and (orientation: landscape) and (max-height: 520px), (pointer: coarse) and (orientation: landscape) and (max-height: 520px), (max-width: 900px) and (orientation: landscape) and (max-height: 520px) {
+@media (hover: none) and (orientation: landscape) and (max-height: 520px),
+  (pointer: coarse) and (orientation: landscape) and (max-height: 520px),
+  (max-width: 900px) and (orientation: landscape) and (max-height: 520px) {
   .sdw-garage {
     overflow-y: auto !important;
   }

@@ -1,5 +1,5 @@
 import { createSim, step, FIXED_DT, NO_INTENT, type SimState } from '../sim';
-import { GameView, CarPreview, type RenderSnapshot } from '../render';
+import { GameView, CarPreview, type RenderAssets, type RenderSnapshot } from '../render';
 import { PlayerInput } from '../input/playerInput';
 import { Hud } from '../ui/hud';
 import { DebugOverlay } from '../ui/debugOverlay';
@@ -76,14 +76,14 @@ export class Game {
   /** Sim ticks stepped so far in the current intro (drives the camera and ends it). */
   private introTicks = 0;
 
-  constructor(seed: number) {
+  constructor(seed: number, renderAssets: RenderAssets) {
     this.seed = seed;
     this.save = new SaveStore();
     this.selectedChassis = this.save.chassis;
     this.selectedPaint = this.save.paint;
     // A returning player starts in their chosen car, already wearing what they bought.
     this.state = createSim(seed, runLoadout(this.selectedChassis, this.effectiveOwned()));
-    this.view = new GameView(seed);
+    this.view = new GameView(seed, renderAssets);
     this.input = new PlayerInput({ onPause: () => this.pause() });
     this.hud = new Hud();
     this.overlay = new DebugOverlay();

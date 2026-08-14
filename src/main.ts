@@ -1,5 +1,6 @@
 import './styles/main.css';
 import { Game } from './app/game';
+import { loadRenderAssets } from './render';
 
 /**
  * Entry point. Picks a seed (from `?seed=` for shareable/repeatable runs, else
@@ -15,4 +16,18 @@ function readSeed(): number {
   return Date.now() >>> 0;
 }
 
-new Game(readSeed()).start();
+async function boot(): Promise<void> {
+  const bootCard = document.querySelector<HTMLElement>('#sdw-boot');
+  const assets = await loadRenderAssets();
+  new Game(readSeed(), assets).start();
+  bootCard?.remove();
+}
+
+void boot().catch((error: unknown) => {
+  console.error('Survivor Drive failed to start.', error);
+  const bootCard = document.querySelector<HTMLElement>('#sdw-boot');
+  if (!bootCard) return;
+  bootCard.dataset.state = 'error';
+  const status = bootCard.querySelector<HTMLElement>('.sdw-boot__status');
+  if (status) status.textContent = 'START FAILED · RELOAD TO TRY AGAIN';
+});

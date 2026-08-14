@@ -571,31 +571,40 @@ function damageParts(tier: number): THREE.BufferGeometry[] {
   const P = palette;
   const parts: THREE.BufferGeometry[] = [];
   if (tier >= 1) {
-    // First blood: a scorch smear seared across the hood, a crumpled-in dent in
-    // the right front fender, and a crack splintering the windscreen.
-    parts.push(tilted(0.82, 0.05, 1.0, P.wreckScorch, 0.13, -0.18, FLOOR_Y + 0.45, 1.12, 0.2));
-    parts.push(part(0.3, 0.24, 0.52, P.wreckScorch, 0.86, FLOOR_Y + 0.2, 1.18));
-    parts.push(tilted(0.74, 0.02, 0.16, P.carTrim, -0.62, 0.12, FLOOR_Y + 0.78, 0.23, 0.1));
+    // First blood: hood scorch, crumpled right fender, cracked windscreen —
+    // readable from chase cam within a few seconds of the first hit.
+    parts.push(tilted(0.95, 0.06, 1.15, P.wreckScorch, 0.13, -0.15, FLOOR_Y + 0.46, 1.1, 0.18));
+    parts.push(part(0.38, 0.3, 0.65, P.wreckScorch, 0.9, FLOOR_Y + 0.22, 1.15));
+    parts.push(part(0.22, 0.18, 0.4, P.wreckRust, 0.95, FLOOR_Y + 0.35, 1.35));
+    parts.push(tilted(0.85, 0.025, 0.18, P.carTrim, -0.62, 0.1, FLOOR_Y + 0.8, 0.25, 0.1));
+    parts.push(tilted(0.5, 0.02, 0.12, P.carTrim, -0.5, -0.2, FLOOR_Y + 0.85, 0.15, 0.1));
   }
   if (tier >= 2) {
-    // Heavier: a door sprung open on the left flank, a rear bumper corner torn
-    // off down to bare frame, and scorch creeping up onto the roof.
+    // Heavier: door sprung, bumper corner torn to bare frame, roof scorch,
+    // left-side scrape the chase cam sees on bank.
     parts.push(
       paint(
-        new THREE.BoxGeometry(0.1, 0.5, 0.92).rotateY(0.42).translate(-1.02, FLOOR_Y + 0.42, 0.04),
+        new THREE.BoxGeometry(0.12, 0.55, 1.0).rotateY(0.45).translate(-1.05, FLOOR_Y + 0.44, 0.05),
         P.carBodyDark,
         0.5,
       ),
     );
-    parts.push(part(0.5, 0.2, 0.22, P.wheelHub, 0.6, FLOOR_Y + 0.06, -1.98));
-    parts.push(part(0.92, 0.04, 0.92, P.wreckScorch, 0.08, FLOOR_Y + 1.12, -0.34));
+    parts.push(part(0.14, 0.2, 0.35, P.carChrome, -1.12, FLOOR_Y + 0.55, 0.35)); // door handle dangling
+    parts.push(part(0.6, 0.24, 0.28, P.wheelHub, 0.65, FLOOR_Y + 0.08, -1.98));
+    parts.push(part(0.35, 0.14, 0.2, P.wreckRust, 0.85, FLOOR_Y + 0.12, -1.9));
+    parts.push(part(1.05, 0.05, 1.05, P.wreckScorch, 0.05, FLOOR_Y + 1.14, -0.35));
+    parts.push(part(0.08, 0.28, 1.4, P.wreckScorch, -0.95, FLOOR_Y + 0.45, -0.2)); // flank scrape
   }
   if (tier >= 3) {
-    // Critical: the hood sprung up off its latch over a scorched engine bay, and
-    // a side window blown out — the car one crash from a wreck of its own.
-    parts.push(tilted(1.32, 0.1, 0.82, P.wreckRust, -0.3, 0, FLOOR_Y + 0.64, 1.04));
-    parts.push(part(1.02, 0.06, 0.52, P.wreckScorch, 0, FLOOR_Y + 0.52, 1.02));
-    parts.push(part(0.06, 0.34, 0.9, P.wreckScorch, 0.66, FLOOR_Y + 0.82, -0.34));
+    // Critical: hood sprung over scorched bay, window blown, crumpled nose panel,
+    // missing headlight — one crash from becoming the wrecks it has been dodging.
+    parts.push(tilted(1.4, 0.12, 0.9, P.wreckRust, -0.35, 0, FLOOR_Y + 0.68, 1.0));
+    parts.push(part(1.1, 0.08, 0.6, P.wreckScorch, 0, FLOOR_Y + 0.5, 1.0));
+    parts.push(part(0.45, 0.2, 0.35, P.wreckDark, -0.25, FLOOR_Y + 0.55, 1.15)); // engine block peek
+    parts.push(part(0.08, 0.38, 0.95, P.wreckScorch, 0.68, FLOOR_Y + 0.84, -0.35));
+    parts.push(part(0.5, 0.35, 0.45, P.wreckDark, 0.55, FLOOR_Y + 0.35, 1.85)); // crumpled nose
+    parts.push(part(0.28, 0.2, 0.12, P.wreckScorch, 0.58, FLOOR_Y + 0.38, 1.95)); // dead lamp socket
+    parts.push(part(0.7, 0.06, 0.5, P.wreckRust, -0.3, FLOOR_Y + 1.05, -0.9)); // roof peel
   }
   return parts;
 }

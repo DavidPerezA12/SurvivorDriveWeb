@@ -35,6 +35,7 @@ import { LiquidSurface } from './liquid';
 import { EnvironmentDirector } from './environment';
 import { Elevation } from './elevation';
 import { biomeStateAt, createBiomeState } from '../content/biomes';
+import type { RenderAssets } from './assets';
 
 /** The few dynamic scalars the renderer interpolates between sim ticks. */
 export interface RenderSnapshot {
@@ -117,7 +118,7 @@ export class GameView {
   /** Last sim distance, so an event handler can place world-anchored juice. */
   private lastDistance = 0;
 
-  constructor(seed: number) {
+  constructor(seed: number, assets: RenderAssets) {
     this.stage = createStage();
     this.environment = new EnvironmentDirector(this.stage.scene, this.stage.key, this.stage.hemi);
     this.elevation = new Elevation(seed);
@@ -133,7 +134,7 @@ export class GameView {
     this.guardrail = new Guardrail(this.stage.scene, seed);
     this.overpass = new Overpass(this.stage.scene, seed);
     this.tunnelRoof = new TunnelRoof(this.stage.scene, seed);
-    this.hazards = new HazardField(this.stage.scene);
+    this.hazards = new HazardField(this.stage.scene, assets);
     this.meteors = new MeteorField(this.stage.scene);
     this.stomps = new StompField(this.stage.scene);
     this.trex = new TrexSilhouette(this.stage.scene);
