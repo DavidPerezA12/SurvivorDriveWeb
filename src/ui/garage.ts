@@ -9,6 +9,7 @@ import {
 } from '../content/upgrades';
 import { CHASSIS, chassisDef, type ChassisId } from '../content/chassis';
 import { PAINTS, paintDef, type PaintId } from '../content/paint';
+import { trapDialogTab } from './focus';
 
 /**
  * The garage — the between-runs screen where banked scrap buys permanent
@@ -66,7 +67,7 @@ interface Tab {
 /** One family card's built DOM plus the mutable buy target `sync` rewrites. */
 interface Card {
   readonly family: UpgradeFamily;
-  readonly root: HTMLDivElement;
+  readonly root: HTMLButtonElement;
   readonly badge: HTMLDivElement;
   readonly cost: HTMLDivElement;
   target: UpgradeId | null;
@@ -134,22 +135,32 @@ export class Garage {
   };
   private readonly chassisCards: {
     id: ChassisId;
-    root: HTMLDivElement;
+    root: HTMLButtonElement;
     badge: HTMLDivElement;
     pricePlate: HTMLDivElement;
     priceVal: HTMLDivElement;
   }[] = [];
-  private readonly paintCards: { id: PaintId; root: HTMLDivElement; badge: HTMLDivElement }[] = [];
+  private readonly paintCards: { id: PaintId; root: HTMLButtonElement; badge: HTMLDivElement }[] =
+    [];
   private readonly detailName: HTMLDivElement;
   private readonly detailBlurb: HTMLDivElement;
   /** The currently selected tab, so the detail strip knows its resting hint. */
   private activeTab: Tab['key'] = 'upgrade';
+  /** Touch has no hover: the first tap explains/arms an upgrade, the second buys it. */
+  private armedTouchUpgrade: UpgradeId | null = null;
+  private lastActivationWasTouch = false;
+  private previousFocus: HTMLElement | null = null;
+  private destroyed = false;
 
   constructor(cb: GarageCallbacks) {
     this.cb = cb;
 
     this.root = document.createElement('div');
     this.root.className = 'sdw-garage';
+    this.root.setAttribute('role', 'dialog');
+    this.root.setAttribute('aria-modal', 'true');
+    this.root.setAttribute('aria-label', 'Garage');
+    this.root.addEventListener('keydown', (event) => trapDialogTab(this.root, event));
     this.root.style.cssText = [
       'position:fixed',
       'inset:0',
@@ -194,7 +205,8 @@ export class Garage {
     this.carNameEl = document.createElement('div');
     this.carNameEl.style.cssText = `font-size:17px;font-weight:800;letter-spacing:1px;color:${ORANGE}`;
     this.carBlurbEl = document.createElement('div');
-    this.carBlurbEl.style.cssText = 'font-size:11px;font-weight:400;font-style:italic;color:#9aa0a8;line-height:1.35';
+    this.carBlurbEl.style.cssText =
+      'font-size:11px;font-weight:400;font-style:italic;color:#9aa0a8;line-height:1.35';
     info.append(this.carNameEl, this.carBlurbEl, divider());
     for (const s of STAT_DEFS) info.append(this.buildStatRow(s));
     info.append(this.buildStatLegend());
@@ -211,7 +223,8 @@ export class Garage {
       'font-size:14px;font-style:italic;font-weight:700;color:#e4e7ec;line-height:1.4';
     status.append(this.runTitleEl);
     this.resultBox = document.createElement('div');
-    this.resultBox.style.cssText = 'display:flex;flex-direction:column;gap:7px;width:100%;margin-top:2px';
+    this.resultBox.style.cssText =
+      'display:flex;flex-direction:column;gap:7px;width:100%;margin-top:2px';
     const dist = resultRow('DISTANCE');
     const kills = resultRow('ZOMBIES');
     const scrap = resultRow('SCRAP');
@@ -287,7 +300,8 @@ export class Garage {
     this.detailName = document.createElement('div');
     this.detailName.style.cssText = `font-size:12px;font-weight:800;letter-spacing:1px;color:${ORANGE}`;
     this.detailBlurb = document.createElement('div');
-    this.detailBlurb.style.cssText = 'font-size:11px;font-weight:400;color:#9aa0a8;line-height:1.35';
+    this.detailBlurb.style.cssText =
+      'font-size:11px;font-weight:400;color:#9aa0a8;line-height:1.35';
     detail.append(this.detailName, this.detailBlurb);
 
     rack.append(cardsRow, detail);
@@ -304,21 +318,44 @@ export class Garage {
   }
 
   show(view: GarageView): void {
+    const opening = !this.isOpen();
     this.view = view;
     this.sync();
+    if (opening) {
+      this.previousFocus =
+        document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    }
     this.root.style.display = 'flex';
+    if (opening) this.driveBtn.focus();
   }
 
   hide(): void {
     this.root.style.display = 'none';
+    this.armedTouchUpgrade = null;
+    this.previousFocus?.focus();
+    this.previousFocus = null;
+  }
+
+  /** Remove the garage control surface; its preview owner disposes the canvas. */
+  destroy(): void {
+    if (this.destroyed) return;
+    this.destroyed = true;
+    this.hide();
+    this.root.remove();
   }
 
   /** Switch the active category tab — filters which cards show in the rack. */
   private setTab(key: Tab['key']): void {
     this.activeTab = key;
-    for (const tab of this.tabs) tab.button.style.cssText = tabCss(tab.key === key, tab.soon);
+    this.armedTouchUpgrade = null;
+    for (const tab of this.tabs) {
+      const active = tab.key === key;
+      tab.button.style.cssText = tabCss(active, tab.soon);
+      tab.button.setAttribute('aria-pressed', String(active));
+    }
     const soon = this.tabs.find((t) => t.key === key)?.soon ?? false;
-    for (const card of this.cards) card.root.style.display = card.family.category === key ? 'flex' : 'none';
+    for (const card of this.cards)
+      card.root.style.display = card.family.category === key ? 'flex' : 'none';
     for (const cc of this.chassisCards) cc.root.style.display = key === 'car' ? 'flex' : 'none';
     for (const pc of this.paintCards) pc.root.style.display = key === 'color' ? 'flex' : 'none';
     this.placeholder.style.display = soon ? 'block' : 'none';
@@ -337,7 +374,8 @@ export class Garage {
     row.style.cssText = 'width:100%';
     const tag = document.createElement('div');
     tag.textContent = def.label;
-    tag.style.cssText = 'font-size:10px;letter-spacing:1px;color:#c4cad2;margin-bottom:3px;text-shadow:0 1px 0 #000';
+    tag.style.cssText =
+      'font-size:10px;letter-spacing:1px;color:#c4cad2;margin-bottom:3px;text-shadow:0 1px 0 #000';
     const track = document.createElement('div');
     track.className = 'sdw-garage__bar';
     // The track itself is the MAX rail (orange); the green fill is CURRENT.
@@ -358,7 +396,8 @@ export class Garage {
     wrap.style.cssText = 'display:flex;gap:14px;margin-top:5px';
     const item = (color: string, text: string): HTMLDivElement => {
       const el = document.createElement('div');
-      el.style.cssText = 'display:flex;align-items:center;gap:5px;font-size:9px;letter-spacing:1px;color:#9aa0a8';
+      el.style.cssText =
+        'display:flex;align-items:center;gap:5px;font-size:9px;letter-spacing:1px;color:#9aa0a8';
       const chip = document.createElement('span');
       chip.style.cssText = `width:9px;height:9px;border-radius:2px;border:1px solid #000;background:${color};box-shadow:0 0 5px ${color}66`;
       const cap = document.createElement('span');
@@ -375,8 +414,9 @@ export class Garage {
    * and a green/red LCD level badge across the top, the family name, and a coin
    * cost on its own LCD plate at the foot — green when affordable, red when not.
    */
-  private buildFamilyCard(fam: UpgradeFamily): HTMLDivElement {
-    const root = document.createElement('div');
+  private buildFamilyCard(fam: UpgradeFamily): HTMLButtonElement {
+    const root = document.createElement('button');
+    root.type = 'button';
     root.className = 'sdw-garage-card';
     root.style.cssText = cardCss();
 
@@ -401,10 +441,28 @@ export class Garage {
     root.append(head, nm, costPlate);
 
     const card: Card = { family: fam, root, badge, cost, target: null };
-    root.addEventListener('click', () => {
-      if (card.target) this.cb.onBuy(card.target);
+    root.addEventListener('pointerup', (event) => {
+      this.lastActivationWasTouch = event.pointerType === 'touch';
+    });
+    root.addEventListener('pointercancel', () => {
+      this.lastActivationWasTouch = false;
+    });
+    root.addEventListener('click', (event) => {
+      const touchActivation = this.lastActivationWasTouch && event.detail !== 0;
+      this.lastActivationWasTouch = false;
+      this.showFamilyDetail(fam);
+      if (!card.target) return;
+      if (touchActivation && this.armedTouchUpgrade !== card.target) {
+        this.armedTouchUpgrade = card.target;
+        this.detailBlurb.textContent += '  Tap again to buy.';
+        return;
+      }
+      this.armedTouchUpgrade = null;
+      this.cb.onBuy(card.target);
     });
     root.addEventListener('mouseenter', () => this.showFamilyDetail(fam));
+    root.addEventListener('focus', () => this.showFamilyDetail(fam));
+    root.setAttribute('aria-label', `${fam.label} upgrade`);
     this.cards.push(card);
     return root;
   }
@@ -414,8 +472,9 @@ export class Garage {
    * with a scrap price plate — click to preview it on the turntable, click again
    * to buy (the inspiration's garage: cars are bought, not given).
    */
-  private buildChassisCard(ch: { id: ChassisId; name: string }): HTMLDivElement {
-    const root = document.createElement('div');
+  private buildChassisCard(ch: { id: ChassisId; name: string }): HTMLButtonElement {
+    const root = document.createElement('button');
+    root.type = 'button';
     root.className = 'sdw-garage-chassis-card';
     root.style.cssText = chassisCss();
     root.style.display = 'none'; // shown only on the CAR tab
@@ -437,19 +496,25 @@ export class Garage {
       this.showChassisDetail(ch.id);
     });
     root.addEventListener('mouseenter', () => this.showChassisDetail(ch.id));
+    root.addEventListener('focus', () => this.showChassisDetail(ch.id));
+    root.setAttribute('aria-label', `${ch.name} chassis`);
     this.chassisCards.push({ id: ch.id, root, badge, pricePlate, priceVal });
     return root;
   }
 
   /** A paint swatch: a color chip over its name, with a SELECT/SELECTED badge. */
-  private buildPaintCard(p: { id: PaintId; name: string; body: number | null }): HTMLDivElement {
-    const root = document.createElement('div');
+  private buildPaintCard(p: { id: PaintId; name: string; body: number | null }): HTMLButtonElement {
+    const root = document.createElement('button');
+    root.type = 'button';
     root.className = 'sdw-garage-paint-card';
     root.style.cssText = chassisCss();
     root.style.display = 'none'; // shown only on the COLOR tab
     const chip = document.createElement('div');
     // The factory job has no single color, so show it as a split steel swatch.
-    const swatch = p.body === null ? 'linear-gradient(135deg,#7f2d1e 50%,#2b2e3a 50%)' : `#${p.body.toString(16).padStart(6, '0')}`;
+    const swatch =
+      p.body === null
+        ? 'linear-gradient(135deg,#7f2d1e 50%,#2b2e3a 50%)'
+        : `#${p.body.toString(16).padStart(6, '0')}`;
     chip.style.cssText = `width:30px;height:18px;border-radius:4px;border:1px solid #000;box-shadow:inset 0 1px 0 #ffffff22;background:${swatch}`;
     const badge = document.createElement('div');
     badge.style.cssText = `font-size:9px;font-weight:800;letter-spacing:1px;color:${LCD}`;
@@ -459,6 +524,8 @@ export class Garage {
     root.append(badge, chip, nm);
     root.addEventListener('click', () => this.cb.onSelectPaint(p.id));
     root.addEventListener('mouseenter', () => this.showPaintDetail(p.id));
+    root.addEventListener('focus', () => this.showPaintDetail(p.id));
+    root.setAttribute('aria-label', `${p.name} paint`);
     this.paintCards.push({ id: p.id, root, badge });
     return root;
   }
@@ -503,7 +570,9 @@ export class Garage {
     this.detailName.textContent = p.name;
     this.detailName.style.color = ORANGE;
     this.detailBlurb.textContent =
-      p.body === null ? 'The factory coat — each car keeps its own color.' : 'A fresh coat of paint. Cosmetic only.';
+      p.body === null
+        ? 'The factory coat — each car keeps its own color.'
+        : 'A fresh coat of paint. Cosmetic only.';
   }
 
   /** The resting detail line for the active tab, shown when nothing is hovered. */
@@ -553,6 +622,7 @@ export class Garage {
     for (const cc of this.chassisCards) {
       const sel = cc.id === v.chassis;
       const ownedCar = v.ownedCars.has(cc.id);
+      cc.root.setAttribute('aria-pressed', String(sel));
       cc.root.classList.toggle('is-locked', !ownedCar);
       cardHighlight(cc.root, sel);
       if (ownedCar) {
@@ -574,6 +644,7 @@ export class Garage {
 
     for (const pc of this.paintCards) {
       const sel = pc.id === v.paint;
+      pc.root.setAttribute('aria-pressed', String(sel));
       cardHighlight(pc.root, sel);
       pc.badge.textContent = sel ? 'SELECTED' : 'SELECT';
       pc.badge.style.color = sel ? '#8fbf6a' : LCD;
@@ -741,6 +812,9 @@ function tabCss(activeTab: boolean, soon = false): string {
 // brushed-steel resting fill only.
 function chassisCss(): string {
   return [
+    'appearance:none',
+    'font:inherit',
+    'color:inherit',
     'display:flex',
     'flex-direction:column',
     'align-items:center',
@@ -757,6 +831,9 @@ function chassisCss(): string {
 
 function cardCss(): string {
   return [
+    'appearance:none',
+    'font:inherit',
+    'color:inherit',
     'display:flex',
     'flex-direction:column',
     'align-items:center',

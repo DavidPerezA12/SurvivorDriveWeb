@@ -11,6 +11,8 @@ import type { Intent } from '../sim';
  * cadence, so holding it auto-fires (docs/DESIGN.md → Pillar 2).
  */
 export class Keyboard {
+  private readonly target: Window;
+  private destroyed = false;
   private leftHeld = false;
   private rightHeld = false;
   private jumpLatched = false;
@@ -18,11 +20,17 @@ export class Keyboard {
   private restartLatched = false;
 
   constructor(target: Window = window) {
-    target.addEventListener('keydown', this.onKeyDown);
-    target.addEventListener('keyup', this.onKeyUp);
+    this.target = target;
+    this.target.addEventListener('keydown', this.onKeyDown);
+    this.target.addEventListener('keyup', this.onKeyUp);
+    // Browsers are allowed to drop the matching keyup when focus moves to
+    // another window. Clear every held/latching state so returning to the game
+    // can never leave steering or fire stuck on.
+    this.target.addEventListener('blur', this.onBlur);
   }
 
   private readonly onKeyDown = (e: KeyboardEvent): void => {
+    if (isInteractiveTarget(e.target)) return;
     // Fire is a held state, so it must register even on auto-repeat events.
     if (e.key === 'f' || e.key === 'F' || e.key === 'Shift') {
       this.fireHeld = true;
@@ -81,6 +89,8 @@ export class Keyboard {
     }
   };
 
+  private readonly onBlur = (): void => this.reset();
+
   /** The intent for the next tick: the held steer axis, one jump, held fire. */
   takeIntent(): Intent {
     const steer = (this.rightHeld ? 1 : 0) - (this.leftHeld ? 1 : 0);
@@ -104,4 +114,28 @@ export class Keyboard {
     this.fireHeld = false;
     this.restartLatched = false;
   }
+
+  /** Release global listeners when the app instance is torn down. Idempotent. */
+  destroy(): void {
+    if (this.destroyed) return;
+    this.destroyed = true;
+    this.reset();
+    this.target.removeEventListener('keydown', this.onKeyDown);
+    this.target.removeEventListener('keyup', this.onKeyUp);
+    this.target.removeEventListener('blur', this.onBlur);
+  }
+}
+
+/** Let focused form controls keep their native keyboard behavior. */
+function isInteractiveTarget(target: EventTarget | null): boolean {
+  if (!target || typeof target !== 'object') return false;
+  const candidate = target as {
+    closest?: (selector: string) => Element | null;
+    isContentEditable?: boolean;
+  };
+  if (candidate.isContentEditable === true) return true;
+  return (
+    typeof candidate.closest === 'function' &&
+    candidate.closest('input, select, textarea, button') !== null
+  );
 }

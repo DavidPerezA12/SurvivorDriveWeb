@@ -1,4 +1,5 @@
 import type { MotionPref, Quality, Settings } from '../app/settings';
+import { focusDialogStart, trapDialogTab } from './focus';
 
 /**
  * The pause menu and settings panel (the `ui/` layer): a DOM overlay, built
@@ -37,6 +38,8 @@ export class Menu {
   private settings: Settings;
   private open = false;
   private settingsView = false;
+  private previousFocus: HTMLElement | null = null;
+  private destroyed = false;
 
   constructor(initial: Settings, cb: MenuCallbacks) {
     this.cb = cb;
@@ -44,6 +47,10 @@ export class Menu {
 
     this.root = document.createElement('div');
     this.root.className = 'sdw-menu';
+    this.root.setAttribute('role', 'dialog');
+    this.root.setAttribute('aria-modal', 'true');
+    this.root.setAttribute('aria-label', 'Pause menu');
+    this.root.addEventListener('keydown', (event) => trapDialogTab(this.root, event));
     this.root.style.cssText = [
       'position:fixed',
       'inset:0',
@@ -73,20 +80,37 @@ export class Menu {
 
   /** Show the menu at its top level (the pause list). */
   show(): void {
+    const opening = !this.open;
     this.open = true;
     this.showRoot();
+    if (opening) {
+      this.previousFocus =
+        document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    }
     this.root.style.display = 'flex';
+    if (opening) focusDialogStart(this.pausePane);
   }
 
   hide(): void {
     this.open = false;
     this.root.style.display = 'none';
+    this.previousFocus?.focus();
+    this.previousFocus = null;
+  }
+
+  /** Remove the menu's owned DOM tree. Safe during partial or repeated teardown. */
+  destroy(): void {
+    if (this.destroyed) return;
+    this.destroyed = true;
+    this.hide();
+    this.root.remove();
   }
 
   showRoot(): void {
     this.settingsView = false;
     this.pausePane.style.display = 'flex';
     this.settingsPane.style.display = 'none';
+    if (this.open) focusDialogStart(this.pausePane);
   }
 
   showSettings(): void {
@@ -94,6 +118,7 @@ export class Menu {
     this.pausePane.style.display = 'none';
     this.settingsPane.style.display = 'flex';
     for (const c of this.controls) c.sync();
+    focusDialogStart(this.settingsPane);
   }
 
   private buildPausePane(): HTMLDivElement {
@@ -146,7 +171,11 @@ export class Menu {
 
     this.add(
       pane,
-      slider('Screen shake', () => this.settings.shake, (v) => this.patch({ shake: v })),
+      slider(
+        'Screen shake',
+        () => this.settings.shake,
+        (v) => this.patch({ shake: v }),
+      ),
     );
 
     this.add(
@@ -262,6 +291,8 @@ function segmented<T>(
   set: (value: T) => void,
 ): Control {
   const group = document.createElement('div');
+  group.setAttribute('role', 'group');
+  group.setAttribute('aria-label', label);
   group.style.cssText = 'display:flex;gap:0;flex:0 0 auto';
   const buttons: { btn: HTMLButtonElement; value: T }[] = [];
 
@@ -293,6 +324,7 @@ function segmented<T>(
       const on = value === active;
       btn.style.background = on ? 'rgba(184,84,47,0.85)' : 'rgba(28,22,18,0.9)';
       btn.style.color = on ? '#1a120c' : '#cdbb95';
+      btn.setAttribute('aria-pressed', String(on));
     }
   };
   sync();
@@ -309,6 +341,7 @@ function slider(
 ): Control {
   const input = document.createElement('input');
   input.type = 'range';
+  input.setAttribute('aria-label', label);
   input.min = '0';
   input.max = '100';
   input.step = '5';
