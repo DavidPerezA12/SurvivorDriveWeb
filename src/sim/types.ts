@@ -293,6 +293,10 @@ export interface Hazard {
   /** Absolute world-forward position in meters. */
   forward: number;
   hit: boolean;
+  /** True after entering the near-miss band during real forward overlap. */
+  nearMissArmed?: boolean;
+  /** True once the one-time near-miss evaluation is finalized behind the car. */
+  nearMissed?: boolean;
   /**
    * Drift endpoints, set only on a `drifter`: the lane-center X it starts at and
    * the adjacent one it slides into as it nears (`updateDrifters`). Absent on
@@ -446,6 +450,14 @@ export interface SimState {
   combo: number;
   /** Ticks the current streak survives without a fresh kill; 0 = no streak. */
   comboTicks: number;
+  /** Live greed multiplier, raised by kills, ramps, and close hazard clears. */
+  multiplier: number;
+  /** Points banked toward the next multiplier level. */
+  multiplierCharge: number;
+  /** Ticks before an idle multiplier expires. */
+  multiplierTicks: number;
+  /** Highest multiplier reached in this run, for records and the wreck recap. */
+  peakMultiplier: number;
   /** True once the hull is destroyed; the run is over. */
   dead: boolean;
   /**
@@ -496,6 +508,8 @@ export type FrameEvent =
   | { type: 'laneChanged'; lane: number }
   | { type: 'jumped' }
   | { type: 'ramped'; x: number; forward: number }
+  | { type: 'nearMiss'; x: number }
+  | { type: 'multiplierChanged'; multiplier: number }
   | { type: 'landed'; impact: number }
   | { type: 'crashed'; impact: number; lane: number }
   | { type: 'hullDamaged'; amount: number; destroyed: boolean }

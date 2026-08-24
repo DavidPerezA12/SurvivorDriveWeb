@@ -102,7 +102,14 @@ describe('upgrade effects in the sim', () => {
     tank.car.jumpCharges = CAR_TUNING.jumpMaxCharges;
     tank.car.lateralX = laneCenterX(1);
     tank.distance = 10;
-    tank.pickups.push({ kind: 'jump', lane: 1, x: laneCenterX(1), forward: 8, phase: 0, taken: false });
+    tank.pickups.push({
+      kind: 'jump',
+      lane: 1,
+      x: laneCenterX(1),
+      forward: 8,
+      phase: 0,
+      taken: false,
+    });
     resolvePickups(tank);
     expect(tank.car.jumpCharges).toBeGreaterThan(CAR_TUNING.jumpMaxCharges);
   });
@@ -139,23 +146,35 @@ describe('upgrade effects in the sim', () => {
     expect(plated.car.health).toBeGreaterThan(stock.car.health);
   });
 
-  it('Scrap Magnet mows fodder the stock bumper skims past', () => {
-    const offset = 1.7; // beyond stock reach (~1.55 m), inside the magnet's (~1.9 m)
+  it('Scrap Magnet widens pickup reach without widening the zombie bumper', () => {
+    const offset = 2; // beyond stock reach, inside the magnet's pickup reach
     const place = (s: SimState): void => {
       s.car.lateralX = laneCenterX(1);
       s.distance = 10;
       s.zombies.push({ lane: 1, x: laneCenterX(1) + offset, forward: 8, phase: 0, mowed: false });
+      s.pickups.push({
+        kind: 'scrap',
+        lane: 1,
+        x: laneCenterX(1) + offset,
+        forward: 8,
+        phase: 0,
+        taken: false,
+      });
     };
 
     const stock = createSim(0);
     place(stock);
     resolveMows(stock, 50);
+    resolvePickups(stock);
     expect(stock.zombies[0].mowed).toBe(false);
+    expect(stock.pickups[0].taken).toBe(false);
 
     const magnet = createSim(0, computeLoadout(['scrapMagnet']));
     place(magnet);
     resolveMows(magnet, 50);
-    expect(magnet.zombies[0].mowed).toBe(true);
+    resolvePickups(magnet);
+    expect(magnet.zombies[0].mowed).toBe(false);
+    expect(magnet.pickups[0].taken).toBe(true);
   });
 });
 

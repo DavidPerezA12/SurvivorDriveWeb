@@ -7,6 +7,7 @@ import {
   resolveGas,
   resolveJumpers,
   resolveMows,
+  resolveNearMisses,
   resolvePickups,
   resolveShots,
   updateBeams,
@@ -50,6 +51,10 @@ export function createSim(seed: number, loadout: Loadout = BASE_LOADOUT): SimSta
     zombiesMowed: 0,
     combo: 0,
     comboTicks: 0,
+    multiplier: 1,
+    multiplierCharge: 0,
+    multiplierTicks: 0,
+    peakMultiplier: 1,
     dead: false,
     deathCause: null,
     events: [],
@@ -82,6 +87,14 @@ export function step(state: SimState, intent: Intent): SimState {
   if (state.comboTicks > 0) {
     state.comboTicks -= 1;
     if (state.comboTicks === 0) state.combo = 0;
+  }
+  if (state.multiplierTicks > 0) {
+    state.multiplierTicks -= 1;
+    if (state.multiplierTicks === 0) {
+      state.multiplier = 1;
+      state.multiplierCharge = 0;
+      state.events.push({ type: 'multiplierChanged', multiplier: 1 });
+    }
   }
 
   // The shield bubble burns down one tick at a time; a grab this tick starts
@@ -133,6 +146,7 @@ export function step(state: SimState, intent: Intent): SimState {
     state.tick += 1;
     return state;
   }
+  resolveNearMisses(state);
   updateClingers(state);
   if (state.dead) {
     state.tick += 1;

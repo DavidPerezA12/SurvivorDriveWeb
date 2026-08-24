@@ -71,12 +71,54 @@ export interface UpgradeFamily {
 }
 
 export const UPGRADE_FAMILIES: readonly UpgradeFamily[] = [
-  { key: 'armor', label: 'ARMOR', glyph: '◆', category: 'upgrade', scope: 'chassis', tiers: ['reinforcedPlating', 'reinforcedPlating2', 'reinforcedPlating3'] },
-  { key: 'tires', label: 'TIRES', glyph: '◯', category: 'upgrade', scope: 'chassis', tiers: ['stickyTires', 'stickyTires2'] },
-  { key: 'jump', label: 'JUMP', glyph: '↑', category: 'upgrade', scope: 'chassis', tiers: ['hydraulicJump', 'hydraulicJump2', 'hydraulicJump3'] },
-  { key: 'magnet', label: 'MAGNET', glyph: '✦', category: 'upgrade', scope: 'chassis', tiers: ['scrapMagnet', 'scrapMagnet2'] },
-  { key: 'tank', label: 'TANK', glyph: '⬢', category: 'upgrade', scope: 'global', tiers: ['liftTank', 'liftTank2', 'liftTank3'] },
-  { key: 'gun', label: 'GUN', glyph: '✜', category: 'weapon', scope: 'global', tiers: ['gunMkII', 'gunMkIII', 'gunMkIV', 'gunMkV'] },
+  {
+    key: 'armor',
+    label: 'ARMOR',
+    glyph: '◆',
+    category: 'upgrade',
+    scope: 'chassis',
+    tiers: ['reinforcedPlating', 'reinforcedPlating2', 'reinforcedPlating3'],
+  },
+  {
+    key: 'tires',
+    label: 'TIRES',
+    glyph: '◯',
+    category: 'upgrade',
+    scope: 'chassis',
+    tiers: ['stickyTires', 'stickyTires2'],
+  },
+  {
+    key: 'jump',
+    label: 'JUMP',
+    glyph: '↑',
+    category: 'upgrade',
+    scope: 'chassis',
+    tiers: ['hydraulicJump', 'hydraulicJump2', 'hydraulicJump3'],
+  },
+  {
+    key: 'magnet',
+    label: 'MAGNET',
+    glyph: '✦',
+    category: 'upgrade',
+    scope: 'chassis',
+    tiers: ['scrapMagnet', 'scrapMagnet2'],
+  },
+  {
+    key: 'tank',
+    label: 'TANK',
+    glyph: '⬢',
+    category: 'upgrade',
+    scope: 'global',
+    tiers: ['liftTank', 'liftTank2', 'liftTank3'],
+  },
+  {
+    key: 'gun',
+    label: 'GUN',
+    glyph: '✜',
+    category: 'weapon',
+    scope: 'global',
+    tiers: ['gunMkII', 'gunMkIII', 'gunMkIV', 'gunMkV'],
+  },
 ];
 
 /** The ordered gun-tier upgrades — kept as a named export the sim/UI already use. */
@@ -84,28 +126,113 @@ export const GUN_UPGRADES: readonly UpgradeId[] = ['gunMkII', 'gunMkIII', 'gunMk
 
 export const UPGRADES: readonly UpgradeDef[] = [
   // ARMOR: each tier shaves more hull off every crash.
-  { id: 'reinforcedPlating', name: 'Reinforced Plating I', blurb: 'Plated panels — every crash costs the hull less.', cost: 60 },
-  { id: 'reinforcedPlating2', name: 'Reinforced Plating II', blurb: 'Heavier plate — crashes barely dent you.', cost: 110 },
-  { id: 'reinforcedPlating3', name: 'Reinforced Plating III', blurb: 'Battle armor — shrug off the hits that ended past runs.', cost: 180 },
+  {
+    id: 'reinforcedPlating',
+    name: 'Reinforced Plating I',
+    blurb: 'Plated panels — every crash costs the hull less.',
+    cost: 60,
+  },
+  {
+    id: 'reinforcedPlating2',
+    name: 'Reinforced Plating II',
+    blurb: 'Heavier plate — crashes barely dent you.',
+    cost: 110,
+  },
+  {
+    id: 'reinforcedPlating3',
+    name: 'Reinforced Plating III',
+    blurb: 'Battle armor — shrug off the hits that ended past runs.',
+    cost: 180,
+  },
   // TIRES: snappier lane changes.
-  { id: 'stickyTires', name: 'Sticky Tires I', blurb: 'Lane changes snap instead of slide.', cost: 40 },
-  { id: 'stickyTires2', name: 'Sticky Tires II', blurb: 'Knife-sharp — the car darts between lanes.', cost: 80 },
+  {
+    id: 'stickyTires',
+    name: 'Sticky Tires I',
+    blurb: 'Lane changes snap instead of slide.',
+    cost: 40,
+  },
+  {
+    id: 'stickyTires2',
+    name: 'Sticky Tires II',
+    blurb: 'Knife-sharp — the car darts between lanes.',
+    cost: 80,
+  },
   // JUMP: taller, longer arc.
-  { id: 'hydraulicJump', name: 'Hydraulic Jump I', blurb: 'Higher, longer arc — rooftop and trench lines open.', cost: 45 },
-  { id: 'hydraulicJump2', name: 'Hydraulic Jump II', blurb: 'Big air — clear wider gaps.', cost: 85 },
-  { id: 'hydraulicJump3', name: 'Hydraulic Jump III', blurb: 'Moon hops — sail clean over whole pileups.', cost: 140 },
+  {
+    id: 'hydraulicJump',
+    name: 'Hydraulic Jump I',
+    blurb: 'Higher, longer arc — rooftop and trench lines open.',
+    cost: 45,
+  },
+  {
+    id: 'hydraulicJump2',
+    name: 'Hydraulic Jump II',
+    blurb: 'Big air — clear wider gaps.',
+    cost: 85,
+  },
+  {
+    id: 'hydraulicJump3',
+    name: 'Hydraulic Jump III',
+    blurb: 'Moon hops — sail clean over whole pileups.',
+    cost: 140,
+  },
   // TANK: more jump charges.
-  { id: 'liftTank', name: 'Lift Tank I', blurb: 'Carry more jump charges, and bank more before they spill.', cost: 50 },
-  { id: 'liftTank2', name: 'Lift Tank II', blurb: 'A deeper tank — more hops between refills.', cost: 90 },
-  { id: 'liftTank3', name: 'Lift Tank III', blurb: 'Long-haul tank — jump almost at will.', cost: 150 },
-  // MAGNET: wider loot/mow reach.
-  { id: 'scrapMagnet', name: 'Scrap Magnet I', blurb: 'Wider reach — scoop loot and fodder you used to skim past.', cost: 55 },
-  { id: 'scrapMagnet2', name: 'Scrap Magnet II', blurb: 'Full-lane pull — nothing in your lane escapes.', cost: 100 },
+  {
+    id: 'liftTank',
+    name: 'Lift Tank I',
+    blurb: 'Carry more jump charges, and bank more before they spill.',
+    cost: 50,
+  },
+  {
+    id: 'liftTank2',
+    name: 'Lift Tank II',
+    blurb: 'A deeper tank — more hops between refills.',
+    cost: 90,
+  },
+  {
+    id: 'liftTank3',
+    name: 'Lift Tank III',
+    blurb: 'Long-haul tank — jump almost at will.',
+    cost: 150,
+  },
+  // MAGNET: wider loot reach.
+  {
+    id: 'scrapMagnet',
+    name: 'Scrap Magnet I',
+    blurb: 'Wider reach — scoop loot you used to skim past.',
+    cost: 55,
+  },
+  {
+    id: 'scrapMagnet2',
+    name: 'Scrap Magnet II',
+    blurb: 'Full-lane pull — nothing in your lane escapes.',
+    cost: 100,
+  },
   // GUN: weapon tiers (the level lives in content/weapons.ts).
-  { id: 'gunMkII', name: 'Gun Mk II — Pump Repeater', blurb: 'Faster, farther, two fodder per shot instead of one.', cost: 55 },
-  { id: 'gunMkIII', name: 'Gun Mk III — Street Sweeper', blurb: 'Shreds the neighbouring lanes too — three down a shot.', cost: 95 },
-  { id: 'gunMkIV', name: 'Gun Mk IV — Twin Autocannon', blurb: 'Long reach, rapid fire, four a shot — the road clears ahead.', cost: 150 },
-  { id: 'gunMkV', name: 'Gun Mk V — Apocalypse Cannon', blurb: 'Every lane in front turns to mist — six a shot, held down.', cost: 220 },
+  {
+    id: 'gunMkII',
+    name: 'Gun Mk II — Pump Repeater',
+    blurb: 'Faster, farther, two fodder per shot instead of one.',
+    cost: 55,
+  },
+  {
+    id: 'gunMkIII',
+    name: 'Gun Mk III — Street Sweeper',
+    blurb: 'Shreds both road lanes — three down a shot.',
+    cost: 95,
+  },
+  {
+    id: 'gunMkIV',
+    name: 'Gun Mk IV — Twin Autocannon',
+    blurb: 'Punches through one destroyed blocker and keeps shredding.',
+    cost: 150,
+  },
+  {
+    id: 'gunMkV',
+    name: 'Gun Mk V — Apocalypse Cannon',
+    blurb: 'Punches through two destroyed blockers — six down a shot.',
+    cost: 220,
+  },
 ] as const;
 
 const BY_ID = new Map<UpgradeId, UpgradeDef>(UPGRADES.map((u) => [u.id, u]));
@@ -150,7 +277,10 @@ export function familyLevel(fam: UpgradeFamily, owned: ReadonlySet<UpgradeId>): 
 }
 
 /** The next buyable tier of a family, or `null` if it is maxed. */
-export function familyNextTier(fam: UpgradeFamily, owned: ReadonlySet<UpgradeId>): UpgradeId | null {
+export function familyNextTier(
+  fam: UpgradeFamily,
+  owned: ReadonlySet<UpgradeId>,
+): UpgradeId | null {
   return fam.tiers.find((id) => !owned.has(id)) ?? null;
 }
 
@@ -166,7 +296,7 @@ export interface Loadout {
   steerOmegaMul: number;
   /** Extra jump charges added to both the starting count and the cap (TANK). */
   bonusJumpCharges: number;
-  /** Grab-footprint multiplier for pickups and mow reach (MAGNET). */
+  /** Grab-footprint multiplier for pickups (MAGNET). */
   grabRadiusMul: number;
   /** Hull-damage multiplier on every crash, < 1 = tougher armor (ARMOR). */
   damageMul: number;

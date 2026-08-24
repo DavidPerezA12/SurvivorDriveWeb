@@ -176,6 +176,20 @@ export const ECONOMY_TUNING = {
   comboScrapCap: 12,
   /** Ticks a streak survives without a fresh kill before it lapses (~1.4 s). */
   comboWindowTicks: 84,
+  /** Greed actions needed to raise the run multiplier by one level. */
+  multiplierPointsPerLevel: 4,
+  /** Hard ceiling on scrap multiplication. */
+  multiplierMax: 5,
+  /** A maintained multiplier expires after five seconds without a greed action. */
+  multiplierWindowTicks: 300,
+  /** Progress awarded by one zombie kill. */
+  multiplierKillPoints: 1,
+  /** Progress awarded for committing to a collapse ramp. */
+  multiplierRampPoints: 2,
+  /** Progress awarded for clearing a hazard within the close-pass band. */
+  multiplierNearMissPoints: 1,
+  /** Extra lateral band outside a hazard that qualifies as a close pass. */
+  nearMissMargin: 0.75,
 } as const;
 
 /** How mowing feels in the hands: a surge, never a slowdown (docs/DESIGN.md → Juice). */
@@ -460,10 +474,10 @@ export const RAMP_TUNING = {
 
 /**
  * The mounted gun's level-independent constants (docs/DESIGN.md → Pillar 2). The
- * per-tier stats (range, cadence, kills-per-shot, lane spread, ammo) live in
- * `content/weapons.ts` (the weapon level indexes that table). Modeled as a
- * per-shot hitscan against the nearest live zombies ahead. No projectile bodies,
- * so the tick path stays allocation-free.
+ * per-tier stats (range, cadence, kills-per-shot, lane spread, penetration, ammo)
+ * live in `content/weapons.ts` (the weapon level indexes that table). Modeled as
+ * a per-shot hitscan against the nearest live zombies ahead. No projectile
+ * bodies, so the tick path stays allocation-free.
  */
 export const WEAPON_TUNING = {
   /** Ammo spent per shot (every tier). */

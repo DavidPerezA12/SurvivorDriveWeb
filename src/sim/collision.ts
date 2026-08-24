@@ -1,4 +1,4 @@
-import type { Hazard, Intent, SimState, Zombie } from './types';
+import type { Hazard, HazardKind, Intent, SimState, Zombie } from './types';
 import { applyCrash } from './health';
 import { chunkAt } from './world';
 import {
@@ -15,6 +15,7 @@ import {
   DRIFT_TUNING,
   METEOR_TUNING,
   ECONOMY_TUNING,
+  LANE_COUNT,
   LANE_WIDTH,
   LOOKAHEAD,
   MOW_TUNING,
@@ -112,6 +113,77 @@ const SPIKES_CLEAR = 0.5; // the blade bed: a low hop still clears it
 const GAP_CLEAR = 0.5; // a hole: just be clearly off the ground
 const BEAM_CLEAR = 0.45; // a thin light strip across the lane
 const PRUNE_BEHIND = 14;
+
+function hazardHalfWidth(kind: HazardKind): number {
+  if (kind === 'rig') return RIG_HALF_WIDTH;
+  if (kind === 'barrier') return BARRIER_HALF_WIDTH;
+  if (kind === 'bus') return BUS_HALF_WIDTH;
+  if (kind === 'barricade') return BARRICADE_HALF_WIDTH;
+  if (kind === 'boulder') return BOULDER_HALF_WIDTH;
+  if (kind === 'pole') return POLE_HALF_WIDTH;
+  if (kind === 'barrel' || kind === 'toxbarrel') return BARREL_HALF_WIDTH;
+  if (kind === 'meteor' || kind === 'stomp' || kind === 'shell') return METEOR_HALF_WIDTH;
+  if (kind === 'gap') return GAP_HALF_WIDTH;
+  if (kind === 'spikes') return SPIKES_HALF_WIDTH;
+  if (kind === 'livewire') return LIVEWIRE_HALF_WIDTH;
+  if (kind === 'beam') return BEAM_HALF_WIDTH;
+  if (kind === 'ramp') return RAMP_HALF_WIDTH;
+  return HAZARD_HALF_WIDTH;
+}
+
+function hazardHalfLength(kind: HazardKind): number {
+  if (kind === 'rig') return RIG_HALF_LENGTH;
+  if (kind === 'barrier') return BARRIER_HALF_LENGTH;
+  if (kind === 'bus') return BUS_HALF_LENGTH;
+  if (kind === 'barricade') return BARRICADE_HALF_LENGTH;
+  if (kind === 'boulder') return BOULDER_HALF_LENGTH;
+  if (kind === 'pole') return POLE_HALF_LENGTH;
+  if (kind === 'barrel' || kind === 'toxbarrel') return BARREL_HALF_LENGTH;
+  if (kind === 'meteor' || kind === 'stomp' || kind === 'shell') return METEOR_HALF_LENGTH;
+  if (kind === 'gap') return GAP_HALF_LENGTH;
+  if (kind === 'spikes') return SPIKES_HALF_LENGTH;
+  if (kind === 'livewire') return LIVEWIRE_HALF_LENGTH;
+  if (kind === 'beam') return BEAM_HALF_LENGTH;
+  if (kind === 'ramp') return RAMP_HALF_LENGTH;
+  return HAZARD_HALF_LENGTH;
+}
+
+/** The car spans [distance - CAR_LENGTH, distance] along the road. */
+function overlapsHazardForward(distance: number, h: Hazard): boolean {
+  const halfLength = hazardHalfLength(h.kind);
+  return distance >= h.forward - halfLength && distance - CAR_LENGTH <= h.forward + halfLength;
+}
+
+/** True once the car's rear has cleared the hazard's exact far edge. */
+function hazardIsFullyBehind(distance: number, h: Hazard): boolean {
+  return distance - CAR_LENGTH > h.forward + hazardHalfLength(h.kind);
+}
+
+function addMultiplier(state: SimState, points: number): void {
+  state.multiplierTicks = ECONOMY_TUNING.multiplierWindowTicks;
+  if (state.multiplier >= ECONOMY_TUNING.multiplierMax) return;
+  state.multiplierCharge += points;
+  let changed = false;
+  while (
+    state.multiplierCharge >= ECONOMY_TUNING.multiplierPointsPerLevel &&
+    state.multiplier < ECONOMY_TUNING.multiplierMax
+  ) {
+    state.multiplierCharge -= ECONOMY_TUNING.multiplierPointsPerLevel;
+    state.multiplier += 1;
+    changed = true;
+  }
+  if (state.multiplier >= ECONOMY_TUNING.multiplierMax) state.multiplierCharge = 0;
+  state.peakMultiplier = Math.max(state.peakMultiplier, state.multiplier);
+  if (changed) state.events.push({ type: 'multiplierChanged', multiplier: state.multiplier });
+}
+
+function resetMultiplier(state: SimState): void {
+  if (state.multiplier !== 1 || state.multiplierCharge !== 0)
+    state.events.push({ type: 'multiplierChanged', multiplier: 1 });
+  state.multiplier = 1;
+  state.multiplierCharge = 0;
+  state.multiplierTicks = 0;
+}
 
 /**
  * Materialize spawns for any chunk that has entered the lookahead window, purely
@@ -347,11 +419,8 @@ export function resolveCollisions(state: SimState): void {
     // the wall/crash machinery below, and so the rest of the loop narrows `h.kind`
     // to the damaging kinds (the death-cause assignment relies on that).
     if (h.kind === 'ramp') {
-      const onRamp =
-        state.distance >= h.forward - RAMP_HALF_LENGTH &&
-        state.distance - CAR_LENGTH <= h.forward + RAMP_HALF_LENGTH;
-      if (!onRamp) continue;
-      if (Math.abs(car.lateralX - h.x) >= CAR_HALF_WIDTH + RAMP_HALF_WIDTH) continue;
+      if (!overlapsHazardForward(state.distance, h)) continue;
+      if (Math.abs(car.lateralX - h.x) >= CAR_HALF_WIDTH + hazardHalfWidth(h.kind)) continue;
       h.hit = true;
       // A grounded car is vaulted into a free arc (no charge spent, no hull cost,
       // momentum kept). An airborne car is already clearing the debris, so it just
@@ -360,6 +429,7 @@ export function resolveCollisions(state: SimState): void {
         car.airborne = true;
         car.vertVel = RAMP_TUNING.launchImpulse;
         state.events.push({ type: 'ramped', x: h.x, forward: h.forward });
+        addMultiplier(state, ECONOMY_TUNING.multiplierRampPoints);
       }
       continue;
     }
@@ -398,62 +468,10 @@ export function resolveCollisions(state: SimState): void {
     // A road gap and a spike strip are lethal ground traps: not things you ram but
     // things you must not be on while grounded (jump or change lane, or die).
     const lethalTrap = gap || spikes || livewire;
-    const halfWidth = rig
-      ? RIG_HALF_WIDTH
-      : barrier
-        ? BARRIER_HALF_WIDTH
-        : bus
-          ? BUS_HALF_WIDTH
-          : barricade
-            ? BARRICADE_HALF_WIDTH
-            : boulder
-              ? BOULDER_HALF_WIDTH
-              : pole
-                ? POLE_HALF_WIDTH
-                : barrelLike
-                  ? BARREL_HALF_WIDTH
-                  : meteor
-                    ? METEOR_HALF_WIDTH
-                    : gap
-                      ? GAP_HALF_WIDTH
-                      : spikes
-                        ? SPIKES_HALF_WIDTH
-                        : livewire
-                          ? LIVEWIRE_HALF_WIDTH
-                          : beam
-                            ? BEAM_HALF_WIDTH
-                            : HAZARD_HALF_WIDTH;
-    const halfLength = rig
-      ? RIG_HALF_LENGTH
-      : barrier
-        ? BARRIER_HALF_LENGTH
-        : bus
-          ? BUS_HALF_LENGTH
-          : barricade
-            ? BARRICADE_HALF_LENGTH
-            : boulder
-              ? BOULDER_HALF_LENGTH
-              : pole
-                ? POLE_HALF_LENGTH
-                : barrelLike
-                  ? BARREL_HALF_LENGTH
-                  : meteor
-                    ? METEOR_HALF_LENGTH
-                    : gap
-                      ? GAP_HALF_LENGTH
-                      : spikes
-                        ? SPIKES_HALF_LENGTH
-                        : livewire
-                          ? LIVEWIRE_HALF_LENGTH
-                          : beam
-                            ? BEAM_HALF_LENGTH
-                            : HAZARD_HALF_LENGTH;
+    const halfWidth = hazardHalfWidth(h.kind);
 
     // Forward overlap: car spans [distance - CAR_LENGTH, distance].
-    const forwardOverlap =
-      state.distance >= h.forward - halfLength &&
-      state.distance - CAR_LENGTH <= h.forward + halfLength;
-    if (!forwardOverlap) continue;
+    if (!overlapsHazardForward(state.distance, h)) continue;
 
     const dx = Math.abs(car.lateralX - h.x);
     if (dx >= CAR_HALF_WIDTH + halfWidth) continue;
@@ -497,6 +515,7 @@ export function resolveCollisions(state: SimState): void {
       car.speed *= CRASH_TUNING.frontalSpeedKeep;
       state.combo = 0;
       state.comboTicks = 0;
+      resetMultiplier(state);
       if (!state.dead) {
         state.dead = true;
         state.deathCause = gap ? 'gap' : spikes ? 'spikes' : 'livewire';
@@ -530,6 +549,7 @@ export function resolveCollisions(state: SimState): void {
                     : beam
                       ? CRASH_TUNING.beamDamageMul
                       : 1;
+    const healthBeforeCrash = car.health;
     applyCrash(car, impact, glancing, state.events, state.loadout.damageMul * hazardMul);
     // The frenazo: a square hit bites momentum, a clip less so; a square wall hit
     // (rig, barrier, bus, meteor) stops the car near-dead, a boulder less than a
@@ -558,6 +578,7 @@ export function resolveCollisions(state: SimState): void {
     // Taking a hull hit breaks the streak. Greed has a cost (docs/DESIGN.md).
     state.combo = 0;
     state.comboTicks = 0;
+    if (car.health < healthBeforeCrash) resetMultiplier(state);
     // The jolt shakes any clinging jumpers loose: ramming or scraping is the crash
     // counter to a latch (docs/DESIGN.md → shaken by ramming or scraped on a wall).
     shedClingers(state, car.clinging);
@@ -645,11 +666,12 @@ export function resolveGas(state: SimState): void {
         // but the cloud keeps ageing in place and can still hurt once it expires.
         if (car.shieldTicks <= 0) {
           const before = car.health;
+          state.combo = 0;
+          state.comboTicks = 0;
+          resetMultiplier(state);
           car.health = Math.max(0, before - GAS_TUNING.drainPerTick * state.loadout.damageMul);
           if (car.health <= 0 && !state.dead) {
             state.events.push({ type: 'hullDamaged', amount: before, destroyed: true });
-            state.combo = 0;
-            state.comboTicks = 0;
             state.dead = true;
             state.deathCause = 'toxbarrel';
             state.events.push({ type: 'died' });
@@ -712,10 +734,12 @@ function payKill(state: SimState, z: Zombie): void {
   state.combo += 1;
   state.comboTicks = ECONOMY_TUNING.comboWindowTicks;
   state.zombiesMowed += 1;
+  addMultiplier(state, ECONOMY_TUNING.multiplierKillPoints);
   const streakBonus = Math.min(state.combo - 1, ECONOMY_TUNING.comboScrapCap);
   const bruteBonus = z.brute ? BRUTE_TUNING.scrapBonus : 0;
   state.scrap +=
-    ECONOMY_TUNING.mowScrapBase + streakBonus * ECONOMY_TUNING.mowScrapStep + bruteBonus;
+    (ECONOMY_TUNING.mowScrapBase + streakBonus * ECONOMY_TUNING.mowScrapStep + bruteBonus) *
+    state.multiplier;
   state.events.push({ type: 'zombieMowed', lane: z.lane, combo: state.combo, x: z.x });
 }
 
@@ -743,12 +767,13 @@ function damageZombie(state: SimState, z: Zombie, damage: number): boolean {
  * Fire the gun for one tick. The trigger is held (`intent.fire`); the sim gates
  * the cadence with the current weapon tier's `fireIntervalTicks`, so holding it
  * auto-fires. The tier (`weaponStats(loadout.weaponLevel)`) sets how far the shot
- * reaches (`range`), how many lanes wide it shreds (`laneSpread`), and how many
- * zombies one shot destroys (`killsPerShot`), nearest in the covered column
- * first. Each kill pays scrap and feeds the streak exactly like a mow but without
- * the ramming surge. With no ammo the gun is silent and the player goes back to
- * mowing (docs/DESIGN.md → Pillar 2). You can't shoot mid-jump. Allocation-free:
- * `killsPerShot` nearest-scans, no temporary arrays.
+ * reaches (`range`), whether it covers one or both road lanes (`laneSpread`), how
+ * many damage points it spends (`killsPerShot`), and how many destroyed blockers
+ * its remaining damage can punch through (`blockerPenetration`). Targets are hit
+ * nearest-first. Each kill pays scrap and feeds the streak exactly like a mow but
+ * without the ramming surge. With no ammo the gun is silent and the player goes
+ * back to mowing (docs/DESIGN.md → Pillar 2). You can't shoot mid-jump.
+ * Allocation-free: repeated nearest-scans, no temporary arrays.
  */
 export function resolveShots(state: SimState, intent: Intent): void {
   if (state.dead) return;
@@ -766,15 +791,19 @@ export function resolveShots(state: SimState, intent: Intent): void {
   // top of it, so a held trigger both fights the lane and peels the hood clean.
   if (car.clinging > 0) shedClingers(state, 1);
 
-  // The column the shot covers: the car's lane plus (laneSpread-1)/2 lanes each
-  // side. laneSpread 1 = own lane, 3 = ±1, 5 = ±2.
+  // The column the shot covers. On this two-lane road, laneSpread 1 is the car's
+  // lane and laneSpread 2 covers the full road, even while the freely steered car
+  // is sitting at an outer edge instead of a lane center.
+  const coversAllLanes = w.laneSpread >= LANE_COUNT;
   const halfWidth = WEAPON_TUNING.laneHalfWidth + ((w.laneSpread - 1) / 2) * LANE_WIDTH;
 
   // Spend the shot's damage points nearest-first across one ordered column. Every
   // point re-scans both zombies and shootable hazards, so a target exposed after a
-  // kill can take the next point, but a car, barricade, or drum always shields what
-  // sits behind it. Ties go to the physical blocker. A blocker absorbs all damage
-  // left in this shot (even when it breaks); drums consume the shot by detonating.
+  // kill can take the next point. Ties go to the physical blocker. Wrecks and
+  // barricades absorb each point until they break; Mk IV/V can carry leftover
+  // damage through a limited number of destroyed blockers. Drums always consume
+  // the shot by detonating.
+  let blockersPenetrated = 0;
   for (let spent = 0; spent < w.killsPerShot; spent += 1) {
     let zombie: Zombie | null = null;
     let zombieAhead = Infinity;
@@ -782,7 +811,7 @@ export function resolveShots(state: SimState, intent: Intent): void {
       if (z.mowed) continue;
       const ahead = z.forward - state.distance;
       if (ahead <= 0 || ahead > w.range) continue;
-      if (Math.abs(z.x - car.lateralX) > halfWidth) continue;
+      if (!coversAllLanes && Math.abs(z.x - car.lateralX) > halfWidth) continue;
       if (ahead < zombieAhead) {
         zombieAhead = ahead;
         zombie = z;
@@ -803,7 +832,7 @@ export function resolveShots(state: SimState, intent: Intent): void {
         continue;
       const ahead = h.forward - state.distance;
       if (ahead <= 0 || ahead > w.range) continue;
-      if (Math.abs(h.x - car.lateralX) > halfWidth) continue;
+      if (!coversAllLanes && Math.abs(h.x - car.lateralX) > halfWidth) continue;
       if (ahead < blockerAhead) {
         blockerAhead = ahead;
         blocker = h;
@@ -820,14 +849,19 @@ export function resolveShots(state: SimState, intent: Intent): void {
         return;
       }
 
-      const remainingDamage = w.killsPerShot - spent;
-      const defaultHp = blocker.kind === 'barricade' ? WEAPON_TUNING.barricadeHp : WEAPON_TUNING.wreckHp;
-      blocker.hp = (blocker.hp ?? defaultHp) - remainingDamage;
+      const defaultHp =
+        blocker.kind === 'barricade' ? WEAPON_TUNING.barricadeHp : WEAPON_TUNING.wreckHp;
+      blocker.hp = (blocker.hp ?? defaultHp) - 1;
       if (blocker.hp <= 0) {
         blocker.hit = true;
         state.events.push({ type: 'exploded', x: blocker.x, forward: blocker.forward });
+        if (blockersPenetrated < w.blockerPenetration) {
+          blockersPenetrated += 1;
+          continue;
+        }
       }
-      return;
+      if (blocker.hit) return;
+      continue;
     }
 
     if (!zombie) break;
@@ -851,8 +885,7 @@ export function resolveMows(state: SimState, topSpeed: number): void {
   if (state.dead) return;
   const car = state.car;
   if (car.height > JUMP_CLEARANCE) return;
-  // Scrap Magnet widens the bumper's reach so you mow fodder you used to skim.
-  const reach = ZOMBIE_HALF_WIDTH * state.loadout.grabRadiusMul;
+  const reach = ZOMBIE_HALF_WIDTH;
   for (const z of state.zombies) {
     if (z.mowed) continue;
     // A jumper is never mowed for scrap: contact latches it onto the hood instead
@@ -869,6 +902,7 @@ export function resolveMows(state: SimState, topSpeed: number): void {
       // Ramming a brute is a crash: a hull hit and a frenazo before you plow it.
       const impact = car.speed;
       state.events.push({ type: 'crashed', impact, lane: z.lane });
+      const healthBeforeCrash = car.health;
       applyCrash(
         car,
         impact,
@@ -880,6 +914,7 @@ export function resolveMows(state: SimState, topSpeed: number): void {
       // The hull hit breaks the streak before the kill banks a fresh one.
       state.combo = 0;
       state.comboTicks = 0;
+      if (car.health < healthBeforeCrash) resetMultiplier(state);
       // The bone-jarring slam shakes any clinging jumpers loose (ram = a counter).
       shedClingers(state, car.clinging);
       payKill(state, z);
@@ -953,12 +988,13 @@ export function updateClingers(state: SimState): void {
   // The shield absorbs the clingers' drain; they still ride (shed them as usual).
   if (car.shieldTicks > 0) return;
   const before = car.health;
+  state.combo = 0;
+  state.comboTicks = 0;
+  resetMultiplier(state);
   car.health = Math.max(0, before - JUMPER_TUNING.drainPerTick * car.clinging);
   if (car.health <= 0) {
     state.events.push({ type: 'hullDamaged', amount: before, destroyed: true });
     car.clinging = 0;
-    state.combo = 0;
-    state.comboTicks = 0;
     state.dead = true;
     state.deathCause = 'jumper';
     state.events.push({ type: 'died' });
@@ -1010,6 +1046,37 @@ export function resolvePickups(state: SimState): void {
       car.ammo = Math.min(car.ammo + PICKUP_TUNING.ammoRestore, cap);
     }
     state.events.push({ type: 'pickupCollected', kind: p.kind, lane: p.lane, x: p.x });
+  }
+}
+
+/**
+ * Arm a committed close clear while the car genuinely overlaps a live hazard,
+ * then reward it once the rear clears that hazard's exact far edge. Remembering
+ * the overlap-time X makes a real dodge pay even if the car moves away afterward,
+ * and prevents a late steer toward an already-passed hazard from counting. The
+ * fixed band excludes simply cruising down the other lane, while still counting
+ * an edge-thread or a same-lane jump. A later collision/destruction cancels an
+ * armed clear via `hit`. Deterministic and allocation-free.
+ */
+export function resolveNearMisses(state: SimState): void {
+  if (state.dead) return;
+  for (const h of state.hazards) {
+    if (h.hit || h.nearMissed || h.kind === 'ramp') continue;
+    if ((h.kind === 'meteor' || h.kind === 'stomp' || h.kind === 'shell') && !h.landed) continue;
+    if (h.kind === 'gap' && h.open === false) continue;
+
+    if (hazardIsFullyBehind(state.distance, h)) {
+      h.nearMissed = true;
+      if (!h.nearMissArmed) continue;
+      addMultiplier(state, ECONOMY_TUNING.multiplierNearMissPoints);
+      state.events.push({ type: 'nearMiss', x: h.x });
+      continue;
+    }
+
+    if (!overlapsHazardForward(state.distance, h)) continue;
+    const closeBand = CAR_HALF_WIDTH + hazardHalfWidth(h.kind) + ECONOMY_TUNING.nearMissMargin;
+    if (Math.abs(state.car.lateralX - h.x) > closeBand) continue;
+    h.nearMissArmed = true;
   }
 }
 

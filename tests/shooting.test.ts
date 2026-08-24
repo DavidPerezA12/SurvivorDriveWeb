@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createSim, type Intent, type SimState } from '../src/sim';
 import { resolveShots } from '../src/sim/collision';
 import { BASE_LOADOUT, computeLoadout, upgradePrereq, type Loadout } from '../src/content/upgrades';
-import { laneCenterX, WEAPON_TUNING } from '../src/content/tuning';
+import { CAR_HALF_WIDTH, laneCenterX, roadHalfWidth, WEAPON_TUNING } from '../src/content/tuning';
 import { weaponStats } from '../src/content/weapons';
 
 /**
@@ -134,6 +134,22 @@ describe('weapon tiers', () => {
     expect(narrow.zombies[0].mowed).toBe(false);
   });
 
+  it('keeps both lanes covered while the car hugs the outer road edge', () => {
+    const wide = gunner(computeLoadout(['gunMkII', 'gunMkIII']));
+    wide.car.lateralX = roadHalfWidth() - CAR_HALF_WIDTH;
+    putZombie(wide, 0, wide.distance + 12);
+
+    resolveShots(wide, FIRE);
+
+    expect(wide.zombies[0].mowed).toBe(true);
+  });
+
+  it('caps spread at the two road lanes instead of inventing unreachable lanes', () => {
+    expect(weaponStats(3).laneSpread).toBe(2);
+    expect(weaponStats(4).laneSpread).toBe(2);
+    expect(weaponStats(5).laneSpread).toBe(2);
+  });
+
   it('a higher tier reaches fodder the base gun cannot', () => {
     const far = weaponStats(1).range + 15; // beyond level 1, inside level 5
     const top = gunner(computeLoadout(['gunMkII', 'gunMkIII', 'gunMkIV', 'gunMkV']));
@@ -152,7 +168,14 @@ describe('weapon tiers', () => {
 });
 
 function putWreck(s: SimState, lane: number, forward: number): void {
-  s.hazards.push({ kind: 'wreck', lane, x: laneCenterX(lane), forward, hit: false, hp: WEAPON_TUNING.wreckHp });
+  s.hazards.push({
+    kind: 'wreck',
+    lane,
+    x: laneCenterX(lane),
+    forward,
+    hit: false,
+    hp: WEAPON_TUNING.wreckHp,
+  });
 }
 
 describe('the gun blows up cars', () => {
@@ -225,9 +248,59 @@ describe('the gun blows up cars', () => {
     expect(s.zombies[1].mowed).toBe(false);
   });
 
+  it('Mk III stops at a destroyed barricade, while Mk IV punches through one', () => {
+    const putLine = (s: SimState): void => {
+      s.hazards.push({
+        kind: 'barricade',
+        lane: CAR_LANE,
+        x: laneCenterX(CAR_LANE),
+        forward: s.distance + 10,
+        hit: false,
+      });
+      putZombie(s, CAR_LANE, s.distance + 20);
+    };
+
+    const mkIII = gunner({ ...BASE_LOADOUT, weaponLevel: 3 });
+    putLine(mkIII);
+    resolveShots(mkIII, FIRE);
+    expect(mkIII.hazards[0].hit).toBe(true);
+    expect(mkIII.zombies[0].mowed).toBe(false);
+
+    const mkIV = gunner({ ...BASE_LOADOUT, weaponLevel: 4 });
+    putLine(mkIV);
+    resolveShots(mkIV, FIRE);
+    expect(mkIV.hazards[0].hit).toBe(true);
+    expect(mkIV.zombies[0].mowed).toBe(true);
+  });
+
+  it('Mk V punches through two destroyed barricades in one shot', () => {
+    const s = gunner({ ...BASE_LOADOUT, weaponLevel: 5 });
+    for (const ahead of [10, 15]) {
+      s.hazards.push({
+        kind: 'barricade',
+        lane: CAR_LANE,
+        x: laneCenterX(CAR_LANE),
+        forward: s.distance + ahead,
+        hit: false,
+      });
+    }
+    putZombie(s, CAR_LANE, s.distance + 20);
+
+    resolveShots(s, FIRE);
+
+    expect(s.hazards.every((h) => h.hit)).toBe(true);
+    expect(s.zombies[0].mowed).toBe(true);
+  });
+
   it('cannot destroy a rig — it must still be dodged', () => {
     const s = gunner({ ...BASE_LOADOUT, weaponLevel: 5 });
-    s.hazards.push({ kind: 'rig', lane: CAR_LANE, x: laneCenterX(CAR_LANE), forward: s.distance + 20, hit: false });
+    s.hazards.push({
+      kind: 'rig',
+      lane: CAR_LANE,
+      x: laneCenterX(CAR_LANE),
+      forward: s.distance + 20,
+      hit: false,
+    });
     resolveShots(s, FIRE);
     expect(s.hazards[0].hit).toBe(false);
   });
