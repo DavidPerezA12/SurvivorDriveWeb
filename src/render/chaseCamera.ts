@@ -106,15 +106,32 @@ export class ChaseCamera {
       lerp(heroY, 3.8, s),
       lerp(heroZ, 8, s),
     );
-    this.camera.lookAt(
-      lerp(carX, this.smoothedX * 0.7, s),
-      lerp(0.9, 0.8, s),
-      lerp(3, -14, s),
-    );
+    this.camera.lookAt(lerp(carX, this.smoothedX * 0.7, s), lerp(0.9, 0.8, s), lerp(3, -14, s));
 
     // Long hero lens relaxing to the chase FOV through the orbit, so the pose
     // *and* the lens land exactly on the first gameplay frame.
     this.camera.fov = lerp(HERO_FOV, BASE_FOV, s);
+    this.camera.updateProjectionMatrix();
+  }
+
+  /**
+   * Brief wreck tableau before the garage takes over. The authoritative state is
+   * frozen; only the camera moves, giving the player a beat to read what happened.
+   */
+  frameDeath(carX: number, progress: number): void {
+    this.smoothedX = carX * 0.5;
+    if (this.reduced) {
+      this.camera.position.set(this.smoothedX, 4.2, 8.8);
+      this.camera.lookAt(carX, 0.8, 0);
+      this.camera.fov = BASE_FOV;
+      this.camera.updateProjectionMatrix();
+      return;
+    }
+
+    const p = progress * progress * (3 - 2 * progress);
+    this.camera.position.set(this.smoothedX + p * 4.2, 3.8 + p * 1.3, 8 - p * 2.4);
+    this.camera.lookAt(carX * 0.8, 0.75, -1.5);
+    this.camera.fov = lerp(BASE_FOV + 3, BASE_FOV - 2, p);
     this.camera.updateProjectionMatrix();
   }
 

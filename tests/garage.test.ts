@@ -48,6 +48,46 @@ describe('garage persistence', () => {
     expect(fresh.paint).toBe('factory');
     expect(fresh.globalUpgrades).toEqual([]);
     expect(fresh.chassisUpgrades).toEqual({});
+    expect(fresh.tutorialSeen).toBe(false);
+    expect(fresh.lastRun).toBeNull();
+    expect(fresh.bestRun).toBeNull();
+  });
+
+  it('persists onboarding and keeps last and best run records separately', () => {
+    const store = memoryStore();
+    const s = new SaveStore(store);
+    s.markTutorialSeen();
+    const first = {
+      distance: 1200,
+      zombiesMowed: 18,
+      scrap: 42,
+      seed: 123,
+      title: 'First wreck',
+      act: 'The Long Road',
+      peakMultiplier: 3,
+    };
+    expect(s.recordRun(first)).toBe(true);
+    expect(s.recordRun({ ...first, distance: 900, title: 'Second wreck' })).toBe(false);
+    s.flush();
+
+    const loaded = new SaveStore(store);
+    expect(loaded.tutorialSeen).toBe(true);
+    expect(loaded.lastRun?.title).toBe('Second wreck');
+    expect(loaded.bestRun?.distance).toBe(1200);
+  });
+
+  it('drops malformed run records instead of trusting localStorage', () => {
+    const store = memoryStore();
+    store.map.set(
+      'sdw.save.v1',
+      JSON.stringify({
+        lastRun: { distance: -1, seed: 'bad' },
+        bestRun: { distance: Number.POSITIVE_INFINITY },
+      }),
+    );
+    const data = loadSave(store);
+    expect(data.lastRun).toBeNull();
+    expect(data.bestRun).toBeNull();
   });
 
   it('locks chassis bodies until bought and refuses to select an unowned one', () => {

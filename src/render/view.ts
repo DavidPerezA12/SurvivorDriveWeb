@@ -353,6 +353,8 @@ export class GameView {
         this.stage.camera.addTrauma(0.16);
         break;
       case 'laneChanged':
+      case 'nearMiss':
+      case 'multiplierChanged':
       case 'died':
         break;
     }
@@ -372,6 +374,7 @@ export class GameView {
     alpha: number,
     dt: number,
     intro: { dolly: number; settle: number } | null = null,
+    deathProgress: number | null = null,
   ): void {
     if (this.destroyed) return;
     const carX = lerp(prev.carLateralX, curr.car.lateralX, alpha);
@@ -433,7 +436,8 @@ export class GameView {
     this.gunFx.update(distance, dt);
     this.explosionFx.update(distance, dt, this.elevation);
     this.groundFx.update(carX, carHeight, dt);
-    if (intro) this.stage.camera.frameIntro(carX, intro.dolly, intro.settle);
+    if (deathProgress !== null) this.stage.camera.frameDeath(carX, deathProgress);
+    else if (intro) this.stage.camera.frameIntro(carX, intro.dolly, intro.settle);
     else this.stage.camera.update(carX, carHeight, curr.car.speed, dt);
 
     this.lastDistance = distance;

@@ -41,7 +41,7 @@ describe('game lifecycle', () => {
     expect(cancelAnimationFrame).toHaveBeenCalledOnce();
     expect(cancelAnimationFrame).toHaveBeenCalledWith(17);
     expect(removeDocumentListener).toHaveBeenCalledOnce();
-    expect(removeWindowListener).toHaveBeenCalledTimes(3);
+    expect(removeWindowListener).toHaveBeenCalledTimes(4);
     expect(motionQuery.removeEventListener).toHaveBeenCalledOnce();
     expect(save.flush).toHaveBeenCalledOnce();
     for (const surface of Object.values(surfaces)) {

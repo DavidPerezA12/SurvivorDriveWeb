@@ -533,6 +533,30 @@ button {
   .sdw-garage-card.is-active {
     animation: none;
   }
+
+  .sdw-garage__drive,
+  .sdw-garage__tabs > button,
+  .sdw-garage-card,
+  .sdw-garage-chassis-card,
+  .sdw-garage-paint-card,
+  .sdw-garage__bar-fill {
+    transition: none !important;
+  }
+}
+
+/* The in-game preference must be as complete as the OS preference. */
+html[data-reduced-motion='true'] .sdw-garage__lcd,
+html[data-reduced-motion='true'] .sdw-garage-card.is-active {
+  animation: none;
+}
+
+html[data-reduced-motion='true'] .sdw-garage__drive,
+html[data-reduced-motion='true'] .sdw-garage__tabs > button,
+html[data-reduced-motion='true'] .sdw-garage-card,
+html[data-reduced-motion='true'] .sdw-garage-chassis-card,
+html[data-reduced-motion='true'] .sdw-garage-paint-card,
+html[data-reduced-motion='true'] .sdw-garage__bar-fill {
+  transition: none !important;
 }
 
 @media (hover: none), (pointer: coarse), (max-width: 760px) {

@@ -13,11 +13,15 @@ import { paintBody, type PaintId } from '../content/paint';
 import { runTitle } from '../content/runTitles';
 import { biomeAt } from '../content/biomes';
 import { INTRO_TUNING } from '../content/tuning';
+import { ACT_NAMES, actAt } from '../content/acts';
 
 /** Beyond this many catch-up ticks in one frame, pause rather than spiral. */
 const MAX_CATCHUP = 5;
 /** A tab regaining focus can report a huge gap; clamp it so we never spiral. */
 const MAX_FRAME_S = 0.25;
+/** Time the frozen wreck stays visible before the garage recap replaces it. */
+const DEATH_BEAT_S = 0.95;
+const REDUCED_DEATH_BEAT_S = 0.2;
 
 /**
  * Composition root. Wires the pure sim to the impure views and runs the
@@ -52,6 +56,11 @@ export class Game {
   private raf = 0;
   /** Latches the wreck handling (bank scrap, open garage) to once per run. */
   private wreckHandled = false;
+  /** First visit only: the sim stays frozen until a real driving input arrives. */
+  private readyActive = false;
+  /** Render-only wreck tableau progress; the sim is already frozen. */
+  private deathElapsed = 0;
+  private deathBeatActive = false;
   /** Whether the open garage is the wreck screen (drives again) or a pause visit (resumes). */
   private garageMode: 'wreck' | 'pause' = 'wreck';
   /** The chassis selected in the garage's CAR tab (shown in the preview). */
@@ -59,7 +68,15 @@ export class Game {
   /** The paint selected in the garage's COLOR tab (shown in the preview). */
   private selectedPaint: PaintId = 'factory';
   /** The just-ended run's result, frozen for the garage to display across buys. */
-  private lastRun = { distance: 0, zombiesMowed: 0, runScrap: 0, title: '' };
+  private lastRun = {
+    distance: 0,
+    zombiesMowed: 0,
+    runScrap: 0,
+    title: '',
+    act: ACT_NAMES[0] as string,
+    peakMultiplier: 1,
+    isBest: false,
+  };
 
   /** Reused snapshot of the pre-step state for interpolation. Never realloc'd. */
   private readonly prev: RenderSnapshot = {
@@ -85,9 +102,15 @@ export class Game {
       // OS kills it). Drop held controls and persist immediately before it goes.
       this.input.reset();
       this.save.flush();
+      if (this.running && !this.readyActive && !this.state.dead) this.pause();
     } else {
       this.last = performance.now();
     }
+  };
+
+  private readonly onWindowBlur = (): void => {
+    this.input.reset();
+    if (this.running && !this.readyActive && !this.state.dead) this.pause();
   };
 
   private readonly onMotionPreferenceChange = (): void => {
@@ -97,11 +120,7 @@ export class Game {
   private readonly onResize = (): void => this.resizeGaragePreview();
 
   private readonly onKeyDown = (event: KeyboardEvent): void => {
-    if (
-      (event.key === 'r' || event.key === 'R') &&
-      this.state.dead &&
-      this.garage.isOpen()
-    ) {
+    if ((event.key === 'r' || event.key === 'R') && this.state.dead && this.garage.isOpen()) {
       if (event.repeat) return;
       event.preventDefault();
       this.driveAgain();
@@ -128,7 +147,7 @@ export class Game {
     this.state = createSim(seed, runLoadout(this.selectedChassis, this.effectiveOwned()));
     this.view = new GameView(seed, renderAssets);
     this.input = new PlayerInput({ onPause: () => this.pause() });
-    this.hud = new Hud();
+    this.hud = new Hud(seed);
     this.overlay = new DebugOverlay();
     this.menu = new Menu(this.save.settings, {
       onResume: () => this.resume(),
@@ -144,6 +163,8 @@ export class Game {
       onSelectChassis: (id) => this.selectChassis(id),
       onSelectPaint: (id) => this.selectPaint(id),
       onClose: () => (this.garageMode === 'wreck' ? this.driveAgain() : this.exitGarageToGame()),
+      onNewApocalypse: () => this.newApocalypse(),
+      onCopyRunLink: () => this.copyRunLink(),
     });
     // The 3D car preview lives in the garage panel — built once, spun only while open.
     this.carPreview = new CarPreview();
@@ -157,6 +178,7 @@ export class Game {
     document.addEventListener('visibilitychange', this.onVisibilityChange);
     this.motionQuery?.addEventListener('change', this.onMotionPreferenceChange);
     window.addEventListener('resize', this.onResize);
+    window.addEventListener('blur', this.onWindowBlur);
 
     // Esc owns the pause menu: open it, step back out of settings, or resume.
     // The death screen keeps its own R-to-restart flow, so pausing is disabled
@@ -170,7 +192,11 @@ export class Game {
   start(): void {
     if (this.destroyed) return;
     this.input.setTouchVisible(true);
-    this.beginIntro();
+    if (this.save.tutorialSeen) this.beginIntro();
+    else {
+      this.readyActive = true;
+      this.hud.showReadyCard();
+    }
     this.startLoop();
   }
 
@@ -195,7 +221,7 @@ export class Game {
     this.introActive = true;
     this.introTicks = 0;
     // The location the run opens in (distance 0), the title on the intro card.
-    this.hud.showIntroCard(biomeAt(this.seed, 0).name);
+    this.hud.showIntroCard(biomeAt(this.seed, 0).name, `ACT 1 · ${ACT_NAMES[0]}`);
   }
 
   /** Hand the cinematic off to gameplay: drop the card, hand control back to the player. */
@@ -246,6 +272,7 @@ export class Game {
     this.hud.setReducedMotion(motionReduced);
     this.carPreview.setReducedMotion(motionReduced);
     this.overlay.setVisible(settings.debugOverlay);
+    document.documentElement.dataset.reducedMotion = String(motionReduced);
     // settings.volume is persisted but inert until the audio layer is wired.
   }
 
@@ -268,11 +295,15 @@ export class Game {
     this.state = createSim(this.seed, runLoadout(this.selectedChassis, this.effectiveOwned()));
     this.accumulator = 0;
     this.wreckHandled = false;
+    this.readyActive = false;
+    this.deathElapsed = 0;
+    this.deathBeatActive = false;
     this.garage.hide();
     this.carPreview.stop();
     this.dressCar();
     this.input.reset();
     this.snapshot();
+    this.hud.resetRun();
     // Every fresh run opens with the cinematic, not just the first.
     this.beginIntro();
   }
@@ -296,6 +327,21 @@ export class Game {
   private handleWreck(): void {
     this.wreckHandled = true;
     this.garageMode = 'wreck';
+    const act = ACT_NAMES[actAt(this.state.distance)];
+    const title = runTitle(this.seed, this.state.deathCause ?? 'attrition', {
+      distance: this.state.distance,
+      zombiesKilled: this.state.zombiesMowed,
+      scrap: this.state.scrap,
+    });
+    const isBest = this.save.recordRun({
+      distance: this.state.distance,
+      zombiesMowed: this.state.zombiesMowed,
+      scrap: this.state.scrap,
+      seed: this.seed,
+      title,
+      act,
+      peakMultiplier: this.state.peakMultiplier,
+    });
     this.lastRun = {
       distance: this.state.distance,
       zombiesMowed: this.state.zombiesMowed,
@@ -303,11 +349,10 @@ export class Game {
       // The death card: an absurd, attributable headline composed from the run
       // seed, the blocker that killed the car, and the run's tally. Deterministic
       // per seed+cause, so it is frozen here and reused across garage buys.
-      title: runTitle(this.seed, this.state.deathCause ?? 'attrition', {
-        distance: this.state.distance,
-        zombiesKilled: this.state.zombiesMowed,
-        scrap: this.state.scrap,
-      }),
+      title,
+      act,
+      peakMultiplier: this.state.peakMultiplier,
+      isBest,
     };
     this.save.bankScrap(this.state.scrap);
     // The garage owns the screen now. Stop the world loop before starting the
@@ -385,6 +430,11 @@ export class Game {
       zombiesMowed: this.lastRun.zombiesMowed,
       runScrap: this.lastRun.runScrap,
       runTitle: this.lastRun.title,
+      seed: this.seed,
+      act: this.lastRun.act,
+      peakMultiplier: this.lastRun.peakMultiplier,
+      bestDistance: this.save.bestRun?.distance ?? this.lastRun.distance,
+      isBest: this.lastRun.isBest,
       wallet: this.save.wallet,
       owned: this.effectiveOwned(),
       chassis: this.selectedChassis,
@@ -419,10 +469,85 @@ export class Game {
     this.startLoop();
   }
 
+  /** Reload on a fresh seed while keeping every local garage unlock and record. */
+  private newApocalypse(): void {
+    this.save.flush();
+    let next = Date.now() >>> 0;
+    try {
+      const random = new Uint32Array(1);
+      crypto.getRandomValues(random);
+      next = random[0];
+    } catch {
+      // Date-based fallback still belongs safely in this impure app boundary.
+    }
+    if (next === this.seed) next = (next + 1) >>> 0;
+    const url = new URL(window.location.href);
+    url.searchParams.set('seed', `${next}`);
+    window.location.assign(url.toString());
+  }
+
+  /** Copy a stable URL for replaying the current deterministic apocalypse. */
+  private async copyRunLink(): Promise<boolean> {
+    const clipboard = navigator.clipboard;
+    if (!clipboard) return false;
+    const url = new URL(window.location.href);
+    url.searchParams.set('seed', `${this.seed}`);
+    try {
+      await clipboard.writeText(url.toString());
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Draw the frozen lethal tick long enough for the hit and cause to register. */
+  private renderDeath(frameMs: number): void {
+    if (!this.deathBeatActive) {
+      this.deathBeatActive = true;
+      this.deathElapsed = 0;
+      this.accumulator = 0;
+      this.input.reset();
+    }
+    this.deathElapsed += Math.min(frameMs / 1000, MAX_FRAME_S);
+    const duration = reducedMotion(this.save.settings.motion) ? REDUCED_DEATH_BEAT_S : DEATH_BEAT_S;
+    const progress = Math.min(this.deathElapsed / duration, 1);
+    this.view.render(this.prev, this.state, 1, frameMs / 1000, null, progress);
+    this.hud.update(this.state);
+    this.overlay.update(frameMs, this.view.stats());
+    if (progress >= 1) {
+      if (!this.wreckHandled) this.handleWreck();
+      return;
+    }
+    if (this.running) this.raf = requestAnimationFrame(this.frame);
+  }
+
   private readonly frame = (now: number): void => {
     if (this.destroyed) return;
     const frameMs = now - this.last;
     this.last = now;
+
+    // The first visit starts on a deliberate ready gate: the road and grace
+    // period are frozen until the player proves they have found a control.
+    if (this.readyActive) {
+      const intent = this.input.takeIntent();
+      if (intent.steer !== 0 || intent.jump || intent.fire) {
+        this.readyActive = false;
+        this.save.markTutorialSeen();
+        this.input.reset();
+        this.accumulator = 0;
+        this.beginIntro();
+      }
+      this.view.render(this.prev, this.state, 0, frameMs / 1000);
+      this.hud.update(this.state);
+      this.overlay.update(frameMs, this.view.stats());
+      if (this.running) this.raf = requestAnimationFrame(this.frame);
+      return;
+    }
+
+    if (this.state.dead) {
+      this.renderDeath(frameMs);
+      return;
+    }
 
     // The run-opening cinematic: the sim runs (the car drives at cruising speed, so the
     // world scrolls and the roadside streams past — real motion) while the camera plays
@@ -443,7 +568,7 @@ export class Game {
         step(this.state, NO_INTENT);
         for (const event of this.state.events) {
           this.view.handleEvent(event);
-          this.hud.handleEvent(event);
+          this.hud.handleEvent(event, this.state.tick);
         }
         this.accumulator -= FIXED_DT;
         this.introTicks += 1;
@@ -466,17 +591,6 @@ export class Game {
       return;
     }
 
-    // The wreck flow: bank scrap and raise the garage once, then R (or the
-    // garage's Drive button) starts the next run wearing the new loadout.
-    if (this.state.dead) {
-      if (!this.wreckHandled) this.handleWreck();
-      // `handleWreck` stops the loop. Do not advance or render a dead run behind
-      // the garage; the Play Again button or the window-level R shortcut starts
-      // a fresh loop.
-      if (!this.running) return;
-      if (this.input.takeRestart()) this.driveAgain();
-    }
-
     this.accumulator += Math.min(frameMs / 1000, MAX_FRAME_S);
 
     let ticks = 0;
@@ -487,7 +601,7 @@ export class Game {
       step(this.state, this.input.takeIntent());
       for (const event of this.state.events) {
         this.view.handleEvent(event);
-        this.hud.handleEvent(event);
+        this.hud.handleEvent(event, this.state.tick);
       }
 
       this.accumulator -= FIXED_DT;
@@ -500,8 +614,7 @@ export class Game {
     if (ticks === MAX_CATCHUP) this.accumulator = 0;
 
     if (this.state.dead) {
-      this.accumulator = 0;
-      if (!this.wreckHandled) this.handleWreck();
+      this.renderDeath(frameMs);
       return;
     }
 
@@ -523,6 +636,7 @@ export class Game {
     document.removeEventListener('visibilitychange', this.onVisibilityChange);
     this.motionQuery?.removeEventListener('change', this.onMotionPreferenceChange);
     window.removeEventListener('resize', this.onResize);
+    window.removeEventListener('blur', this.onWindowBlur);
     window.removeEventListener('keydown', this.onKeyDown);
     window.removeEventListener('pagehide', this.onPageHide);
     this.save.flush();

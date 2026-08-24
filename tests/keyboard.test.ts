@@ -52,12 +52,10 @@ describe('keyboard input', () => {
     target.key('keydown', 'd');
     target.key('keydown', 'w');
     target.key('keydown', 'f');
-    target.key('keydown', 'r');
 
     target.blur();
 
     expect(keyboard.takeIntent()).toEqual({ steer: 0, jump: false, fire: false });
-    expect(keyboard.takeRestart()).toBe(false);
   });
 
   it('leaves native keys alone when an interactive control owns the event', () => {

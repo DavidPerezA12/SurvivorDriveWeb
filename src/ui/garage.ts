@@ -7,8 +7,9 @@ import {
   type UpgradeFamily,
   type UpgradeId,
 } from '../content/upgrades';
-import { CHASSIS, chassisDef, type ChassisId } from '../content/chassis';
+import { CHASSIS, chassisDef, runLoadout, type ChassisId } from '../content/chassis';
 import { PAINTS, paintDef, type PaintId } from '../content/paint';
+import { MAX_WEAPON_LEVEL, weaponStats, type WeaponStats } from '../content/weapons';
 import { trapDialogTab } from './focus';
 
 /**
@@ -31,6 +32,10 @@ export interface GarageCallbacks {
   onSelectPaint(id: PaintId): void;
   /** The primary button: drive the next run (wreck) or return to the run (pause). */
   onClose(): void;
+  /** Start a different deterministic road while preserving the save. */
+  onNewApocalypse?(): void;
+  /** Copy the current seed URL. Returns whether the clipboard write succeeded. */
+  onCopyRunLink?(): Promise<boolean>;
 }
 
 /** The read-only snapshot the app hands the garage each time it opens or changes. */
@@ -41,6 +46,11 @@ export interface GarageView {
   runScrap: number;
   /** The death card's absurd run-title headline (wreck mode only). */
   runTitle: string;
+  seed: number;
+  act: string;
+  peakMultiplier: number;
+  bestDistance: number;
+  isBest: boolean;
   wallet: number;
   owned: ReadonlySet<UpgradeId>;
   chassis: ChassisId;
@@ -73,19 +83,39 @@ interface Card {
   target: UpgradeId | null;
 }
 
-/** A CAR INFO stat bar tied to a family's level. */
+type StatKey = 'armor' | 'handling' | 'jump' | 'gun' | 'reach';
+
+/** A CAR INFO stat bar tied to a real loadout capability. */
 interface StatBar {
+  readonly key: StatKey;
+  readonly track: HTMLDivElement;
   readonly fill: HTMLDivElement;
-  readonly familyKey: string;
 }
 
-const STAT_DEFS: { label: string; key: string }[] = [
+interface StatReadout {
+  /** Current capability divided by the best build that can be assembled. */
+  readonly fraction: number;
+  /** Exact underlying value for assistive technology and inspection. */
+  readonly text: string;
+}
+
+export type GarageStatReadouts = Record<StatKey, StatReadout>;
+
+const STAT_DEFS: readonly { label: string; key: StatKey }[] = [
   { label: 'ARMOR', key: 'armor' },
-  { label: 'HANDLING', key: 'tires' },
+  { label: 'HANDLING', key: 'handling' },
   { label: 'JUMP', key: 'jump' },
   { label: 'GUN', key: 'gun' },
-  { label: 'REACH', key: 'magnet' },
+  { label: 'REACH', key: 'reach' },
 ];
+
+const ALL_UPGRADES = UPGRADE_FAMILIES.flatMap((family) => family.tiers);
+const MAX_LOADOUTS = CHASSIS.map((chassis) => runLoadout(chassis.id, ALL_UPGRADES));
+const MAX_ARMOR = Math.max(...MAX_LOADOUTS.map((loadout) => 1 / loadout.damageMul));
+const MAX_HANDLING = Math.max(...MAX_LOADOUTS.map((loadout) => loadout.steerOmegaMul));
+const MAX_JUMP = Math.max(...MAX_LOADOUTS.map((loadout) => loadout.jumpImpulseMul));
+const MAX_REACH = Math.max(...MAX_LOADOUTS.map((loadout) => loadout.grabRadiusMul));
+const MAX_GUN_SCORE = gunScore(weaponStats(MAX_WEAPON_LEVEL));
 
 const TAB_DEFS: { key: Tab['key']; label: string; soon?: boolean }[] = [
   { key: 'upgrade', label: 'UPGRADES' },
@@ -102,6 +132,69 @@ const DETAIL_HINT: Record<Tab['key'], string> = {
   color: 'Pick a paint job for your car.',
 };
 
+/**
+ * CAR INFO values for the selected preview build. The rail is the strongest
+ * build available anywhere in the garage, while the fill is derived from the
+ * same loadout values the simulation consumes. That makes different stock
+ * chassis visibly different before any upgrade is bought.
+ */
+export function garageStatReadouts(
+  chassis: ChassisId,
+  owned: Iterable<UpgradeId>,
+): GarageStatReadouts {
+  const loadout = runLoadout(chassis, owned);
+  const weapon = weaponStats(loadout.weaponLevel);
+  return {
+    armor: {
+      fraction: normalized(1 / loadout.damageMul, MAX_ARMOR),
+      text: armorText(loadout.damageMul),
+    },
+    handling: {
+      fraction: normalized(loadout.steerOmegaMul, MAX_HANDLING),
+      text: `${loadout.steerOmegaMul.toFixed(2)}x steering response`,
+    },
+    jump: {
+      fraction: normalized(loadout.jumpImpulseMul, MAX_JUMP),
+      text: `${loadout.jumpImpulseMul.toFixed(2)}x jump impulse`,
+    },
+    gun: {
+      fraction: normalized(gunScore(weapon), MAX_GUN_SCORE),
+      text: `${weapon.name}, tier ${weapon.level} of ${MAX_WEAPON_LEVEL}`,
+    },
+    reach: {
+      fraction: normalized(loadout.grabRadiusMul, MAX_REACH),
+      text: `${loadout.grabRadiusMul.toFixed(2)}x pickup reach`,
+    },
+  };
+}
+
+/** Per-chassis upgrades cannot be installed on a body that is only a preview. */
+export function familyLockedForPreview(
+  family: UpgradeFamily,
+  chassis: ChassisId,
+  ownedCars: ReadonlySet<ChassisId>,
+): boolean {
+  return family.scope === 'chassis' && !ownedCars.has(chassis);
+}
+
+function normalized(value: number, maximum: number): number {
+  return Math.max(0, Math.min(1, value / maximum));
+}
+
+function armorText(damageMul: number): string {
+  const percent = Math.round(Math.abs(1 - damageMul) * 100);
+  if (percent === 0) return 'stock crash damage';
+  return damageMul < 1 ? `${percent}% less crash damage` : `${percent}% more crash damage`;
+}
+
+/**
+ * One compact weapon-capability score. It uses the concrete range, cadence and
+ * targets-per-shot values that determine how much road a held trigger clears.
+ */
+function gunScore(weapon: WeaponStats): number {
+  return (weapon.range * weapon.killsPerShot) / weapon.fireIntervalTicks;
+}
+
 export class Garage {
   private readonly root: HTMLDivElement;
   private readonly cb: GarageCallbacks;
@@ -112,11 +205,16 @@ export class Garage {
   private readonly runTitleEl: HTMLDivElement;
   private readonly walletEl: HTMLDivElement;
   private readonly driveBtn: HTMLButtonElement;
+  private readonly newRunBtn: HTMLButtonElement;
+  private readonly copyBtn: HTMLButtonElement;
   /** Right STATUS panel: the selected car's identity + the run result. */
   private readonly carNameEl: HTMLDivElement;
   private readonly carBlurbEl: HTMLDivElement;
   private readonly resultBox: HTMLDivElement;
-  private readonly resultVals: Record<'dist' | 'kills' | 'scrap', HTMLDivElement>;
+  private readonly resultVals: Record<
+    'dist' | 'kills' | 'scrap' | 'act' | 'multi' | 'seed' | 'best',
+    HTMLDivElement
+  >;
   private readonly bars: StatBar[] = [];
   private readonly cards: Card[] = [];
   private readonly tabs: Tab[] = [];
@@ -127,6 +225,11 @@ export class Garage {
     zombiesMowed: 0,
     runScrap: 0,
     runTitle: '',
+    seed: 0,
+    act: '',
+    peakMultiplier: 1,
+    bestDistance: 0,
+    isBest: false,
     wallet: 0,
     owned: new Set(),
     chassis: 'survivor',
@@ -192,7 +295,12 @@ export class Garage {
     this.driveBtn = metalButton('DRIVE', true);
     this.driveBtn.classList.add('sdw-garage__drive');
     this.driveBtn.addEventListener('click', () => this.cb.onClose());
-    top.append(walletPlate, this.title, this.driveBtn);
+    this.newRunBtn = metalButton('NEW APOCALYPSE');
+    this.newRunBtn.addEventListener('click', () => this.cb.onNewApocalypse?.());
+    const actions = document.createElement('div');
+    actions.style.cssText = 'display:flex;align-items:center;gap:8px';
+    actions.append(this.newRunBtn, this.driveBtn);
+    top.append(walletPlate, this.title, actions);
 
     // Middle: CAR INFO (left), car turntable (centre), RUN status (right).
     const middle = document.createElement('div');
@@ -228,8 +336,35 @@ export class Garage {
     const dist = resultRow('DISTANCE');
     const kills = resultRow('ZOMBIES');
     const scrap = resultRow('SCRAP');
-    this.resultVals = { dist: dist.value, kills: kills.value, scrap: scrap.value };
-    this.resultBox.append(divider(), dist.row, kills.row, scrap.row);
+    const act = resultRow('ACT');
+    const multi = resultRow('PEAK MULTI');
+    const seed = resultRow('SEED');
+    const best = resultRow('BEST');
+    this.resultVals = {
+      dist: dist.value,
+      kills: kills.value,
+      scrap: scrap.value,
+      act: act.value,
+      multi: multi.value,
+      seed: seed.value,
+      best: best.value,
+    };
+    this.copyBtn = metalButton('COPY RUN LINK');
+    this.copyBtn.style.cssText += ';align-self:stretch;margin-top:4px;padding:8px;font-size:10px';
+    this.copyBtn.addEventListener('click', () => {
+      void this.copyRunLink();
+    });
+    this.resultBox.append(
+      divider(),
+      dist.row,
+      kills.row,
+      scrap.row,
+      act.row,
+      multi.row,
+      seed.row,
+      best.row,
+      this.copyBtn,
+    );
     status.append(this.resultBox);
     middle.append(info, this.previewSlot, status);
 
@@ -321,6 +456,7 @@ export class Garage {
     const opening = !this.isOpen();
     this.view = view;
     this.sync();
+    if (opening) this.resetDetail();
     if (opening) {
       this.previousFocus =
         document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -369,7 +505,7 @@ export class Garage {
    * MAX rail, and a green CURRENT fill overlays it from the left, so what you own
    * vs. the ceiling reads at a glance (the CURRENT / MAX legend below explains it).
    */
-  private buildStatRow(def: { label: string; key: string }): HTMLDivElement {
+  private buildStatRow(def: { label: string; key: StatKey }): HTMLDivElement {
     const row = document.createElement('div');
     row.style.cssText = 'width:100%';
     const tag = document.createElement('div');
@@ -378,6 +514,10 @@ export class Garage {
       'font-size:10px;letter-spacing:1px;color:#c4cad2;margin-bottom:3px;text-shadow:0 1px 0 #000';
     const track = document.createElement('div');
     track.className = 'sdw-garage__bar';
+    track.setAttribute('role', 'meter');
+    track.setAttribute('aria-label', def.label);
+    track.setAttribute('aria-valuemin', '0');
+    track.setAttribute('aria-valuemax', '100');
     // The track itself is the MAX rail (orange); the green fill is CURRENT.
     track.style.cssText =
       'position:relative;width:100%;height:13px;background:linear-gradient(90deg,#b9542a,#e07a3a);border:1px solid #000;border-radius:3px;overflow:hidden;box-shadow:inset 0 1px 3px #000c';
@@ -386,7 +526,7 @@ export class Garage {
     fill.style.cssText = `height:100%;width:0%;background:linear-gradient(90deg,#5e9a32,${LCD});transition:width .25s ease`;
     track.append(fill);
     row.append(tag, track);
-    this.bars.push({ fill, familyKey: def.key });
+    this.bars.push({ key: def.key, track, fill });
     return row;
   }
 
@@ -451,6 +591,10 @@ export class Garage {
       const touchActivation = this.lastActivationWasTouch && event.detail !== 0;
       this.lastActivationWasTouch = false;
       this.showFamilyDetail(fam);
+      if (familyLockedForPreview(fam, this.view.chassis, this.view.ownedCars)) {
+        this.armedTouchUpgrade = null;
+        return;
+      }
       if (!card.target) return;
       if (touchActivation && this.armedTouchUpgrade !== card.target) {
         this.armedTouchUpgrade = card.target;
@@ -534,6 +678,13 @@ export class Garage {
 
   /** Write the hovered upgrade's next-tier name + blurb (or its maxed state). */
   private showFamilyDetail(fam: UpgradeFamily): void {
+    if (familyLockedForPreview(fam, this.view.chassis, this.view.ownedCars)) {
+      const car = chassisDef(this.view.chassis);
+      this.detailName.textContent = `${fam.label} — CHASSIS LOCKED`;
+      this.detailName.style.color = RED_LCD;
+      this.detailBlurb.textContent = `Buy the ${car.name} before upgrading it. TANK and GUN stay available because they are shared across every car.`;
+      return;
+    }
     const next = familyNextTier(fam, this.view.owned);
     if (!next) {
       this.detailName.textContent = `${fam.label} — Maxed`;
@@ -578,7 +729,11 @@ export class Garage {
   /** The resting detail line for the active tab, shown when nothing is hovered. */
   private resetDetail(): void {
     this.detailName.textContent = '';
-    this.detailBlurb.textContent = DETAIL_HINT[this.activeTab] ?? '';
+    const lockedPreview = !this.view.ownedCars.has(this.view.chassis);
+    this.detailBlurb.textContent =
+      this.activeTab === 'upgrade' && lockedPreview
+        ? `Previewing the locked ${chassisDef(this.view.chassis).name}. Buy it to unlock its ARMOR, TIRES, JUMP and MAGNET upgrades; TANK remains available.`
+        : (DETAIL_HINT[this.activeTab] ?? '');
   }
 
   // Sync
@@ -592,6 +747,15 @@ export class Garage {
       ? '0 0 22px #e8503a66,0 2px 2px #000a'
       : '0 0 18px #e89a3a55,0 2px 2px #000a';
     this.driveBtn.textContent = wreck ? 'PLAY AGAIN' : 'RESUME';
+    this.driveBtn.setAttribute(
+      'aria-label',
+      wreck ? 'Play again with the selected build' : 'Resume the current run',
+    );
+    this.driveBtn.title = wreck
+      ? 'Start the next run with the selected build.'
+      : 'Return to the current run. Garage changes equip on the next run.';
+    this.newRunBtn.style.display = wreck ? '' : 'none';
+    this.newRunBtn.setAttribute('aria-label', 'Start a new apocalypse with a different seed');
     this.walletEl.textContent = `${v.wallet}`;
 
     // Left panel: the selected car's identity.
@@ -600,7 +764,9 @@ export class Garage {
     this.carBlurbEl.textContent = car.blurb;
 
     // Right panel: the death card on a wreck, a hint while paused.
-    this.runTitleEl.textContent = wreck ? `“${v.runTitle}”` : 'Spend scrap below, then DRIVE.';
+    this.runTitleEl.textContent = wreck
+      ? `“${v.runTitle}”`
+      : 'Changes equip on your next run. RESUME returns to the current run.';
     this.runTitleEl.style.fontStyle = wreck ? 'italic' : 'normal';
     this.runTitleEl.style.color = wreck ? '#e4e7ec' : DIM;
     this.resultBox.style.display = wreck ? 'flex' : 'none';
@@ -608,13 +774,25 @@ export class Garage {
       this.resultVals.dist.textContent = `${Math.floor(v.distance)} M`;
       this.resultVals.kills.textContent = `${v.zombiesMowed}`;
       this.resultVals.scrap.textContent = `+${v.runScrap}`;
+      this.resultVals.act.textContent = v.act.toUpperCase();
+      this.resultVals.multi.textContent = `×${v.peakMultiplier}`;
+      this.resultVals.seed.textContent = `${v.seed}`;
+      this.resultVals.best.textContent = v.isBest
+        ? 'NEW RECORD'
+        : `${Math.floor(v.bestDistance)} M`;
+      this.resultVals.best.style.color = v.isBest ? '#f0c14b' : LCD;
+      this.copyBtn.textContent = 'COPY RUN LINK';
     }
 
+    const stats = garageStatReadouts(v.chassis, v.owned);
     for (const bar of this.bars) {
-      const fam = UPGRADE_FAMILIES.find((f) => f.key === bar.familyKey);
-      const frac = fam ? familyLevel(fam, v.owned) / fam.tiers.length : 0;
-      // Green CURRENT fill over the orange MAX rail (the inspiration's car-info bars).
-      bar.fill.style.width = `${Math.round(frac * 100)}%`;
+      const stat = stats[bar.key];
+      const percent = Math.round(stat.fraction * 100);
+      // Green CURRENT fill over the orange maximum-build rail.
+      bar.fill.style.width = `${percent}%`;
+      bar.track.setAttribute('aria-valuenow', `${percent}`);
+      bar.track.setAttribute('aria-valuetext', stat.text);
+      bar.track.title = stat.text;
     }
 
     for (const card of this.cards) this.syncCard(card, v);
@@ -651,11 +829,38 @@ export class Garage {
     }
   }
 
+  private async copyRunLink(): Promise<void> {
+    if (!this.cb.onCopyRunLink) return;
+    const copied = await this.cb.onCopyRunLink();
+    this.copyBtn.textContent = copied ? 'COPIED' : 'COPY FAILED';
+  }
+
   private syncCard(card: Card, v: GarageView): void {
     const level = familyLevel(card.family, v.owned);
     const total = card.family.tiers.length;
     card.badge.textContent = `${level}/${total}`;
     const coinEl = card.cost.nextElementSibling as HTMLElement | null;
+    const lockedPreview = familyLockedForPreview(card.family, v.chassis, v.ownedCars);
+    card.root.setAttribute('aria-disabled', String(lockedPreview));
+    card.root.setAttribute(
+      'aria-label',
+      lockedPreview
+        ? `${card.family.label} upgrade unavailable; buy the selected chassis first`
+        : `${card.family.label} upgrade`,
+    );
+    card.root.style.cursor = lockedPreview ? 'not-allowed' : 'pointer';
+    card.root.style.opacity = lockedPreview ? '0.52' : '';
+    if (lockedPreview) {
+      card.target = null;
+      card.badge.textContent = 'LOCKED';
+      card.badge.style.color = RED_LCD;
+      card.cost.textContent = 'BUY CAR';
+      card.cost.style.color = RED_LCD;
+      if (coinEl) coinEl.style.display = 'none';
+      cardHighlight(card.root, false);
+      card.root.classList.remove('is-max');
+      return;
+    }
     const next = familyNextTier(card.family, v.owned);
     if (!next) {
       card.target = null;

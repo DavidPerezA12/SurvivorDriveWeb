@@ -1,6 +1,8 @@
 import type { FrameEvent, ReadonlyState } from '../sim';
-import { CAR_TUNING } from '../content/tuning';
+import { CAR_TUNING, ECONOMY_TUNING } from '../content/tuning';
 import { biomeAt } from '../content/biomes';
+import { ACT_NAMES, actAt } from '../content/acts';
+import { RadioDeck, type RadioTrigger } from '../content/radio';
 
 /**
  * Arcade kill-streak callouts (the inspiration's "DOUBLE KILL" / "MEGA KILL"). Each
@@ -34,6 +36,49 @@ const JUMP_COLOR = '#4fb6ff';
 /** Warm amber of the ammo readout — the gun's signature, distinct from cool loot. */
 const AMMO_COLOR = '#e0a93a';
 
+export interface ReadyControlHint {
+  readonly control: string;
+  readonly action: string;
+  readonly color: string;
+}
+
+/** On coarse pointers, name the visible touch buttons instead of keyboard keys. */
+export function readyControlHints(coarsePointer: boolean): readonly ReadyControlHint[] {
+  if (coarsePointer) {
+    return [
+      { control: 'STEER LEFT / RIGHT', action: 'steer', color: AMMO_COLOR },
+      { control: 'JUMP', action: 'jump', color: JUMP_COLOR },
+      { control: 'FIRE GUN', action: 'fire', color: AMMO_COLOR },
+      { control: 'PAUSE', action: 'menu', color: '#cdbb95' },
+    ];
+  }
+  return [
+    { control: 'A / D', action: 'steer', color: AMMO_COLOR },
+    { control: 'SPACE', action: 'jump', color: JUMP_COLOR },
+    { control: 'F', action: 'fire', color: AMMO_COLOR },
+    { control: 'ESC', action: 'pause', color: '#cdbb95' },
+  ];
+}
+
+export type RadioPriority = 0 | 1 | 2 | 3;
+
+const RADIO_MINOR_TICKS = 180;
+const RADIO_PRIORITY_TICKS = 216;
+
+export function radioDurationTicks(priority: RadioPriority): number {
+  return priority >= 2 ? RADIO_PRIORITY_TICKS : RADIO_MINOR_TICKS;
+}
+
+/** Minor flavor waits; act and death lines may preempt lower-priority speech. */
+export function radioCanSpeakAt(
+  tick: number,
+  busyUntilTick: number,
+  active: RadioPriority,
+  incoming: RadioPriority,
+): boolean {
+  return tick >= busyUntilTick || active === 0 || incoming > active;
+}
+
 /** Green → amber → red as the hull bar drains (mirrors the pickup palette). */
 function hullColor(c: number): string {
   if (c <= 0) return '#5a3a36';
@@ -45,9 +90,8 @@ function hullColor(c: number): string {
 /**
  * Player-facing readout (the `ui/` layer): distance, speed, the single hull bar,
  * the gun's ammo, jump charges, scrap, and the live kill streak, plus the
- * wrecked panel. Reads sim state, sends nothing back — the one exception is
- * surfacing the restart prompt, which the input layer turns into an actual reset
- * (docs/ARCHITECTURE.md → the prime directive).
+ * wrecked panel and flavor-only Radio subtitle. Reads sim state and frame events,
+ * and sends nothing back (docs/ARCHITECTURE.md → the prime directive).
  */
 export class Hud {
   private readonly stats: HTMLDivElement;
@@ -59,24 +103,37 @@ export class Hud {
   private readonly econ: HTMLDivElement;
   private readonly scrap: HTMLDivElement;
   private readonly combo: HTMLDivElement;
+  private readonly multiplier: HTMLDivElement;
   private readonly dead: HTMLDivElement;
   private readonly deadDistance: HTMLDivElement;
   private readonly deadStats: HTMLDivElement;
   private readonly comboCallout: HTMLDivElement;
+  private calloutAnimation: Animation | null = null;
+  /** Tracks the edge into death so transient banners are cleared exactly once. */
+  private deadShown = false;
   /** Highest streak tier already announced this streak; reset when the streak drops. */
   private lastComboTier = 0;
   private readonly biomeBanner: HTMLDivElement;
+  private readonly actBanner: HTMLDivElement;
+  private readonly radioDeck: RadioDeck;
+  private readonly radioSubtitle: HTMLDivElement;
+  private readonly radioText: HTMLSpanElement;
+  private radioAnimation: Animation | null = null;
+  private radioPriority: RadioPriority = 0;
+  private radioBusyUntilTick = 0;
   /** The run-opening intro card (location title + DRIVE), shown while the app holds the sim. */
   private readonly introCard: HTMLDivElement;
   /** Whether the card is up (or fading out): makes `hideIntroCard` safe per frame. */
   private introCardShown = false;
   /** Last biome announced, so the banner only fires when the run crosses into a new one. */
   private lastBiomeName: string | null = null;
+  private lastAct = -1;
   private reducedMotion = false;
   private accum = 0;
   private destroyed = false;
 
-  constructor() {
+  constructor(seed: number) {
+    this.radioDeck = new RadioDeck(seed);
     this.stats = document.createElement('div');
     this.stats.className = 'sdw-hud sdw-hud--stats';
     this.stats.style.cssText = panelCss('left:12px;bottom:12px');
@@ -137,7 +194,9 @@ export class Hud {
     this.scrap.style.cssText = 'font-size:15px;color:#8fe6cf;letter-spacing:0.5px';
     this.combo = document.createElement('div');
     this.combo.style.cssText = 'margin-top:2px;font-weight:700;visibility:hidden';
-    this.econ.append(this.scrap, this.combo);
+    this.multiplier = document.createElement('div');
+    this.multiplier.style.cssText = 'margin-top:4px;font-weight:800;color:#f0d28a';
+    this.econ.append(this.scrap, this.multiplier, this.combo);
     document.body.appendChild(this.econ);
 
     this.dead = document.createElement('div');
@@ -164,7 +223,7 @@ export class Hud {
     this.deadStats = document.createElement('div');
     this.deadStats.style.cssText = 'opacity:0.85;color:#cdbb95';
     const prompt = document.createElement('div');
-    prompt.textContent = 'press R to drive again';
+    prompt.textContent = 'wreck report incoming';
     prompt.style.cssText = 'margin-top:6px;opacity:0.7';
     this.dead.append(title, this.deadDistance, this.deadStats, prompt);
     document.body.appendChild(this.dead);
@@ -211,6 +270,65 @@ export class Hud {
     ].join(';');
     document.body.appendChild(this.biomeBanner);
 
+    this.actBanner = document.createElement('div');
+    this.actBanner.className = 'sdw-act-banner';
+    this.actBanner.style.cssText = [
+      'position:fixed',
+      'left:50%',
+      'top:9%',
+      'transform:translateX(-50%)',
+      'opacity:0',
+      'font:800 22px/1 ui-monospace,SFMono-Regular,Menlo,monospace',
+      'letter-spacing:5px',
+      'color:#f0d28a',
+      'text-shadow:0 3px 8px rgba(0,0,0,0.8)',
+      'pointer-events:none',
+      'white-space:nowrap',
+      'z-index:17',
+    ].join(';');
+    document.body.appendChild(this.actBanner);
+
+    // Flavor-only Radio subtitle. It remains mounted and empty so its polite
+    // live region can announce a new transmission without owning any gameplay cue.
+    this.radioSubtitle = document.createElement('div');
+    this.radioSubtitle.className = 'sdw-radio-subtitle';
+    this.radioSubtitle.setAttribute('role', 'status');
+    this.radioSubtitle.setAttribute('aria-live', 'polite');
+    this.radioSubtitle.setAttribute('aria-atomic', 'true');
+    this.radioSubtitle.setAttribute('aria-label', 'Radio transmission');
+    this.radioSubtitle.style.cssText = [
+      'position:fixed',
+      'left:50%',
+      'bottom:calc(env(safe-area-inset-bottom) + 126px)',
+      'transform:translateX(-50%)',
+      'display:flex',
+      'align-items:baseline',
+      'justify-content:center',
+      'gap:8px',
+      'width:max-content',
+      'max-width:calc(100vw - 32px)',
+      'box-sizing:border-box',
+      'padding:8px 12px',
+      'opacity:0',
+      'font:700 13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace',
+      'color:#e8d9c4',
+      'text-align:center',
+      'text-wrap:balance',
+      'background:rgba(8,11,10,0.82)',
+      'border:1px solid rgba(143,230,207,0.48)',
+      'border-radius:5px',
+      'box-shadow:0 4px 18px rgba(0,0,0,0.5)',
+      'pointer-events:none',
+      'z-index:21',
+    ].join(';');
+    const radioTag = document.createElement('span');
+    radioTag.textContent = 'RADIO //';
+    radioTag.style.cssText = 'flex:0 0 auto;color:#8fe6cf;letter-spacing:1px';
+    this.radioText = document.createElement('span');
+    this.radioText.style.cssText = 'min-width:0';
+    this.radioSubtitle.append(radioTag, this.radioText);
+    document.body.appendChild(this.radioSubtitle);
+
     // The run-opening intro card: the current location title with a DRIVE prompt
     // under it, centred while the cinematic camera sweeps in. The app shows it when
     // a run begins and hides it when the sweep hands off to gameplay.
@@ -233,7 +351,7 @@ export class Hud {
   }
 
   /** Raise the intro card on a fresh run: the location title and a DRIVE prompt. */
-  showIntroCard(location: string): void {
+  showIntroCard(location: string, actLabel = 'DRIVE'): void {
     const el = this.introCard;
     el.textContent = '';
     const title = document.createElement('div');
@@ -245,7 +363,7 @@ export class Hud {
       'text-shadow:0 3px 10px rgba(0,0,0,0.8)',
     ].join(';');
     const prompt = document.createElement('div');
-    prompt.textContent = 'DRIVE';
+    prompt.textContent = `${actLabel}  ·  DRIVE`;
     prompt.style.cssText = [
       'margin-top:14px',
       'font:700 15px/1 ui-monospace,SFMono-Regular,Menlo,monospace',
@@ -267,6 +385,51 @@ export class Hud {
     }
   }
 
+  /**
+   * One-time ready gate. The world is frozen until the player deliberately uses
+   * a driving control, so reading this card never consumes the opening grace.
+   */
+  showReadyCard(): void {
+    const el = this.introCard;
+    el.textContent = '';
+    const title = document.createElement('div');
+    title.textContent = 'SURVIVOR DRIVE';
+    title.style.cssText = [
+      'font:800 30px/1 ui-monospace,SFMono-Regular,Menlo,monospace',
+      'letter-spacing:7px',
+      'color:#f1ead8',
+      'text-shadow:0 3px 10px rgba(0,0,0,0.8)',
+    ].join(';');
+    const controls = document.createElement('div');
+    const coarsePointer = window.matchMedia?.('(pointer: coarse)').matches ?? false;
+    for (const [index, hint] of readyControlHints(coarsePointer).entries()) {
+      if (index > 0) controls.appendChild(document.createElement('br'));
+      const control = document.createElement('span');
+      control.textContent = hint.control;
+      control.style.color = hint.color;
+      controls.append(control, ` ${hint.action}`);
+    }
+    controls.style.cssText = [
+      'margin-top:18px',
+      'font:700 14px/1.75 ui-monospace,SFMono-Regular,Menlo,monospace',
+      'letter-spacing:2px',
+      'color:#d8d2c4',
+      'text-shadow:0 2px 6px rgba(0,0,0,0.8)',
+    ].join(';');
+    const prompt = document.createElement('div');
+    prompt.textContent = 'USE A CONTROL TO DRIVE';
+    prompt.style.cssText = [
+      'margin-top:18px',
+      'font:800 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace',
+      'letter-spacing:5px',
+      'color:#8fe6cf',
+      'text-shadow:0 2px 6px rgba(0,0,0,0.8)',
+    ].join(';');
+    el.append(title, controls, prompt);
+    el.style.display = 'block';
+    this.introCardShown = true;
+  }
+
   /** Drop the intro card as the orbit takes over. Safe to call every frame. */
   hideIntroCard(): void {
     const el = this.introCard;
@@ -286,7 +449,28 @@ export class Hud {
   }
 
   setReducedMotion(reduced: boolean): void {
+    if (this.reducedMotion === reduced) return;
     this.reducedMotion = reduced;
+    // Accessibility changes must stop movement immediately, but the Radio's
+    // deterministic tick cooldown remains intact.
+    this.clearTransientCallouts();
+    this.clearRadioPresentation();
+  }
+
+  /** Reset every run-scoped HUD latch and transient before a fresh intro. */
+  resetRun(): void {
+    this.clearTransientCallouts();
+    this.clearRadio();
+    for (const animation of this.introCard.getAnimations()) animation.cancel();
+    this.introCard.style.display = 'none';
+    this.introCardShown = false;
+    this.deadShown = false;
+    this.lastAct = -1;
+    this.lastBiomeName = null;
+    this.lastComboTier = 0;
+    this.combo.style.visibility = 'hidden';
+    this.combo.textContent = '';
+    this.accum = 0;
   }
 
   /** Remove every HUD node owned by this instance. Idempotent for app teardown. */
@@ -299,11 +483,17 @@ export class Hud {
       this.dead,
       this.comboCallout,
       this.biomeBanner,
+      this.actBanner,
+      this.radioSubtitle,
       this.introCard,
     ]) {
       for (const animation of element.getAnimations()) animation.cancel();
       element.remove();
     }
+    this.calloutAnimation = null;
+    this.radioAnimation = null;
+    this.radioPriority = 0;
+    this.radioBusyUntilTick = 0;
   }
 
   /**
@@ -311,7 +501,21 @@ export class Hud {
    * renderer's). Only the kill streak banner lives here; everything else the HUD
    * shows is read from state each frame.
    */
-  handleEvent(event: FrameEvent): void {
+  handleEvent(event: FrameEvent, tick: number): void {
+    if (event.type === 'nearMiss') {
+      this.fireCallout('CLOSE CALL', '#8fe6cf');
+      this.offerRadio('closeCall', 1, tick);
+      return;
+    }
+    if (event.type === 'multiplierChanged') {
+      if (event.multiplier > 1) this.fireCallout(`MULTIPLIER ×${event.multiplier}`, '#f0d28a');
+      if (event.multiplier >= 3) this.offerRadio('highMultiplier', 1, tick);
+      return;
+    }
+    if (event.type === 'ramped') {
+      this.offerRadio('stunt', 1, tick);
+      return;
+    }
     if (event.type !== 'zombieMowed') return;
     // A streak's first kill arms the banners again from the bottom tier (the prior
     // streak lapsed or was wiped), independent of the throttled per-frame update.
@@ -329,24 +533,100 @@ export class Hud {
   /** Pop the streak banner: a punchy scale-in that drifts up and fades on its own. */
   private fireCallout(label: string, color: string): void {
     const el = this.comboCallout;
+    this.calloutAnimation?.cancel();
+    this.calloutAnimation = null;
     el.textContent = label;
     el.style.color = color;
-    if (this.reducedMotion) {
-      el.animate([{ opacity: 1 }, { opacity: 1, offset: 0.6 }, { opacity: 0 }], {
-        duration: 800,
-        easing: 'ease-out',
-      });
-      return;
+    const animation = this.reducedMotion
+      ? el.animate([{ opacity: 1 }, { opacity: 1, offset: 0.6 }, { opacity: 0 }], {
+          duration: 800,
+          easing: 'ease-out',
+        })
+      : el.animate(
+          [
+            { opacity: 0, transform: 'translateX(-50%) scale(0.6)' },
+            { opacity: 1, transform: 'translateX(-50%) scale(1.18)', offset: 0.18 },
+            { opacity: 1, transform: 'translateX(-50%) scale(1.0)', offset: 0.45 },
+            { opacity: 0, transform: 'translateX(-50%) translateY(-30px) scale(1.0)' },
+          ],
+          { duration: 900, easing: 'ease-out' },
+        );
+    this.calloutAnimation = animation;
+    animation.onfinish = () => {
+      if (this.calloutAnimation !== animation) return;
+      this.calloutAnimation = null;
+      el.textContent = '';
+    };
+  }
+
+  /** Cancel transient feedback when the wreck screen takes ownership of the UI. */
+  private clearTransientCallouts(): void {
+    this.calloutAnimation?.cancel();
+    this.calloutAnimation = null;
+    for (const element of [this.comboCallout, this.biomeBanner, this.actBanner]) {
+      for (const animation of element.getAnimations()) animation.cancel();
+      element.style.opacity = '0';
     }
-    el.animate(
-      [
-        { opacity: 0, transform: 'translateX(-50%) scale(0.6)' },
-        { opacity: 1, transform: 'translateX(-50%) scale(1.18)', offset: 0.18 },
-        { opacity: 1, transform: 'translateX(-50%) scale(1.0)', offset: 0.45 },
-        { opacity: 0, transform: 'translateX(-50%) translateY(-30px) scale(1.0)' },
-      ],
-      { duration: 900, easing: 'ease-out' },
-    );
+    this.comboCallout.textContent = '';
+    this.lastComboTier = 0;
+  }
+
+  /** Offer one subtitle under the Radio's anti-spam and priority policy. */
+  private offerRadio(trigger: RadioTrigger, priority: RadioPriority, tick: number): boolean {
+    this.expireRadioChannel(tick);
+    if (!radioCanSpeakAt(tick, this.radioBusyUntilTick, this.radioPriority, priority)) return false;
+    const bark = this.radioDeck.next(trigger);
+    this.clearRadioPresentation();
+    this.radioPriority = priority;
+    this.radioBusyUntilTick = tick + radioDurationTicks(priority);
+    this.radioText.textContent = bark.text;
+    this.radioSubtitle.style.zIndex = priority === 3 ? '26' : '21';
+
+    const durationMs = (radioDurationTicks(priority) * 1000) / 60;
+    const animation = this.reducedMotion
+      ? this.radioSubtitle.animate([{ opacity: 1 }, { opacity: 1, offset: 0.82 }, { opacity: 0 }], {
+          duration: durationMs,
+          easing: 'linear',
+        })
+      : this.radioSubtitle.animate(
+          [
+            { opacity: 0, transform: 'translateX(-50%) translateY(8px)' },
+            { opacity: 1, transform: 'translateX(-50%) translateY(0)', offset: 0.12 },
+            { opacity: 1, transform: 'translateX(-50%) translateY(0)', offset: 0.82 },
+            { opacity: 0, transform: 'translateX(-50%) translateY(-3px)' },
+          ],
+          { duration: durationMs, easing: 'ease-out' },
+        );
+    this.radioAnimation = animation;
+    animation.onfinish = () => {
+      if (this.radioAnimation !== animation) return;
+      this.radioAnimation = null;
+      this.radioText.textContent = '';
+      this.radioSubtitle.style.opacity = '0';
+      this.radioSubtitle.style.zIndex = '21';
+    };
+    return true;
+  }
+
+  private clearRadioPresentation(): void {
+    const animation = this.radioAnimation;
+    this.radioAnimation = null;
+    animation?.cancel();
+    this.radioText.textContent = '';
+    this.radioSubtitle.style.opacity = '0';
+    this.radioSubtitle.style.zIndex = '21';
+  }
+
+  private clearRadio(): void {
+    this.clearRadioPresentation();
+    this.radioPriority = 0;
+    this.radioBusyUntilTick = 0;
+  }
+
+  private expireRadioChannel(tick: number): void {
+    if (this.radioPriority === 0 || tick < this.radioBusyUntilTick) return;
+    this.radioPriority = 0;
+    this.radioBusyUntilTick = 0;
   }
 
   /** Slide the biome location title in, hold, then fade — a quiet scene-change cue. */
@@ -376,7 +656,30 @@ export class Hud {
     );
   }
 
+  private fireActBanner(index: number): void {
+    const el = this.actBanner;
+    el.textContent = `ACT ${index + 1} · ${ACT_NAMES[index].toUpperCase()}`;
+    const keyframes: Keyframe[] = this.reducedMotion
+      ? [{ opacity: 1 }, { opacity: 1, offset: 0.75 }, { opacity: 0 }]
+      : [
+          { opacity: 0, transform: 'translateX(-50%) scale(0.9)' },
+          { opacity: 1, transform: 'translateX(-50%) scale(1)', offset: 0.16 },
+          { opacity: 1, transform: 'translateX(-50%) scale(1)', offset: 0.72 },
+          { opacity: 0, transform: 'translateX(-50%) translateY(-12px)' },
+        ];
+    el.animate(keyframes, { duration: 2600, easing: 'ease-out' });
+  }
+
   update(state: ReadonlyState): void {
+    this.expireRadioChannel(state.tick);
+    const enteredDeath = state.dead && !this.deadShown;
+    const leftDeath = !state.dead && this.deadShown;
+    this.deadShown = state.dead;
+    if (leftDeath) this.clearRadio();
+    if (enteredDeath) {
+      this.clearTransientCallouts();
+      this.offerRadio('death', 3, state.tick);
+    }
     this.dead.style.display = state.dead ? 'flex' : 'none';
     this.econ.style.display = state.dead ? 'none' : 'block';
     if (state.dead) {
@@ -385,6 +688,7 @@ export class Hud {
       this.deadStats.textContent = `${state.zombiesMowed} zombies killed · ${state.scrap} scrap`;
       // Re-arm the biome banner so the next run announces its environments afresh.
       this.lastBiomeName = null;
+      this.lastAct = -1;
       return;
     }
 
@@ -399,6 +703,13 @@ export class Hud {
       if (this.lastBiomeName !== null) this.fireBiomeBanner(biomeName);
       this.lastBiomeName = biomeName;
     }
+    const act = actAt(state.distance);
+    if (this.lastAct === -1) this.lastAct = act;
+    else if (act !== this.lastAct) {
+      this.lastAct = act;
+      this.fireActBanner(act);
+      this.offerRadio('actTransition', 2, state.tick);
+    }
 
     const kmh = Math.round(state.car.speed * 3.6);
     this.numbers.innerHTML =
@@ -407,6 +718,11 @@ export class Hud {
       `<span style="color:#9a9388">   ${kmh} km/h</span>`;
 
     this.scrap.textContent = `${state.scrap} scrap`;
+    const charge = state.multiplierCharge;
+    const maxed = state.multiplier >= ECONOMY_TUNING.multiplierMax;
+    this.multiplier.textContent = maxed
+      ? `MULTI ×${state.multiplier} · MAX`
+      : `MULTI ×${state.multiplier} · ${charge}/${ECONOMY_TUNING.multiplierPointsPerLevel}`;
     this.applyCombo(state.combo);
     this.applyHull(state.car.health);
     this.applyAmmo(state.car.ammo, state.loadout.weaponLevel);

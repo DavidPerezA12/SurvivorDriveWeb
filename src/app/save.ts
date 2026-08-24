@@ -41,6 +41,23 @@ export interface SaveData {
   globalUpgrades: UpgradeId[];
   /** Owned per-chassis upgrades, keyed by chassis id (armor, tires, jump, magnet). */
   chassisUpgrades: Partial<Record<ChassisId, UpgradeId[]>>;
+  /** Whether the one-time controls card has already been dismissed. */
+  tutorialSeen: boolean;
+  /** Most recently completed run, used by the garage recap. */
+  lastRun: RunRecord | null;
+  /** Furthest completed run on this device. */
+  bestRun: RunRecord | null;
+}
+
+/** Small, version-tolerant result persisted after a wreck. */
+export interface RunRecord {
+  distance: number;
+  zombiesMowed: number;
+  scrap: number;
+  seed: number;
+  title: string;
+  act: string;
+  peakMultiplier: number;
 }
 
 const UPGRADE_IDS: ReadonlySet<UpgradeId> = new Set(UPGRADES.map((u) => u.id));
@@ -57,6 +74,42 @@ function freshSave(): SaveData {
     paint: 'factory',
     globalUpgrades: [],
     chassisUpgrades: {},
+    tutorialSeen: false,
+    lastRun: null,
+    bestRun: null,
+  };
+}
+
+function normalizeRunRecord(raw: unknown): RunRecord | null {
+  if (typeof raw !== 'object' || raw === null) return null;
+  const record = raw as Record<string, unknown>;
+  const finiteNonNegative = (value: unknown): number | null => {
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) return null;
+    return value;
+  };
+  const distance = finiteNonNegative(record.distance);
+  const zombiesMowed = finiteNonNegative(record.zombiesMowed);
+  const scrap = finiteNonNegative(record.scrap);
+  const seed = finiteNonNegative(record.seed);
+  const peakMultiplier = finiteNonNegative(record.peakMultiplier);
+  if (
+    distance === null ||
+    zombiesMowed === null ||
+    scrap === null ||
+    seed === null ||
+    peakMultiplier === null ||
+    typeof record.title !== 'string' ||
+    typeof record.act !== 'string'
+  )
+    return null;
+  return {
+    distance,
+    zombiesMowed: Math.floor(zombiesMowed),
+    scrap: Math.floor(scrap),
+    seed: Math.floor(seed) >>> 0,
+    title: record.title.slice(0, 160),
+    act: record.act.slice(0, 80),
+    peakMultiplier: Math.max(1, peakMultiplier),
   };
 }
 
@@ -159,6 +212,9 @@ export function loadSave(store: KeyValueStore | null): SaveData {
       paint: normalizePaint(parsed.paint),
       globalUpgrades,
       chassisUpgrades,
+      tutorialSeen: parsed.tutorialSeen === true,
+      lastRun: normalizeRunRecord(parsed.lastRun),
+      bestRun: normalizeRunRecord(parsed.bestRun),
     };
   } catch {
     return freshSave();
@@ -185,6 +241,18 @@ export class SaveStore {
 
   get wallet(): number {
     return this.data.wallet;
+  }
+
+  get tutorialSeen(): boolean {
+    return this.data.tutorialSeen;
+  }
+
+  get lastRun(): RunRecord | null {
+    return this.data.lastRun ? { ...this.data.lastRun } : null;
+  }
+
+  get bestRun(): RunRecord | null {
+    return this.data.bestRun ? { ...this.data.bestRun } : null;
   }
 
   /** The chassis selected to drive. */
@@ -220,6 +288,27 @@ export class SaveStore {
   setSettings(settings: Settings): void {
     this.data = { ...this.data, settings: normalizeSettings(settings) };
     this.schedule();
+  }
+
+  /** Dismiss the controls card permanently after the player's first deliberate input. */
+  markTutorialSeen(): void {
+    if (this.data.tutorialSeen) return;
+    this.data = { ...this.data, tutorialSeen: true };
+    this.schedule();
+  }
+
+  /** Persist a completed run and return whether it established a new distance record. */
+  recordRun(record: RunRecord): boolean {
+    const clean = normalizeRunRecord(record);
+    if (!clean) return false;
+    const isBest = this.data.bestRun === null || clean.distance > this.data.bestRun.distance;
+    this.data = {
+      ...this.data,
+      lastRun: clean,
+      bestRun: isBest ? clean : this.data.bestRun,
+    };
+    this.schedule();
+    return isBest;
   }
 
   /** Bank a run's scrap into the wallet. */

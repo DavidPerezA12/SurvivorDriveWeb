@@ -17,7 +17,6 @@ export class Keyboard {
   private rightHeld = false;
   private jumpLatched = false;
   private fireHeld = false;
-  private restartLatched = false;
 
   constructor(target: Window = window) {
     this.target = target;
@@ -58,10 +57,6 @@ export class Keyboard {
         if (!e.repeat) this.jumpLatched = true;
         e.preventDefault();
         break;
-      case 'r':
-      case 'R':
-        if (!e.repeat) this.restartLatched = true;
-        break;
       default:
         break;
     }
@@ -99,20 +94,12 @@ export class Keyboard {
     return { steer: steer as -1 | 0 | 1, jump, fire: this.fireHeld };
   }
 
-  /** Whether a restart was requested since the last check (app-level, not a sim intent). */
-  takeRestart(): boolean {
-    const r = this.restartLatched;
-    this.restartLatched = false;
-    return r;
-  }
-
   /** Drop any held/buffered input (on resume/restart) so the menu never leaks moves. */
   reset(): void {
     this.leftHeld = false;
     this.rightHeld = false;
     this.jumpLatched = false;
     this.fireHeld = false;
-    this.restartLatched = false;
   }
 
   /** Release global listeners when the app instance is torn down. Idempotent. */

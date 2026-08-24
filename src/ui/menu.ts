@@ -180,16 +180,6 @@ export class Menu {
 
     this.add(
       pane,
-      slider(
-        'Volume',
-        () => this.settings.volume,
-        (v) => this.patch({ volume: v }),
-        'audio coming soon',
-      ),
-    );
-
-    this.add(
-      pane,
       segmented<boolean>(
         'Debug overlay',
         [

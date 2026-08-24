@@ -21,7 +21,6 @@ export class TouchControls {
   private readonly rightPointers = new Set<number>();
   private readonly firePointers = new Set<number>();
   private jumpLatched = false;
-  private restartLatched = false;
 
   constructor(private readonly cb: TouchControlsCallbacks) {
     this.root = document.createElement('div');
@@ -55,18 +54,11 @@ export class TouchControls {
     return { steer: steer as -1 | 0 | 1, jump, fire: this.firePointers.size > 0 };
   }
 
-  takeRestart(): boolean {
-    const restart = this.restartLatched;
-    this.restartLatched = false;
-    return restart;
-  }
-
   reset(): void {
     this.leftPointers.clear();
     this.rightPointers.clear();
     this.firePointers.clear();
     this.jumpLatched = false;
-    this.restartLatched = false;
     for (const button of this.buttons) button.classList.remove('is-held');
   }
 

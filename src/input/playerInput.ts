@@ -29,10 +29,6 @@ export class PlayerInput {
     };
   }
 
-  takeRestart(): boolean {
-    return this.keyboard.takeRestart() || this.touch.takeRestart();
-  }
-
   reset(): void {
     this.keyboard.reset();
     this.touch.reset();
