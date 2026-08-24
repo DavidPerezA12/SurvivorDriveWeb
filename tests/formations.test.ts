@@ -48,7 +48,9 @@ describe('formation library', () => {
 
   it('never stacks two crowds on one lane offset (keeps cluster bounds intact)', () => {
     for (const f of FORMATIONS) {
-      const crowdedOffsets = f.cells.filter((c) => c.role === 'horde' || c.role === 'loot').map((c) => c.off);
+      const crowdedOffsets = f.cells
+        .filter((c) => c.role === 'horde' || c.role === 'loot')
+        .map((c) => c.off);
       expect(new Set(crowdedOffsets).size).toBe(crowdedOffsets.length);
     }
   });

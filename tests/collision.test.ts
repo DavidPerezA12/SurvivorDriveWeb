@@ -108,7 +108,13 @@ describe('collision', () => {
 describe('boulder', () => {
   it('ramming one costs hull, but less than ramming a wreck at the same speed', () => {
     const boulderRun = createSim(1);
-    boulderRun.hazards.push({ kind: 'boulder', lane: 1, x: laneCenterX(1), forward: 6, hit: false });
+    boulderRun.hazards.push({
+      kind: 'boulder',
+      lane: 1,
+      x: laneCenterX(1),
+      forward: 6,
+      hit: false,
+    });
     driveCollecting(boulderRun, 60);
 
     // Same seed, same forward → identical impact speed, so the only difference is

@@ -28,7 +28,10 @@ export async function withTimeout<T>(
     return await Promise.race([
       pending,
       new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs} ms`)), timeoutMs);
+        timer = setTimeout(
+          () => reject(new Error(`${label} timed out after ${timeoutMs} ms`)),
+          timeoutMs,
+        );
       }),
     ]);
   } finally {

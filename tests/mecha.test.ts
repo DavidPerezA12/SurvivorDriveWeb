@@ -15,7 +15,14 @@ import { DEATH_CAUSES, runTitle } from '../src/content/runTitles';
 describe('mecha shell', () => {
   it('is harmless while the shell is still falling', () => {
     const s = createSim(1);
-    s.hazards.push({ kind: 'shell', lane: 1, x: laneCenterX(1), forward: 8, hit: false, landed: false });
+    s.hazards.push({
+      kind: 'shell',
+      lane: 1,
+      x: laneCenterX(1),
+      forward: 8,
+      hit: false,
+      landed: false,
+    });
     s.distance = 7;
     s.car.speed = 40;
     resolveCollisions(s);
@@ -25,7 +32,14 @@ describe('mecha shell', () => {
 
   it('bursts only once the gap closes to impact, emitting the burst', () => {
     const s = createSim(1);
-    s.hazards.push({ kind: 'shell', lane: 1, x: laneCenterX(1), forward: 100, hit: false, landed: false });
+    s.hazards.push({
+      kind: 'shell',
+      lane: 1,
+      x: laneCenterX(1),
+      forward: 100,
+      hit: false,
+      landed: false,
+    });
     s.distance = 100 - METEOR_TUNING.impactGap - 5;
     updateMeteors(s);
     expect(s.hazards[0].landed).toBe(false);
@@ -38,7 +52,14 @@ describe('mecha shell', () => {
   it('a burst shell is a lethal blocker and records itself as the death cause', () => {
     const s = createSim(1);
     s.car.health = 0.5;
-    s.hazards.push({ kind: 'shell', lane: 1, x: laneCenterX(1), forward: 8, hit: false, landed: false });
+    s.hazards.push({
+      kind: 'shell',
+      lane: 1,
+      x: laneCenterX(1),
+      forward: 8,
+      hit: false,
+      landed: false,
+    });
     s.distance = 7;
     s.car.speed = 60;
     updateMeteors(s);
@@ -50,7 +71,14 @@ describe('mecha shell', () => {
 
   it('cannot be jumped — a burst shell hits even mid-air (it is a lethal crater)', () => {
     const s = createSim(1);
-    s.hazards.push({ kind: 'shell', lane: 1, x: laneCenterX(1), forward: 8, hit: false, landed: true });
+    s.hazards.push({
+      kind: 'shell',
+      lane: 1,
+      x: laneCenterX(1),
+      forward: 8,
+      hit: false,
+      landed: true,
+    });
     s.distance = 7;
     s.car.height = 1.2;
     s.car.speed = 40;

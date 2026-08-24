@@ -186,9 +186,7 @@ function scrapGeometry(): THREE.BufferGeometry {
     ];
     for (let i = 0; i < 4; i += 1) {
       const a = (i / 4) * Math.PI;
-      teeth.push(
-        box(0.44, 0.055, 0.09, tok, 0.4).rotateY(a),
-      );
+      teeth.push(box(0.44, 0.055, 0.09, tok, 0.4).rotateY(a));
     }
     return merged(teeth);
   };

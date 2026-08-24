@@ -164,22 +164,33 @@ export class CarPreview {
 
     // Bald tires — a stack of three and one leaning against it.
     const tire = (x: number, y: number, z: number): void => {
-      parts.push(paint(new THREE.CylinderGeometry(0.56, 0.56, 0.36, 14).translate(x, y, z), 0x22252b, 0.45));
-      parts.push(paint(new THREE.CylinderGeometry(0.3, 0.3, 0.38, 10).translate(x, y, z), 0x33383f, 0.3));
+      parts.push(
+        paint(new THREE.CylinderGeometry(0.56, 0.56, 0.36, 14).translate(x, y, z), 0x22252b, 0.45),
+      );
+      parts.push(
+        paint(new THREE.CylinderGeometry(0.3, 0.3, 0.38, 10).translate(x, y, z), 0x33383f, 0.3),
+      );
     };
     tire(-8.2, 0.18, -3.2);
     tire(-8.2, 0.54, -3.2);
     tire(-8.25, 0.9, -3.15);
     const leanT = (g: THREE.BufferGeometry): THREE.BufferGeometry =>
-      g.rotateX(Math.PI / 2).rotateZ(-0.3).translate(-7.35, 0.6, -3.5);
+      g
+        .rotateX(Math.PI / 2)
+        .rotateZ(-0.3)
+        .translate(-7.35, 0.6, -3.5);
     parts.push(paint(leanT(new THREE.CylinderGeometry(0.56, 0.56, 0.34, 14)), 0x24272d, 0.45));
     parts.push(paint(leanT(new THREE.CylinderGeometry(0.3, 0.3, 0.36, 10)), 0x363b43, 0.3));
 
     // Apocalypse-garage junk: rusty oil drums, jerry cans, a gas bottle, crates.
     const barrel = (x: number, z: number): void => {
-      parts.push(paint(new THREE.CylinderGeometry(0.42, 0.42, 1.2, 10).translate(x, 0.6, z), 0x6a3324, 0.5));
+      parts.push(
+        paint(new THREE.CylinderGeometry(0.42, 0.42, 1.2, 10).translate(x, 0.6, z), 0x6a3324, 0.5),
+      );
       for (const y of [0.34, 0.86]) {
-        parts.push(paint(new THREE.CylinderGeometry(0.46, 0.46, 0.1, 10).translate(x, y, z), 0x36190f, 0.5));
+        parts.push(
+          paint(new THREE.CylinderGeometry(0.46, 0.46, 0.1, 10).translate(x, y, z), 0x36190f, 0.5),
+        );
       }
     };
     barrel(-5.3, -6.0);
@@ -189,8 +200,16 @@ export class CarPreview {
       box(0.16, 0.14, 0.16, 0x333a2c, 0.4).translate(-6.42, 0.82, -5.9),
       box(0.55, 0.75, 0.3, 0x424b38, 0.45).translate(-6.15, 0.38, -5.45),
       box(0.16, 0.14, 0.16, 0x333a2c, 0.4).translate(-6.05, 0.82, -5.45),
-      paint(new THREE.CylinderGeometry(0.34, 0.34, 1.6, 10).translate(8.6, 0.8, -5.9), 0x7c4526, 0.5),
-      paint(new THREE.CylinderGeometry(0.09, 0.09, 0.22, 8).translate(8.6, 1.7, -5.9), 0x39424d, 0.4),
+      paint(
+        new THREE.CylinderGeometry(0.34, 0.34, 1.6, 10).translate(8.6, 0.8, -5.9),
+        0x7c4526,
+        0.5,
+      ),
+      paint(
+        new THREE.CylinderGeometry(0.09, 0.09, 0.22, 8).translate(8.6, 1.7, -5.9),
+        0x39424d,
+        0.4,
+      ),
       box(1.4, 1.3, 1.4, 0x5a4632, 0.5).translate(7.3, 0.65, -4.6),
       box(1.0, 0.9, 1.0, 0x4d3b29, 0.5).translate(6.5, 1.75, -4.7),
     );
@@ -198,7 +217,9 @@ export class CarPreview {
     // Floor wear: oil stains, twin tire scuffs running in from the shutter, and
     // a worn hazard strip framing the work pool (dusty yellow, decoration-dim).
     const stain = (r: number, x: number, z: number, tone: number, y = 0.02): void => {
-      parts.push(paint(new THREE.CircleGeometry(r, 9).rotateX(-Math.PI / 2).translate(x, y, z), tone, 0));
+      parts.push(
+        paint(new THREE.CircleGeometry(r, 9).rotateX(-Math.PI / 2).translate(x, y, z), tone, 0),
+      );
     };
     stain(0.75, -6.7, -4.9, 0x21242a);
     stain(0.4, -6.05, -4.3, 0x24272d);
@@ -233,13 +254,25 @@ export class CarPreview {
    */
   private buildDisc(): THREE.Mesh {
     const parts: THREE.BufferGeometry[] = [
-      paint(new THREE.CylinderGeometry(2.8, 2.88, 0.1, 28).translate(0, DISC_TOP - 0.05, 0), 0x454c56, 0.3),
-      paint(new THREE.CylinderGeometry(2.96, 3.0, 0.06, 28).translate(0, DISC_TOP - 0.08, 0), 0x2b3037, 0.3),
+      paint(
+        new THREE.CylinderGeometry(2.8, 2.88, 0.1, 28).translate(0, DISC_TOP - 0.05, 0),
+        0x454c56,
+        0.3,
+      ),
+      paint(
+        new THREE.CylinderGeometry(2.96, 3.0, 0.06, 28).translate(0, DISC_TOP - 0.08, 0),
+        0x2b3037,
+        0.3,
+      ),
     ];
     for (let i = 0; i < 8; i += 1) {
       const a = (i / 8) * Math.PI * 2;
       parts.push(
-        box(0.09, 0.03, 0.09, 0x30353c, 0.2).translate(Math.cos(a) * 2.55, DISC_TOP + 0.005, Math.sin(a) * 2.55),
+        box(0.09, 0.03, 0.09, 0x30353c, 0.2).translate(
+          Math.cos(a) * 2.55,
+          DISC_TOP + 0.005,
+          Math.sin(a) * 2.55,
+        ),
       );
     }
     return new THREE.Mesh(merged(parts), propMaterial);

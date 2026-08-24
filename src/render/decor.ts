@@ -41,7 +41,10 @@ function postGeometry(): THREE.BufferGeometry {
     box(0.3, 0.05, 0.05, palette.postCollar, 0.4).translate(-0.15, 2.5, 0),
     box(0.3, 0.05, 0.05, palette.postCollar, 0.4).translate(-0.15, 1.85, 0),
     paint(
-      new THREE.BoxGeometry(0.04, 0.62, 0.4).rotateX(0.15).rotateZ(0.25).translate(-0.34, 2.15, 0.05),
+      new THREE.BoxGeometry(0.04, 0.62, 0.4)
+        .rotateX(0.15)
+        .rotateZ(0.25)
+        .translate(-0.34, 2.15, 0.05),
       palette.barrierPaint,
       0.3,
     ),
@@ -199,7 +202,8 @@ function fenceGeometry(): THREE.BufferGeometry {
       0.25,
     ),
   ];
-  for (const px of [-0.8, -0.4, 0.2, 0.6]) parts.push(box(0.1, 1.0, 0.05, w, 0.4).translate(px, 0.55, 0));
+  for (const px of [-0.8, -0.4, 0.2, 0.6])
+    parts.push(box(0.1, 1.0, 0.05, w, 0.4).translate(px, 0.55, 0));
   return merged(parts);
 }
 
@@ -221,7 +225,11 @@ function mailboxGeometry(): THREE.BufferGeometry {
       0.35,
     ).translate(0.06, 1.32, 0),
     // The door hanging open off the front lip.
-    paint(new THREE.BoxGeometry(0.3, 0.26, 0.03).rotateX(-1.2).translate(0.06, 1.1, 0.34), shell, 0.3),
+    paint(
+      new THREE.BoxGeometry(0.3, 0.26, 0.03).rotateX(-1.2).translate(0.06, 1.1, 0.34),
+      shell,
+      0.3,
+    ),
     // The flag still up — dim, weathered red.
     box(0.03, 0.16, 0.1, palette.signStop, 0.3).translate(0.25, 1.36, -0.12),
     // Mail spilled at the foot.
@@ -230,7 +238,10 @@ function mailboxGeometry(): THREE.BufferGeometry {
     // The neighbour's box, post snapped, face-down in the dirt.
     box(0.12, 0.5, 0.12, wood, 0.45).rotateZ(1.3).translate(0.7, 0.1, -0.35),
     paint(
-      new THREE.BoxGeometry(0.34, 0.26, 0.52).rotateZ(1.25).rotateY(0.3).translate(1.05, 0.18, -0.4),
+      new THREE.BoxGeometry(0.34, 0.26, 0.52)
+        .rotateZ(1.25)
+        .rotateY(0.3)
+        .translate(1.05, 0.18, -0.4),
       shell,
       0.4,
     ),
@@ -245,17 +256,37 @@ function swingSetGeometry(): THREE.BufferGeometry {
   const seat = palette.huskDoor;
   return merged([
     paint(new THREE.BoxGeometry(0.09, 2.4, 0.09).rotateX(0.35).translate(-1.1, 1.1, 0.45), s, 0.45),
-    paint(new THREE.BoxGeometry(0.09, 2.4, 0.09).rotateX(-0.35).translate(-1.1, 1.1, -0.45), s, 0.45),
+    paint(
+      new THREE.BoxGeometry(0.09, 2.4, 0.09).rotateX(-0.35).translate(-1.1, 1.1, -0.45),
+      s,
+      0.45,
+    ),
     paint(new THREE.BoxGeometry(0.09, 2.4, 0.09).rotateX(0.35).translate(1.1, 1.1, 0.45), s, 0.45),
-    paint(new THREE.BoxGeometry(0.09, 2.4, 0.09).rotateX(-0.35).translate(1.1, 1.1, -0.45), s, 0.45),
+    paint(
+      new THREE.BoxGeometry(0.09, 2.4, 0.09).rotateX(-0.35).translate(1.1, 1.1, -0.45),
+      s,
+      0.45,
+    ),
     box(2.5, 0.09, 0.09, s, 0.4).translate(0, 2.2, 0),
     // The hanging swing, drifted slightly off plumb.
-    paint(new THREE.BoxGeometry(0.03, 0.9, 0.03).rotateX(0.12).translate(-0.5, 1.74, 0.05), chain, 0.3),
-    paint(new THREE.BoxGeometry(0.03, 0.9, 0.03).rotateX(0.12).translate(-0.2, 1.74, 0.05), chain, 0.3),
+    paint(
+      new THREE.BoxGeometry(0.03, 0.9, 0.03).rotateX(0.12).translate(-0.5, 1.74, 0.05),
+      chain,
+      0.3,
+    ),
+    paint(
+      new THREE.BoxGeometry(0.03, 0.9, 0.03).rotateX(0.12).translate(-0.2, 1.74, 0.05),
+      chain,
+      0.3,
+    ),
     box(0.42, 0.05, 0.16, seat, 0.35).translate(-0.35, 1.28, 0.11),
     // The other wrapped over the bar, seat dangling high.
     box(0.06, 0.24, 0.06, chain, 0.3).translate(0.45, 2.06, 0),
-    paint(new THREE.BoxGeometry(0.36, 0.05, 0.14).rotateZ(0.5).translate(0.5, 1.88, 0.05), seat, 0.35),
+    paint(
+      new THREE.BoxGeometry(0.36, 0.05, 0.14).rotateZ(0.5).translate(0.5, 1.88, 0.05),
+      seat,
+      0.35,
+    ),
     // Scuffed bare dirt under the seats.
     box(0.7, 0.015, 0.4, palette.groundScorch, 0).translate(-0.35, 0.01, 0.1),
   ]);
@@ -272,10 +303,26 @@ function clotheslineGeometry(): THREE.BufferGeometry {
     paint(new THREE.BoxGeometry(0.1, 1.9, 0.1).rotateZ(-0.12).translate(1.2, 0.9, 0), wood, 0.45),
     box(0.8, 0.08, 0.08, wood, 0.4).rotateZ(-0.12).translate(1.2, 1.7, 0),
     // Two line runs, kinked where they sag at midspan.
-    paint(new THREE.BoxGeometry(1.25, 0.02, 0.02).rotateZ(0.06).translate(-0.6, 1.72, 0.3), line, 0.25),
-    paint(new THREE.BoxGeometry(1.25, 0.02, 0.02).rotateZ(-0.05).translate(0.6, 1.68, 0.3), line, 0.25),
-    paint(new THREE.BoxGeometry(1.25, 0.02, 0.02).rotateZ(0.05).translate(-0.6, 1.74, -0.3), line, 0.25),
-    paint(new THREE.BoxGeometry(1.25, 0.02, 0.02).rotateZ(-0.06).translate(0.6, 1.7, -0.3), line, 0.25),
+    paint(
+      new THREE.BoxGeometry(1.25, 0.02, 0.02).rotateZ(0.06).translate(-0.6, 1.72, 0.3),
+      line,
+      0.25,
+    ),
+    paint(
+      new THREE.BoxGeometry(1.25, 0.02, 0.02).rotateZ(-0.05).translate(0.6, 1.68, 0.3),
+      line,
+      0.25,
+    ),
+    paint(
+      new THREE.BoxGeometry(1.25, 0.02, 0.02).rotateZ(0.05).translate(-0.6, 1.74, -0.3),
+      line,
+      0.25,
+    ),
+    paint(
+      new THREE.BoxGeometry(1.25, 0.02, 0.02).rotateZ(-0.06).translate(0.6, 1.7, -0.3),
+      line,
+      0.25,
+    ),
     // What is still pinned up, bleached stiff.
     box(0.3, 0.5, 0.03, palette.coupeStripe, 0.3).translate(-0.4, 1.42, 0.3),
     box(0.26, 0.4, 0.03, palette.barrierPaint, 0.3).translate(0.35, 1.42, 0.3),
@@ -342,7 +389,11 @@ function campGeometry(): THREE.BufferGeometry {
   for (let i = 0; i < 5; i += 1) {
     const a = (i / 5) * Math.PI * 2;
     parts.push(
-      rockChunk(0.12, 0.7, 0.6, palette.rock, 0.45).translate(Math.cos(a) * 0.42, 0.06, Math.sin(a) * 0.42),
+      rockChunk(0.12, 0.7, 0.6, palette.rock, 0.45).translate(
+        Math.cos(a) * 0.42,
+        0.06,
+        Math.sin(a) * 0.42,
+      ),
     );
   }
   return merged(parts);
@@ -409,7 +460,10 @@ function rubbleGeometry(): THREE.BufferGeometry {
     // Bent rebar clawing out of the pile, and a shattered window frame.
     box(0.08, 0.9, 0.08, palette.railBeam, 0.3).rotateZ(0.6).translate(-0.3, 0.6, 0.3),
     box(0.06, 0.7, 0.06, palette.railBeam, 0.3).rotateZ(-0.45).rotateX(0.3).translate(0.5, 0.7, 0),
-    box(0.5, 0.4, 0.06, palette.huskGlass, 0.35).rotateZ(0.5).rotateY(0.7).translate(0.15, 0.2, 0.75),
+    box(0.5, 0.4, 0.06, palette.huskGlass, 0.35)
+      .rotateZ(0.5)
+      .rotateY(0.7)
+      .translate(0.15, 0.2, 0.75),
   ]);
 }
 
@@ -450,7 +504,11 @@ function trafficLightGeometry(): THREE.BufferGeometry {
     box(0.42, 0.1, 0.42, palette.post, 0.5).translate(0, 0.05, 0),
     box(0.16, 3.5, 0.16, palette.post, 0.6).translate(0, 1.75, 0),
     // The mast arm reaching over the shoulder, with a slight sag.
-    paint(new THREE.BoxGeometry(1.7, 0.14, 0.14).rotateZ(-0.05).translate(0.85, 3.38, 0), palette.post, 0.5),
+    paint(
+      new THREE.BoxGeometry(1.7, 0.14, 0.14).rotateZ(-0.05).translate(0.85, 3.38, 0),
+      palette.post,
+      0.5,
+    ),
     // The three-lamp head hung off the arm end: backboard, housing, visor hoods,
     // dead lenses. The pale-rimmed backboard is the real-world contrast plate and
     // gives the head its instantly-readable silhouette.
@@ -494,11 +552,7 @@ function snappedPoleGeometry(): THREE.BufferGeometry {
     // The jagged tear at the top of the stub.
     box(0.16, 0.24, 0.16, palette.postCollar, 0.4).rotateZ(0.4).translate(0.03, 1.28, 0),
     // The fallen upper half lying across the dirt, lamp head at its end.
-    paint(
-      new THREE.BoxGeometry(0.18, 2.4, 0.18).rotateZ(1.42).translate(1.5, 0.16, 0.25),
-      t,
-      0.5,
-    ),
+    paint(new THREE.BoxGeometry(0.18, 2.4, 0.18).rotateZ(1.42).translate(1.5, 0.16, 0.25), t, 0.5),
     box(0.5, 0.2, 0.3, palette.postLamp, 0.4).rotateZ(0.2).translate(2.7, 0.2, 0.28),
     // The lamp's lens burst on impact: glass pooled under the head.
     box(0.4, 0.02, 0.34, palette.glassShatter, 0.15).rotateY(0.3).translate(2.85, 0.02, 0.55),
@@ -525,7 +579,11 @@ function dumpsterGeometry(): THREE.BufferGeometry {
     box(0.3, 0.18, 0.99, l, 0.45).translate(0.6, 0.24, 0),
     // Split lid: one half shut, one propped open by the overflow.
     box(0.76, 0.08, 0.98, l, 0.35).translate(-0.4, 1.13, 0),
-    paint(new THREE.BoxGeometry(0.76, 0.08, 0.98).rotateX(-0.55).translate(0.4, 1.3, -0.25), l, 0.35),
+    paint(
+      new THREE.BoxGeometry(0.76, 0.08, 0.98).rotateX(-0.55).translate(0.4, 1.3, -0.25),
+      l,
+      0.35,
+    ),
     // The overflow poking out and the bags slumped at the kerb.
     rockChunk(0.24, 0.7, 0.5, palette.trashBag, 0.4).translate(0.4, 1.12, 0.1),
     rockChunk(0.3, 0.6, 0.45, palette.trashBag, 0.45).translate(-1.05, 0.18, 0.35),
@@ -554,10 +612,18 @@ function busStopGeometry(): THREE.BufferGeometry {
     paint(new THREE.BoxGeometry(1.1, 0.08, 2.3).rotateZ(0.06).translate(-0.28, 2.3, 0), f, 0.45),
     // The back glass run: one crazed pane, one gone (the empty frame).
     paint(new THREE.BoxGeometry(0.05, 1.5, 0.95).rotateZ(0.05).translate(-0.42, 1.05, 0.5), g, 0.3),
-    paint(new THREE.BoxGeometry(0.05, 0.1, 0.95).rotateZ(0.05).translate(-0.45, 1.75, -0.5), f, 0.4),
+    paint(
+      new THREE.BoxGeometry(0.05, 0.1, 0.95).rotateZ(0.05).translate(-0.45, 1.75, -0.5),
+      f,
+      0.4,
+    ),
     // The ad panel at one end, its poster faded to a pale sheet.
     paint(new THREE.BoxGeometry(0.08, 1.4, 0.7).rotateZ(0.05).translate(-0.4, 1.1, -1.0), f, 0.45),
-    paint(new THREE.BoxGeometry(0.03, 1.2, 0.55).rotateZ(0.05).translate(-0.34, 1.1, -1.0), palette.barrierPaint, 0.3),
+    paint(
+      new THREE.BoxGeometry(0.03, 1.2, 0.55).rotateZ(0.05).translate(-0.34, 1.1, -1.0),
+      palette.barrierPaint,
+      0.3,
+    ),
     // The bench: seat plank and two legs, a suitcase still waiting on it.
     box(0.45, 0.06, 1.5, palette.postCollar, 0.4).translate(-0.12, 0.5, 0),
     box(0.08, 0.5, 0.08, f, 0.45).translate(-0.12, 0.25, 0.6),
@@ -565,11 +631,23 @@ function busStopGeometry(): THREE.BufferGeometry {
     box(0.34, 0.42, 0.16, palette.suitcaseTan, 0.4).rotateY(0.15).translate(-0.12, 0.74, 0.35),
     box(0.12, 0.05, 0.04, palette.wreckDark, 0.3).rotateY(0.15).translate(-0.12, 0.97, 0.35),
     // The route flag off the roof edge and the timetable strip on a post.
-    paint(new THREE.BoxGeometry(0.04, 0.3, 0.5).rotateZ(0.06).translate(-0.3, 2.5, 0.95), palette.signPlate, 0.3),
+    paint(
+      new THREE.BoxGeometry(0.04, 0.3, 0.5).rotateZ(0.06).translate(-0.3, 2.5, 0.95),
+      palette.signPlate,
+      0.3,
+    ),
     box(0.03, 0.5, 0.18, palette.coupeStripe, 0.25).translate(-0.3, 1.5, 0.96),
     // A public bin knocked against the far post, lid hanging.
-    paint(new THREE.CylinderGeometry(0.18, 0.16, 0.5, 9).rotateZ(0.15).translate(0.25, 0.26, 1.1), palette.dumpsterBody, 0.45),
-    paint(new THREE.CylinderGeometry(0.19, 0.19, 0.04, 9).rotateZ(0.9).translate(0.5, 0.1, 1.2), palette.dumpsterLid, 0.35),
+    paint(
+      new THREE.CylinderGeometry(0.18, 0.16, 0.5, 9).rotateZ(0.15).translate(0.25, 0.26, 1.1),
+      palette.dumpsterBody,
+      0.45,
+    ),
+    paint(
+      new THREE.CylinderGeometry(0.19, 0.19, 0.04, 9).rotateZ(0.9).translate(0.5, 0.1, 1.2),
+      palette.dumpsterLid,
+      0.35,
+    ),
     // Shattered glass pooled where the missing pane fell.
     box(0.7, 0.03, 0.6, palette.glassShatter, 0.2).rotateY(0.3).translate(-0.2, 0.02, -0.55),
   ]);
@@ -602,7 +680,11 @@ function sandbagsGeometry(): THREE.BufferGeometry {
     bag(1.3, 0.1, 0.5, 0.5, true),
     rockChunk(0.3, 0.2, 0.3, palette.sandDune, 0.3).translate(1.5, 0.03, 0.7),
     // A dropped warning sign leaning on the wall — pale plate, dim red band.
-    paint(new THREE.BoxGeometry(0.5, 0.6, 0.05).rotateX(-0.4).translate(-0.9, 0.45, 0.3), palette.signPlate, 0.3),
+    paint(
+      new THREE.BoxGeometry(0.5, 0.6, 0.05).rotateX(-0.4).translate(-0.9, 0.45, 0.3),
+      palette.signPlate,
+      0.3,
+    ),
     box(0.5, 0.14, 0.06, palette.signStop, 0.25).rotateX(-0.4).translate(-0.9, 0.62, 0.36),
   ]);
 }
@@ -657,7 +739,10 @@ function policeHuskGeometry(): THREE.BufferGeometry {
     box(0.28, 0.03, 0.2, palette.barrierPaint, 0.25).translate(0.25, 0.92, -1.3),
     // The dead radio whip off the rear quarter.
     paint(
-      new THREE.BoxGeometry(0.025, 0.6, 0.025).rotateZ(-0.25).rotateX(0.15).translate(-0.7, 1.2, -1.5),
+      new THREE.BoxGeometry(0.025, 0.6, 0.025)
+        .rotateZ(-0.25)
+        .rotateX(0.15)
+        .translate(-0.7, 1.2, -1.5),
       h,
       0.3,
     ),
@@ -727,7 +812,12 @@ function cartClusterGeometry(): THREE.BufferGeometry {
     ];
     // A tipped cart rotates about its origin, so lift it back onto the ground
     // (the lower basket wall lands ~0.17 below y=0 at the 1.45 rad tip).
-    return parts.map((p) => p.rotateZ(tip).rotateY(yaw).translate(x, tip !== 0 ? 0.2 : 0, z));
+    return parts.map((p) =>
+      p
+        .rotateZ(tip)
+        .rotateY(yaw)
+        .translate(x, tip !== 0 ? 0.2 : 0, z),
+    );
   };
   return merged([
     ...cart(0.4, 0, -0.3, 0),
@@ -756,8 +846,16 @@ function hydrantGeometry(): THREE.BufferGeometry {
     paint(new THREE.CylinderGeometry(0.05, 0.16, 0.16, 9), b, 0.35).translate(0, 0.78, 0),
     box(0.09, 0.07, 0.09, c, 0.3).translate(0, 0.88, 0),
     // The two side outlets with their caps, one cap dangling on its chain.
-    paint(new THREE.CylinderGeometry(0.08, 0.08, 0.14, 8).rotateZ(1.57), c, 0.4).translate(0.2, 0.45, 0),
-    paint(new THREE.CylinderGeometry(0.08, 0.08, 0.1, 8).rotateZ(1.57), c, 0.4).translate(-0.18, 0.45, 0),
+    paint(new THREE.CylinderGeometry(0.08, 0.08, 0.14, 8).rotateZ(1.57), c, 0.4).translate(
+      0.2,
+      0.45,
+      0,
+    ),
+    paint(new THREE.CylinderGeometry(0.08, 0.08, 0.1, 8).rotateZ(1.57), c, 0.4).translate(
+      -0.18,
+      0.45,
+      0,
+    ),
     box(0.03, 0.16, 0.03, c, 0.3).translate(0.27, 0.32, 0.02),
     paint(new THREE.CylinderGeometry(0.07, 0.07, 0.05, 8), c, 0.35).translate(0.28, 0.2, 0.03),
     // The dry rust stain streaked down and pooled at the foot.
@@ -784,8 +882,16 @@ function utilityBoxGeometry(): THREE.BufferGeometry {
     box(0.03, 0.3, 0.03, palette.bridgeCable, 0.25).rotateZ(0.5).translate(0.15, 0.5, 0.25),
     box(0.03, 0.24, 0.03, palette.bridgeCable, 0.25).rotateZ(-0.7).translate(0.25, 0.42, 0.25),
     // Conduit risers up the back, and the faded warning sticker on the flank.
-    paint(new THREE.CylinderGeometry(0.04, 0.04, 1.0, 6), palette.postCollar, 0.35).translate(-0.2, 0.55, -0.24),
-    paint(new THREE.CylinderGeometry(0.03, 0.03, 0.8, 6), palette.postCollar, 0.35).translate(0.1, 0.45, -0.24),
+    paint(new THREE.CylinderGeometry(0.04, 0.04, 1.0, 6), palette.postCollar, 0.35).translate(
+      -0.2,
+      0.55,
+      -0.24,
+    ),
+    paint(new THREE.CylinderGeometry(0.03, 0.03, 0.8, 6), palette.postCollar, 0.35).translate(
+      0.1,
+      0.45,
+      -0.24,
+    ),
     box(0.02, 0.18, 0.14, palette.signStop, 0.25).translate(-0.38, 0.85, 0),
   ]);
 }
@@ -817,7 +923,10 @@ function scaffoldGeometry(): THREE.BufferGeometry {
   parts.push(box(0.42, 0.05, 1.0, palette.postCollar, 0.35).translate(-0.25, 2.06, 0));
   parts.push(
     paint(
-      new THREE.BoxGeometry(0.42, 0.05, 1.1).rotateY(0.25).rotateZ(-0.06).translate(0.3, 2.07, 0.15),
+      new THREE.BoxGeometry(0.42, 0.05, 1.1)
+        .rotateY(0.25)
+        .rotateZ(-0.06)
+        .translate(0.3, 2.07, 0.15),
       palette.postCollar,
       0.35,
     ),
@@ -827,11 +936,19 @@ function scaffoldGeometry(): THREE.BufferGeometry {
     paint(new THREE.BoxGeometry(0.05, 1.7, 0.05).rotateZ(0.6).translate(0, 1.4, 0.46), s, 0.4),
   );
   parts.push(
-    paint(new THREE.BoxGeometry(0.36, 0.05, 1.6).rotateX(1.1).rotateY(0.3).translate(0.75, 0.65, 0.2), palette.postCollar, 0.35),
+    paint(
+      new THREE.BoxGeometry(0.36, 0.05, 1.6).rotateX(1.1).rotateY(0.3).translate(0.75, 0.65, 0.2),
+      palette.postCollar,
+      0.35,
+    ),
   );
   // Wind-torn sheeting still knotted to one standard.
   parts.push(
-    paint(new THREE.BoxGeometry(0.03, 0.9, 0.5).rotateX(0.2).rotateZ(0.15).translate(-0.6, 1.5, 0.55), palette.barrierPaint, 0.3),
+    paint(
+      new THREE.BoxGeometry(0.03, 0.9, 0.5).rotateX(0.2).rotateZ(0.15).translate(-0.6, 1.5, 0.55),
+      palette.barrierPaint,
+      0.3,
+    ),
   );
   return merged(parts);
 }
@@ -847,8 +964,16 @@ function coneClusterGeometry(): THREE.BufferGeometry {
     paint(new THREE.ConeGeometry(0.16, 0.44, 8), shell, 0.35).translate(0, 0.26, 0),
     paint(new THREE.CylinderGeometry(0.115, 0.135, 0.09, 8), band, 0.25).translate(0, 0.24, 0),
     // One kicked over, lying on its flank.
-    paint(new THREE.ConeGeometry(0.16, 0.44, 8).rotateX(1.45).translate(0.6, 0.17, 0.35), shell, 0.35),
-    paint(new THREE.CylinderGeometry(0.115, 0.135, 0.09, 8).rotateX(1.45).translate(0.62, 0.17, 0.37), band, 0.25),
+    paint(
+      new THREE.ConeGeometry(0.16, 0.44, 8).rotateX(1.45).translate(0.6, 0.17, 0.35),
+      shell,
+      0.35,
+    ),
+    paint(
+      new THREE.CylinderGeometry(0.115, 0.135, 0.09, 8).rotateX(1.45).translate(0.62, 0.17, 0.37),
+      band,
+      0.25,
+    ),
     box(0.3, 0.04, 0.3, shell, 0.4).rotateX(1.45).rotateY(0.4).translate(0.38, 0.16, 0.3),
     // One crushed flat by a tyre.
     paint(new THREE.ConeGeometry(0.19, 0.09, 8), shell, 0.3).translate(-0.55, 0.045, -0.3),
@@ -877,7 +1002,9 @@ function beaconGeometry(): THREE.BufferGeometry {
     paint(new THREE.CylinderGeometry(0.2, 0.2, 0.06, 6), glow, 0.1).translate(0, 2.85, 0),
     // A cable trailing to a spiked ground probe.
     box(0.04, 0.04, 0.9, palette.bridgeCable, 0.3).rotateY(0.4).translate(0.5, 0.04, 0.4),
-    paint(new THREE.ConeGeometry(0.09, 0.3, 5), body, 0.35).rotateX(Math.PI).translate(0.9, 0.12, 0.7),
+    paint(new THREE.ConeGeometry(0.09, 0.3, 5), body, 0.35)
+      .rotateX(Math.PI)
+      .translate(0.9, 0.12, 0.7),
   ]);
 }
 
@@ -928,11 +1055,23 @@ function stompedHuskGeometry(): THREE.BufferGeometry {
     rockChunk(0.22, 0.5, 0.6, palette.rock, 0.45).rotateY(0.8).translate(0.3, 0.08, 1.7),
     // The car, pancaked: body pressed to a hand's height, roof rippled.
     box(1.7, 0.22, 3.2, palette.husk, 0.45).translate(0, 0.14, 0),
-    paint(new THREE.BoxGeometry(1.5, 0.12, 1.3).rotateZ(0.05).translate(0, 0.27, -0.2), palette.huskDoor, 0.4),
+    paint(
+      new THREE.BoxGeometry(1.5, 0.12, 1.3).rotateZ(0.05).translate(0, 0.27, -0.2),
+      palette.huskDoor,
+      0.4,
+    ),
     box(1.2, 0.08, 0.7, palette.wreckScorch, 0.25).translate(0.1, 0.28, 0.9),
     // Wheels burst outward flat, and a door blown clear.
-    paint(new THREE.CylinderGeometry(0.3, 0.3, 0.16, 9).rotateZ(1.5).rotateY(0.7), palette.wheel, 0.4).translate(1.15, 0.09, 1.1),
-    paint(new THREE.CylinderGeometry(0.3, 0.3, 0.16, 9).rotateZ(1.5).rotateY(-0.5), palette.wheel, 0.4).translate(-1.2, 0.09, -0.8),
+    paint(
+      new THREE.CylinderGeometry(0.3, 0.3, 0.16, 9).rotateZ(1.5).rotateY(0.7),
+      palette.wheel,
+      0.4,
+    ).translate(1.15, 0.09, 1.1),
+    paint(
+      new THREE.CylinderGeometry(0.3, 0.3, 0.16, 9).rotateZ(1.5).rotateY(-0.5),
+      palette.wheel,
+      0.4,
+    ).translate(-1.2, 0.09, -0.8),
     box(0.9, 0.05, 0.5, palette.huskDoor, 0.35).rotateY(0.6).translate(-1.3, 0.05, 0.9),
     // Glass sprayed out of the pressed cabin.
     box(0.5, 0.02, 0.4, palette.glassShatter, 0.15).rotateY(0.3).translate(1.0, 0.055, -0.5),
@@ -946,9 +1085,27 @@ function giantRibGeometry(): THREE.BufferGeometry {
   const bone = palette.zombieBone;
   const rib = (xo: number, zo: number, s: number, yaw: number): THREE.BufferGeometry[] => {
     const parts = [
-      paint(new THREE.BoxGeometry(0.3 * s, 2.2 * s, 0.45 * s).rotateZ(0.5).translate(-0.7 * s, 0.9 * s, 0), bone, 0.4),
-      paint(new THREE.BoxGeometry(0.26 * s, 1.8 * s, 0.4 * s).rotateZ(1.0).translate(0.35 * s, 1.9 * s, 0), bone, 0.35),
-      paint(new THREE.BoxGeometry(0.22 * s, 1.4 * s, 0.34 * s).rotateZ(1.4).translate(1.5 * s, 2.3 * s, 0), bone, 0.3),
+      paint(
+        new THREE.BoxGeometry(0.3 * s, 2.2 * s, 0.45 * s)
+          .rotateZ(0.5)
+          .translate(-0.7 * s, 0.9 * s, 0),
+        bone,
+        0.4,
+      ),
+      paint(
+        new THREE.BoxGeometry(0.26 * s, 1.8 * s, 0.4 * s)
+          .rotateZ(1.0)
+          .translate(0.35 * s, 1.9 * s, 0),
+        bone,
+        0.35,
+      ),
+      paint(
+        new THREE.BoxGeometry(0.22 * s, 1.4 * s, 0.34 * s)
+          .rotateZ(1.4)
+          .translate(1.5 * s, 2.3 * s, 0),
+        bone,
+        0.3,
+      ),
     ];
     return parts.map((p) => p.rotateY(yaw).translate(xo, 0, zo));
   };
@@ -1010,9 +1167,13 @@ function probeGeometry(): THREE.BufferGeometry {
   const lean = 0.5;
   return merged([
     // The dart body, buried to a third of its length.
-    paint(new THREE.CylinderGeometry(0.16, 0.3, 2.2, 6), body, 0.45).rotateZ(lean).translate(0, 1.0, 0),
+    paint(new THREE.CylinderGeometry(0.16, 0.3, 2.2, 6), body, 0.45)
+      .rotateZ(lean)
+      .translate(0, 1.0, 0),
     // The tail ring, a dim lit collar just below the fins.
-    paint(new THREE.CylinderGeometry(0.24, 0.24, 0.08, 6), glow, 0.1).rotateZ(lean).translate(-0.85, 1.85, 0),
+    paint(new THREE.CylinderGeometry(0.24, 0.24, 0.08, 6), glow, 0.1)
+      .rotateZ(lean)
+      .translate(-0.85, 1.85, 0),
     // Three tail fins.
     box(0.05, 0.7, 0.32, body, 0.4).rotateZ(lean).translate(-0.95, 2.15, 0.16),
     box(0.05, 0.7, 0.32, body, 0.4).rotateZ(lean).translate(-0.95, 2.15, -0.16),
@@ -1020,7 +1181,11 @@ function probeGeometry(): THREE.BufferGeometry {
     // The impact: dirt heaped at the entry wound, one cracked slab lifted.
     rockChunk(0.4, 0.4, 0.35, palette.groundSand, 0.45).translate(0.45, 0.1, 0.2),
     rockChunk(0.3, 0.45, 0.4, palette.rockDark, 0.5).rotateY(0.7).translate(-0.35, 0.08, -0.3),
-    paint(new THREE.BoxGeometry(0.7, 0.1, 0.5).rotateZ(0.3).rotateY(0.4).translate(0.75, 0.16, -0.25), palette.rock, 0.45),
+    paint(
+      new THREE.BoxGeometry(0.7, 0.1, 0.5).rotateZ(0.3).rotateY(0.4).translate(0.75, 0.16, -0.25),
+      palette.rock,
+      0.45,
+    ),
   ]);
 }
 
@@ -1043,7 +1208,11 @@ function crystalHuskGeometry(): THREE.BufferGeometry {
     box(0.5, 0.05, 0.08, glow, 0.1).rotateY(0.3).translate(0.15, 0.92, -0.35),
     // Wheels burst, one lying free.
     wheel(0.32, 0.24, palette.wheel).translate(-1.05, 0.32, 1.15),
-    paint(new THREE.CylinderGeometry(0.3, 0.3, 0.18, 9).rotateZ(1.5), palette.wheel, 0.4).translate(1.35, 0.09, -0.9),
+    paint(new THREE.CylinderGeometry(0.3, 0.3, 0.18, 9).rotateZ(1.5), palette.wheel, 0.4).translate(
+      1.35,
+      0.09,
+      -0.9,
+    ),
   ]);
 }
 
@@ -1058,7 +1227,11 @@ function bentPoleGeometry(): THREE.BufferGeometry {
     // The fold: a crushed elbow where the foot came down.
     box(0.26, 0.3, 0.26, palette.postCollar, 0.45).rotateZ(0.6).translate(0.12, 1.15, 0),
     // The upper pole lying nearly flat, driven into the dirt at the far end.
-    paint(new THREE.BoxGeometry(0.18, 2.6, 0.18).rotateZ(1.42).translate(1.55, 1.0, 0.06), palette.post, 0.5),
+    paint(
+      new THREE.BoxGeometry(0.18, 2.6, 0.18).rotateZ(1.42).translate(1.55, 1.0, 0.06),
+      palette.post,
+      0.5,
+    ),
     // The lamp head, face-down and crushed oval.
     box(0.55, 0.14, 0.36, palette.postLamp, 0.45).translate(2.85, 0.1, 0.1),
     box(0.4, 0.05, 0.24, palette.huskGlass, 0.2).translate(2.85, 0.19, 0.1),
@@ -1082,7 +1255,9 @@ function girderPileGeometry(): THREE.BufferGeometry {
     box(0.06, 0.3, len, hex, ao + 0.1).translate(0, -0.15, 0), // web
   ];
   const beamA = beam(2.6, steel, 0.4).map((p) => p.rotateY(0.35).translate(-0.2, 0.42, 0));
-  const beamB = beam(2.0, dark, 0.45).map((p) => p.rotateZ(0.28).rotateY(-0.5).translate(0.5, 0.75, 0.3));
+  const beamB = beam(2.0, dark, 0.45).map((p) =>
+    p.rotateZ(0.28).rotateY(-0.5).translate(0.5, 0.75, 0.3),
+  );
   const beamC = beam(1.5, steel, 0.45).map((p) => p.rotateY(1.2).translate(0.2, 0.14, -0.8));
   return merged([
     ...beamA,
@@ -1091,7 +1266,10 @@ function girderPileGeometry(): THREE.BufferGeometry {
     // A torn concrete plug still gripping beam B's end, rebar whiskers out of it.
     rockChunk(0.35, 0.5, 0.45, palette.barrierCore, 0.45).translate(1.15, 1.0, 0.75),
     box(0.05, 0.7, 0.05, palette.railBeam, 0.3).rotateZ(0.5).translate(1.4, 1.35, 0.7),
-    box(0.05, 0.55, 0.05, palette.railBeam, 0.3).rotateZ(-0.4).rotateX(0.3).translate(1.05, 1.4, 0.95),
+    box(0.05, 0.55, 0.05, palette.railBeam, 0.3)
+      .rotateZ(-0.4)
+      .rotateX(0.3)
+      .translate(1.05, 1.4, 0.95),
     // Crushed masonry under the heap.
     rockChunk(0.4, 0.5, 0.5, palette.rock, 0.5).rotateY(0.6).translate(-0.9, 0.12, 0.5),
     rockChunk(0.3, 0.5, 0.55, palette.rockDark, 0.5).rotateY(1.3).translate(0.9, 0.1, -0.9),
@@ -1220,8 +1398,12 @@ function iceBoulderGeometry(): THREE.BufferGeometry {
     rockChunk(0.5, 0.3, 0.5, s, 0.2).rotateY(0.5).translate(0, 0.78, 0),
     rockChunk(0.3, 0.3, 0.55, s, 0.2).rotateY(-0.4).translate(0.5, 0.56, -0.3),
     // A drip of icicles off the shaded overhang.
-    paint(new THREE.ConeGeometry(0.06, 0.3, 4), g, 0.2).rotateX(Math.PI).translate(-0.55, 0.3, 0.4),
-    paint(new THREE.ConeGeometry(0.05, 0.22, 4), g, 0.2).rotateX(Math.PI).translate(-0.4, 0.32, 0.5),
+    paint(new THREE.ConeGeometry(0.06, 0.3, 4), g, 0.2)
+      .rotateX(Math.PI)
+      .translate(-0.55, 0.3, 0.4),
+    paint(new THREE.ConeGeometry(0.05, 0.22, 4), g, 0.2)
+      .rotateX(Math.PI)
+      .translate(-0.4, 0.32, 0.5),
   ]);
 }
 
@@ -1459,10 +1641,14 @@ function fallenPineGeometry(): THREE.BufferGeometry {
   const b = palette.pineBough;
   return merged([
     // The stump, splintered at the break.
-    paint(new THREE.CylinderGeometry(0.16, 0.22, 1.2, 6), t, 0.5).rotateZ(0.08).translate(0, 0.6, 0),
+    paint(new THREE.CylinderGeometry(0.16, 0.22, 1.2, 6), t, 0.5)
+      .rotateZ(0.08)
+      .translate(0, 0.6, 0),
     paint(new THREE.ConeGeometry(0.14, 0.5, 5), t, 0.4).translate(0.05, 1.35, 0),
     // The fallen crown: trunk lying away, boughs crushed under it.
-    paint(new THREE.CylinderGeometry(0.1, 0.17, 2.6, 6), t, 0.45).rotateZ(1.45).translate(1.7, 0.28, 0.2),
+    paint(new THREE.CylinderGeometry(0.1, 0.17, 2.6, 6), t, 0.45)
+      .rotateZ(1.45)
+      .translate(1.7, 0.28, 0.2),
     cone(0.55, 1.1, 6, b, 0.5).rotateZ(1.5).translate(1.5, 0.4, 0.2),
     cone(0.42, 0.9, 6, b, 0.5).rotateZ(1.5).translate(2.2, 0.34, 0.15),
     cone(0.3, 0.7, 6, b, 0.45).rotateZ(1.5).translate(2.8, 0.28, 0.2),
@@ -1483,7 +1669,11 @@ function snowedSignGeometry(): THREE.BufferGeometry {
     // Post stubs just clearing the snow, and the leaning panel.
     box(0.1, 0.7, 0.1, palette.post, 0.45).rotateZ(0.1).translate(-0.5, 0.6, 0),
     box(0.1, 0.5, 0.1, palette.post, 0.45).rotateZ(0.18).translate(0.5, 0.5, 0.05),
-    paint(new THREE.BoxGeometry(1.7, 0.9, 0.08).rotateZ(0.14).rotateY(0.1).translate(0, 1.05, 0), palette.barrierPaint, 0.35),
+    paint(
+      new THREE.BoxGeometry(1.7, 0.9, 0.08).rotateZ(0.14).rotateY(0.1).translate(0, 1.05, 0),
+      palette.barrierPaint,
+      0.35,
+    ),
     // The snow cap ridged along its top edge.
     box(1.6, 0.14, 0.2, palette.snowLit, 0.15).rotateZ(0.14).translate(-0.05, 1.55, 0),
   ]);
@@ -1500,13 +1690,29 @@ function longhornGeometry(): THREE.BufferGeometry {
     box(0.09, 0.09, 0.06, palette.tvDark, 0.2).translate(-0.13, 0.28, 0.21),
     box(0.09, 0.09, 0.06, palette.tvDark, 0.2).translate(0.13, 0.28, 0.21),
     // The horns sweeping wide, two segments each.
-    paint(new THREE.CylinderGeometry(0.05, 0.07, 0.7, 5), bone, 0.3).rotateZ(1.35).translate(-0.55, 0.42, -0.05),
-    paint(new THREE.CylinderGeometry(0.03, 0.05, 0.5, 5), bone, 0.25).rotateZ(1.05).translate(-1.05, 0.58, -0.05),
-    paint(new THREE.CylinderGeometry(0.05, 0.07, 0.7, 5), bone, 0.3).rotateZ(-1.35).translate(0.55, 0.42, -0.05),
-    paint(new THREE.CylinderGeometry(0.03, 0.05, 0.5, 5), bone, 0.25).rotateZ(-1.05).translate(1.05, 0.58, -0.05),
+    paint(new THREE.CylinderGeometry(0.05, 0.07, 0.7, 5), bone, 0.3)
+      .rotateZ(1.35)
+      .translate(-0.55, 0.42, -0.05),
+    paint(new THREE.CylinderGeometry(0.03, 0.05, 0.5, 5), bone, 0.25)
+      .rotateZ(1.05)
+      .translate(-1.05, 0.58, -0.05),
+    paint(new THREE.CylinderGeometry(0.05, 0.07, 0.7, 5), bone, 0.3)
+      .rotateZ(-1.35)
+      .translate(0.55, 0.42, -0.05),
+    paint(new THREE.CylinderGeometry(0.03, 0.05, 0.5, 5), bone, 0.25)
+      .rotateZ(-1.05)
+      .translate(1.05, 0.58, -0.05),
     // A rib pair arcing out of the sand behind it.
-    paint(new THREE.BoxGeometry(0.08, 0.6, 0.14).rotateZ(0.5).translate(-0.3, 0.28, -0.7), bone, 0.35),
-    paint(new THREE.BoxGeometry(0.07, 0.5, 0.12).rotateZ(0.65).translate(0.1, 0.24, -0.85), bone, 0.35),
+    paint(
+      new THREE.BoxGeometry(0.08, 0.6, 0.14).rotateZ(0.5).translate(-0.3, 0.28, -0.7),
+      bone,
+      0.35,
+    ),
+    paint(
+      new THREE.BoxGeometry(0.07, 0.5, 0.12).rotateZ(0.65).translate(0.1, 0.24, -0.85),
+      bone,
+      0.35,
+    ),
     // The sand banked around the skull.
     rockChunk(0.5, 0.3, 0.3, palette.sandDune, 0.4).translate(0.15, 0.06, -0.2),
   ]);
@@ -1554,8 +1760,12 @@ function ventFanGeometry(): THREE.BufferGeometry {
     box(1.4, 2.2, 0.3, palette.barrierCore, 0.55).translate(0, 1.1, 0),
     box(0.5, 0.9, 0.05, palette.tvDark, 0.35).translate(0.1, 0.5, 0.16),
     // The housing ring and hub.
-    paint(new THREE.CylinderGeometry(0.62, 0.62, 0.22, 12, 1, true), s, 0.45).rotateX(Math.PI / 2).translate(0, 1.45, 0.25),
-    paint(new THREE.CylinderGeometry(0.12, 0.12, 0.24, 8), d, 0.35).rotateX(Math.PI / 2).translate(0, 1.45, 0.28),
+    paint(new THREE.CylinderGeometry(0.62, 0.62, 0.22, 12, 1, true), s, 0.45)
+      .rotateX(Math.PI / 2)
+      .translate(0, 1.45, 0.25),
+    paint(new THREE.CylinderGeometry(0.12, 0.12, 0.24, 8), d, 0.35)
+      .rotateX(Math.PI / 2)
+      .translate(0, 1.45, 0.28),
   ];
   // Four blades frozen mid-turn, and three grill bars over the mouth.
   for (let i = 0; i < 4; i += 1) {
@@ -1592,7 +1802,9 @@ function gensetGeometry(): THREE.BufferGeometry {
     box(0.07, 1.3, 0.07, s, 0.4).translate(-0.6, 1.85, -0.1),
     box(0.3, 0.2, 0.2, palette.tunnelLampDead, 0.35).rotateX(0.5).translate(-0.6, 2.5, 0.05),
     // The cable drum beside, cables snaking toward the road.
-    paint(new THREE.CylinderGeometry(0.4, 0.4, 0.35, 10), d, 0.45).rotateX(Math.PI / 2).translate(1.4, 0.4, -0.3),
+    paint(new THREE.CylinderGeometry(0.4, 0.4, 0.35, 10), d, 0.45)
+      .rotateX(Math.PI / 2)
+      .translate(1.4, 0.4, -0.3),
     box(0.05, 0.05, 1.6, palette.bridgeCable, 0.3).rotateY(0.4).translate(1.0, 0.04, 0.7),
     box(0.05, 0.05, 1.2, palette.bridgeCable, 0.3).rotateY(-0.2).translate(0.2, 0.04, 0.9),
   ]);
@@ -1605,10 +1817,16 @@ function buoyGeometry(): THREE.BufferGeometry {
   const d = palette.bridgeSteelDark;
   return merged([
     // The float lying on its side, band proud around the waist.
-    paint(new THREE.CylinderGeometry(0.55, 0.7, 1.3, 10), d, 0.45).rotateZ(1.35).translate(0, 0.55, 0),
-    paint(new THREE.CylinderGeometry(0.72, 0.72, 0.25, 10), s, 0.35).rotateZ(1.35).translate(-0.15, 0.58, 0),
+    paint(new THREE.CylinderGeometry(0.55, 0.7, 1.3, 10), d, 0.45)
+      .rotateZ(1.35)
+      .translate(0, 0.55, 0),
+    paint(new THREE.CylinderGeometry(0.72, 0.72, 0.25, 10), s, 0.35)
+      .rotateZ(1.35)
+      .translate(-0.15, 0.58, 0),
     // The cone top and the bent lamp cage at its tip.
-    paint(new THREE.ConeGeometry(0.5, 0.8, 10), d, 0.4).rotateZ(1.35 + Math.PI / 2).translate(1.0, 0.42, 0),
+    paint(new THREE.ConeGeometry(0.5, 0.8, 10), d, 0.4)
+      .rotateZ(1.35 + Math.PI / 2)
+      .translate(1.0, 0.42, 0),
     box(0.08, 0.5, 0.08, s, 0.35).rotateZ(1.0).translate(1.5, 0.5, 0),
     box(0.22, 0.2, 0.22, palette.tunnelLampDead, 0.3).translate(1.72, 0.62, 0),
     // Chain links dragging back to a barnacled anchor block.
@@ -1650,7 +1868,11 @@ function ventConeGeometry(): THREE.BufferGeometry {
     cone(0.9, 1.4, 7, palette.basaltDark, 0.55).translate(0, 0.7, 0),
     cone(0.55, 0.7, 7, palette.basaltCool, 0.5).translate(0.1, 1.15, 0),
     // The mouth rim, dim hot, and a vein bleeding down the flank.
-    paint(new THREE.CylinderGeometry(0.3, 0.36, 0.1, 7), palette.emberVein, 0.15).translate(0.1, 1.5, 0),
+    paint(new THREE.CylinderGeometry(0.3, 0.36, 0.1, 7), palette.emberVein, 0.15).translate(
+      0.1,
+      1.5,
+      0,
+    ),
     box(0.08, 0.7, 0.08, palette.emberVein, 0.3).rotateZ(0.25).translate(0.45, 0.8, 0.25),
     // Spatter clots cooled on the apron.
     rockChunk(0.25, 0.6, 0.5, palette.lavaCooling, 0.45).translate(0.8, 0.08, 0.4),
@@ -1664,7 +1886,9 @@ function ventConeGeometry(): THREE.BufferGeometry {
 function charSnagGeometry(): THREE.BufferGeometry {
   const black = palette.basaltDark;
   return merged([
-    paint(new THREE.CylinderGeometry(0.14, 0.24, 2.4, 6), black, 0.55).rotateZ(0.06).translate(0, 1.2, 0),
+    paint(new THREE.CylinderGeometry(0.14, 0.24, 2.4, 6), black, 0.55)
+      .rotateZ(0.06)
+      .translate(0, 1.2, 0),
     // Snapped limbs, one still holding, one dropped at the base.
     box(0.1, 0.9, 0.1, black, 0.5).rotateZ(0.9).translate(0.45, 1.9, 0.1),
     box(0.08, 0.6, 0.08, black, 0.5).rotateZ(-0.7).translate(-0.35, 2.1, -0.05),
@@ -1839,7 +2063,15 @@ const KINDS = Object.keys(GEOMETRY) as DecorKind[];
 const ACT_DECOR: Record<PropKind, readonly (readonly DecorKind[])[]> = {
   post: [
     // I — the working street grid, one piece in six a fallen pole or scaffold bay.
-    ['streetlight', 'streetlight', 'trafficlight', 'streetlight', 'trafficlight', 'snappedpole', 'scaffold'],
+    [
+      'streetlight',
+      'streetlight',
+      'trafficlight',
+      'streetlight',
+      'trafficlight',
+      'snappedpole',
+      'scaffold',
+    ],
     ['deadtree', 'deadtree', 'clothesline', 'swingset', 'deadtree'], // II — the yards they left
     ['streetlight', 'snappedpole', 'scaffold'], // III — the overrun outskirts, half the grid down
     ['crystalspur', 'crystalspur', 'beacon', 'probe'], // IV — the survey the invaders left

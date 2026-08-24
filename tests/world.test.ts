@@ -95,7 +95,8 @@ describe('safe-line invariant', () => {
         else if (spawn.kind === 'boulder') boulders += 1;
         else if (spawn.kind === 'barrel') barrels += 1;
         else if (spawn.kind === 'zombie') zombies += 1;
-        else if (spawn.kind === 'jump' || spawn.kind === 'health' || spawn.kind === 'ammo') pickups += 1;
+        else if (spawn.kind === 'jump' || spawn.kind === 'health' || spawn.kind === 'ammo')
+          pickups += 1;
       }
     }
     expect(wrecks).toBeGreaterThan(0);

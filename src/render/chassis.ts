@@ -33,7 +33,16 @@ const WHEELS: readonly [number, number][] = [
 ];
 
 /** A positioned, AO-baked box panel (tops bright, undersides dark). */
-function panel(w: number, h: number, d: number, color: number, x: number, y: number, z: number, ao = 0.4): THREE.BufferGeometry {
+function panel(
+  w: number,
+  h: number,
+  d: number,
+  color: number,
+  x: number,
+  y: number,
+  z: number,
+  ao = 0.4,
+): THREE.BufferGeometry {
   return paint(new THREE.BoxGeometry(w, h, d).translate(x, y, z), color, ao);
 }
 
@@ -41,7 +50,17 @@ function panel(w: number, h: number, d: number, color: number, x: number, y: num
  * A box panel rotated about its own X axis, positioned, then AO-baked in that
  * order, so a sloped hood or raked screen is shaded from its final orientation.
  */
-function wedge(w: number, h: number, d: number, color: number, rx: number, x: number, y: number, z: number, ao = 0.45): THREE.BufferGeometry {
+function wedge(
+  w: number,
+  h: number,
+  d: number,
+  color: number,
+  rx: number,
+  x: number,
+  y: number,
+  z: number,
+  ao = 0.45,
+): THREE.BufferGeometry {
   return paint(new THREE.BoxGeometry(w, h, d).rotateX(rx).translate(x, y, z), color, ao);
 }
 
@@ -80,7 +99,17 @@ function taper(
 }
 
 /** A round bar, pipe or drum laid along an axis. */
-function cyl(radius: number, length: number, color: number, axis: 'x' | 'y' | 'z', x: number, y: number, z: number, ao = 0.42, seg = 12): THREE.BufferGeometry {
+function cyl(
+  radius: number,
+  length: number,
+  color: number,
+  axis: 'x' | 'y' | 'z',
+  x: number,
+  y: number,
+  z: number,
+  ao = 0.42,
+  seg = 12,
+): THREE.BufferGeometry {
   const g = new THREE.CylinderGeometry(radius, radius, length, seg);
   if (axis === 'x') g.rotateZ(Math.PI / 2);
   else if (axis === 'z') g.rotateX(Math.PI / 2);
@@ -88,7 +117,18 @@ function cyl(radius: number, length: number, color: number, axis: 'x' | 'y' | 'z
 }
 
 /** A tapered round form. */
-function cone(rTop: number, rBot: number, length: number, color: number, axis: 'x' | 'y' | 'z', x: number, y: number, z: number, ao = 0.45, seg = 12): THREE.BufferGeometry {
+function cone(
+  rTop: number,
+  rBot: number,
+  length: number,
+  color: number,
+  axis: 'x' | 'y' | 'z',
+  x: number,
+  y: number,
+  z: number,
+  ao = 0.45,
+  seg = 12,
+): THREE.BufferGeometry {
   const g = new THREE.CylinderGeometry(rTop, rBot, length, seg);
   if (axis === 'x') g.rotateZ(Math.PI / 2);
   else if (axis === 'z') g.rotateX(Math.PI / 2);
@@ -99,7 +139,15 @@ function cone(rTop: number, rBot: number, length: number, color: number, axis: '
  * A round wheel-arch eyebrow: a half-torus spanning front-to-back over a wheel
  * (axle along X), to break the boxed-fender read.
  */
-function arch(radius: number, tube: number, color: number, x: number, y: number, z: number, ao = 0.5): THREE.BufferGeometry {
+function arch(
+  radius: number,
+  tube: number,
+  color: number,
+  x: number,
+  y: number,
+  z: number,
+  ao = 0.5,
+): THREE.BufferGeometry {
   const g = new THREE.TorusGeometry(radius, tube, 6, 14, Math.PI);
   g.rotateY(Math.PI / 2); // ring plane XY → ZY, so the arc spans the wheel front-to-back
   return paint(g.translate(x, y, z), color, ao);
@@ -149,14 +197,32 @@ function extrudeBody(
  * A self-lit lamp panel: flat (no AO) so it stays bright under the unlit
  * `lightMaterial` even on a face turned from the sun. Optional `rx` tilt.
  */
-function glow(w: number, h: number, d: number, color: number, x: number, y: number, z: number, rx = 0): THREE.BufferGeometry {
+function glow(
+  w: number,
+  h: number,
+  d: number,
+  color: number,
+  x: number,
+  y: number,
+  z: number,
+  rx = 0,
+): THREE.BufferGeometry {
   const g = new THREE.BoxGeometry(w, h, d);
   if (rx) g.rotateX(rx);
   return paint(g.translate(x, y, z), color, 0);
 }
 
 /** A round self-lit lamp. */
-function glowCyl(radius: number, length: number, color: number, axis: 'x' | 'y' | 'z', x: number, y: number, z: number, seg = 12): THREE.BufferGeometry {
+function glowCyl(
+  radius: number,
+  length: number,
+  color: number,
+  axis: 'x' | 'y' | 'z',
+  x: number,
+  y: number,
+  z: number,
+  seg = 12,
+): THREE.BufferGeometry {
   const g = new THREE.CylinderGeometry(radius, radius, length, seg);
   if (axis === 'x') g.rotateZ(Math.PI / 2);
   else if (axis === 'z') g.rotateX(Math.PI / 2);
@@ -169,7 +235,11 @@ function glowCyl(radius: number, length: number, color: number, axis: 'x' | 'y' 
  * chassis, no matter how detailed the silhouette.
  * Optional `shiftY` translates all geometries vertically before merging.
  */
-function assemble(body: THREE.BufferGeometry[], lights: THREE.BufferGeometry[], shiftY = 0): THREE.Group {
+function assemble(
+  body: THREE.BufferGeometry[],
+  lights: THREE.BufferGeometry[],
+  shiftY = 0,
+): THREE.Group {
   const group = new THREE.Group();
   group.name = 'car';
 
@@ -331,7 +401,8 @@ function buildRig(bodyColor?: number): THREE.Group {
   parts.push(cone(0.12, 0.07, 0.18, dark, 'y', 0.86, FLOOR_Y + 1.46, 0.7, 0.5, 8));
   parts.push(cyl(0.02, 0.8, B.carTrim, 'y', -0.8, FLOOR_Y + 1.4, 0.5, 0.4, 5));
   // Tube roll bar arching behind the cab, with a round light-pod cluster.
-  for (const s of [-1, 1] as const) parts.push(cyl(0.07, 0.66, B.carChrome, 'y', s * 0.72, FLOOR_Y + 1.34, -0.5, 0.4, 8));
+  for (const s of [-1, 1] as const)
+    parts.push(cyl(0.07, 0.66, B.carChrome, 'y', s * 0.72, FLOOR_Y + 1.34, -0.5, 0.4, 8));
   parts.push(cyl(0.07, 1.56, B.carChrome, 'x', 0, FLOOR_Y + 1.62, -0.5, 0.4, 8));
   for (const lx of [-0.5, -0.17, 0.17, 0.5]) {
     parts.push(cyl(0.11, 0.14, B.carTrim, 'z', lx, FLOOR_Y + 1.55, -0.4, 0.4, 10));
@@ -345,9 +416,11 @@ function buildRig(bodyColor?: number): THREE.Group {
   // Open cargo bed: ribbed liner floor, side walls, tailgate, headboard.
   parts.push(panel(1.72, 0.12, 1.72, bed, 0, FLOOR_Y + 0.5, -1.42));
   parts.push(panel(1.78, 0.46, 0.14, dark, 0, FLOOR_Y + 0.66, -0.6));
-  for (const s of [-1, 1] as const) parts.push(panel(0.14, 0.44, 1.74, body, s * 0.86, FLOOR_Y + 0.64, -1.42));
+  for (const s of [-1, 1] as const)
+    parts.push(panel(0.14, 0.44, 1.74, body, s * 0.86, FLOOR_Y + 0.64, -1.42));
   parts.push(panel(1.78, 0.5, 0.14, bed, 0, FLOOR_Y + 0.66, -2.07));
-  for (const rz of [-1.0, -1.4, -1.8]) parts.push(panel(1.6, 0.04, 0.06, dark, 0, FLOOR_Y + 0.57, rz)); // bed ribs
+  for (const rz of [-1.0, -1.4, -1.8])
+    parts.push(panel(1.6, 0.04, 0.06, dark, 0, FLOOR_Y + 0.57, rz)); // bed ribs
   // Bed cargo: a strapped spare on its side + two round-capped jerry cans.
   parts.push(cyl(0.34, 0.24, B.wheel, 'y', 0.42, FLOOR_Y + 0.7, -1.5, 0.4));
   parts.push(cyl(0.16, 0.26, B.wheelHub, 'y', 0.42, FLOOR_Y + 0.7, -1.5, 0.4));
@@ -363,7 +436,8 @@ function buildRig(bodyColor?: number): THREE.Group {
   }
   parts.push(cyl(0.16, 0.5, dark, 'x', 0, FLOOR_Y + 0.42, 1.96, 0.4, 10)); // winch drum
   parts.push(taper(0.92, 0.34, 0.12, 0.78, 0.12, B.carGrille, 0, FLOOR_Y + 0.42, 1.9, 0.5));
-  for (const gx of [-0.3, -0.1, 0.1, 0.3]) parts.push(panel(0.05, 0.28, 0.06, B.carChrome, gx, FLOOR_Y + 0.42, 1.94));
+  for (const gx of [-0.3, -0.1, 0.1, 0.3])
+    parts.push(panel(0.05, 0.28, 0.06, B.carChrome, gx, FLOOR_Y + 0.42, 1.94));
   // Rear step bumper (round) + tow hitch.
   parts.push(cyl(0.1, 1.86, B.carChrome, 'x', 0, FLOOR_Y + 0.04, -2.12, 0.4, 10));
   parts.push(cyl(0.05, 0.2, B.carTrim, 'z', 0, FLOOR_Y + 0.06, -2.24, 0.4, 8));
@@ -389,7 +463,8 @@ function buildRig(bodyColor?: number): THREE.Group {
     lights.push(glow(0.4, 0.3, 0.12, B.carTaillight, s * 0.7, FLOOR_Y + 0.58, -2.13)); // brake
     lights.push(glow(0.4, 0.16, 0.12, B.carIndicator, s * 0.7, FLOOR_Y + 0.34, -2.13)); // turn
     lights.push(glow(0.4, 0.12, 0.12, B.carReverse, s * 0.7, FLOOR_Y + 0.16, -2.13)); // reverse
-    for (const dy of [0.43, 0.25]) parts.push(panel(0.46, 0.03, 0.14, B.carTrim, s * 0.7, FLOOR_Y + dy, -2.14)); // dividers
+    for (const dy of [0.43, 0.25])
+      parts.push(panel(0.46, 0.03, 0.14, B.carTrim, s * 0.7, FLOOR_Y + dy, -2.14)); // dividers
   }
 
   // Hood stripes.
@@ -456,7 +531,8 @@ function buildHauler(bodyColor?: number): THREE.Group {
   parts.push(extrudeBody(shell, 2.0, body, 0.36, 1.55, 0.94));
   parts.push(panel(1.92, 0.1, 2.7, dark, 0, 1.94, -0.6)); // roof rim cap
   for (const s of [-1, 1] as const) {
-    for (const z of [0.96, -1.96] as const) parts.push(cyl(0.09, 1.32, plate, 'y', s * 0.98, FLOOR_Y + 0.7, z, 0.45, 8));
+    for (const z of [0.96, -1.96] as const)
+      parts.push(cyl(0.09, 1.32, plate, 'y', s * 0.98, FLOOR_Y + 0.7, z, 0.45, 8));
     parts.push(panel(0.05, 0.2, 2.9, stripe, s * 1.02, FLOOR_Y + 0.62, -0.5));
   }
   // Bolted armour plates proud of the flanks, with round rivet studs.
@@ -464,12 +540,14 @@ function buildHauler(bodyColor?: number): THREE.Group {
     for (const pz of [0.4, -0.5, -1.4]) {
       parts.push(panel(0.06, 0.84, 0.72, plate, s * 1.02, FLOOR_Y + 0.86, pz));
       for (const ry of [0.5, 1.18]) {
-        for (const rz of [-0.28, 0.28]) parts.push(cyl(0.045, 0.05, dark, 'x', s * 1.06, FLOOR_Y + ry, pz + rz, 0.4, 6));
+        for (const rz of [-0.28, 0.28])
+          parts.push(cyl(0.045, 0.05, dark, 'x', s * 1.06, FLOOR_Y + ry, pz + rz, 0.4, 6));
       }
     }
   }
   // Round roof vents + a roof beacon.
-  for (const vz of [0.0, -1.0] as const) parts.push(cyl(0.26, 0.16, dark, 'y', 0, 1.96, vz, 0.4, 10));
+  for (const vz of [0.0, -1.0] as const)
+    parts.push(cyl(0.26, 0.16, dark, 'y', 0, 1.96, vz, 0.4, 10));
   lights.push(glowCyl(0.16, 0.12, B.carIndicator, 'y', 0, 2.0, 0.4, 10));
   // Armoured near-vertical windshield under a sloped brow plate; narrow side slits.
   parts.push(panel(1.5, 0.66, 0.1, B.carGlass, 0, FLOOR_Y + 0.92, 1.0));
@@ -484,17 +562,20 @@ function buildHauler(bodyColor?: number): THREE.Group {
   parts.push(panel(0.1, 1.14, 0.14, plate, 0, FLOOR_Y + 0.72, -2.0));
   for (const s of [-1, 1] as const) {
     parts.push(panel(0.12, 0.4, 0.14, B.carChrome, s * 0.26, FLOOR_Y + 0.6, -2.05));
-    for (const hy of [1.04, 0.44, -0.16]) parts.push(cyl(0.05, 0.12, plate, 'z', s * 0.84, FLOOR_Y + hy, -2.04, 0.4, 6));
+    for (const hy of [1.04, 0.44, -0.16])
+      parts.push(cyl(0.05, 0.12, plate, 'z', s * 0.84, FLOOR_Y + hy, -2.04, 0.4, 6));
   }
   // Round side ladder rungs on the rear flank.
-  for (const ly of [0.4, 0.74, 1.08, 1.34]) parts.push(cyl(0.04, 0.5, B.carChrome, 'x', 1.02, FLOOR_Y + ly, -1.85, 0.4, 6));
+  for (const ly of [0.4, 0.74, 1.08, 1.34])
+    parts.push(cyl(0.04, 0.5, B.carChrome, 'x', 1.02, FLOOR_Y + ly, -1.85, 0.4, 6));
   // Side exhaust pipe running under the left flank.
   parts.push(cyl(0.08, 1.6, B.carTrim, 'z', -0.92, FLOOR_Y - 0.18, -0.4, 0.4, 8));
   parts.push(cone(0.11, 0.08, 0.16, B.carChrome, 'z', -0.92, FLOOR_Y - 0.18, -1.28, 0.4, 8));
   // Front push-bar ram: a round tube frame with vertical bars.
   parts.push(cyl(0.1, 1.94, B.carChrome, 'x', 0, FLOOR_Y + 0.34, 2.08, 0.4, 10));
   parts.push(cyl(0.1, 1.94, B.carChrome, 'x', 0, FLOOR_Y + 0.06, 2.08, 0.4, 10));
-  for (const bx of [-0.62, -0.2, 0.2, 0.62]) parts.push(cyl(0.06, 0.42, B.carChrome, 'y', bx, FLOOR_Y + 0.2, 2.08, 0.4, 8));
+  for (const bx of [-0.62, -0.2, 0.2, 0.62])
+    parts.push(cyl(0.06, 0.42, B.carChrome, 'y', bx, FLOOR_Y + 0.2, 2.08, 0.4, 8));
   // Rear bumper.
   parts.push(cyl(0.1, 1.9, B.carChrome, 'x', 0, FLOOR_Y + 0.04, -2.12, 0.4, 10));
   // Round arch flares over the tyres + mud flaps.
@@ -514,7 +595,8 @@ function buildHauler(bodyColor?: number): THREE.Group {
     lights.push(glow(0.26, 0.32, 0.12, B.carTaillight, s * 0.74, FLOOR_Y + 0.62, -2.12)); // brake
     lights.push(glow(0.26, 0.14, 0.12, B.carIndicator, s * 0.74, FLOOR_Y + 0.4, -2.12)); // turn
     lights.push(glow(0.26, 0.12, 0.12, B.carReverse, s * 0.74, FLOOR_Y + 0.24, -2.12)); // reverse
-    for (const dy of [0.47, 0.31]) parts.push(panel(0.3, 0.03, 0.14, B.carTrim, s * 0.74, FLOOR_Y + dy, -2.13)); // dividers
+    for (const dy of [0.47, 0.31])
+      parts.push(panel(0.3, 0.03, 0.14, B.carTrim, s * 0.74, FLOOR_Y + dy, -2.13)); // dividers
   }
 
   // Two sloped steel plow blades on the push bar.
@@ -553,8 +635,10 @@ function buildBuggy(bodyColor?: number): THREE.Group {
 
   // Bare floor pan + round frame rails — no body panels to hide behind.
   parts.push(panel(1.3, 0.16, 3.1, tub, 0, FLOOR_Y - 0.04, 0));
-  for (const s of [-1, 1] as const) parts.push(cyl(0.07, 3.0, dframe, 'z', s * 0.5, FLOOR_Y + 0.06, 0, 0.4, 8));
-  for (const z of [1.4, -1.4] as const) parts.push(cyl(0.08, 1.4, dframe, 'x', 0, AXLE_Y, z, 0.5, 8)); // axle tubes
+  for (const s of [-1, 1] as const)
+    parts.push(cyl(0.07, 3.0, dframe, 'z', s * 0.5, FLOOR_Y + 0.06, 0, 0.4, 8));
+  for (const z of [1.4, -1.4] as const)
+    parts.push(cyl(0.08, 1.4, dframe, 'x', 0, AXLE_Y, z, 0.5, 8)); // axle tubes
   // Round nose cone tapering to a tip + a skid plate.
   parts.push(taper(1.14, 0.3, 0.9, 0.5, 0.5, tub, 0, FLOOR_Y + 0.24, 1.3, 0.4, -0.1));
   parts.push(cone(0.16, 0.32, 0.5, frame, 'z', 0, FLOOR_Y + 0.28, 1.85, 0.45, 10));
@@ -577,7 +661,15 @@ function buildBuggy(bodyColor?: number): THREE.Group {
     parts.push(cyl(0.07, 1.18, frame, 'z', s * 0.6, FLOOR_Y + 1.24, -0.2, 0.35, 8)); // roof rails
     parts.push(cyl(0.06, 0.7, dframe, 'z', s * 0.6, FLOOR_Y + 0.8, -1.05, 0.4, 8)); // rear down-braces
     // Raked front A-pillar tubes running from the windscreen hoop up to the roof.
-    parts.push(paint(new THREE.CylinderGeometry(0.07, 0.07, 0.92, 8).rotateX(0.6).translate(s * 0.6, FLOOR_Y + 0.92, 0.5), frame, 0.4));
+    parts.push(
+      paint(
+        new THREE.CylinderGeometry(0.07, 0.07, 0.92, 8)
+          .rotateX(0.6)
+          .translate(s * 0.6, FLOOR_Y + 0.92, 0.5),
+        frame,
+        0.4,
+      ),
+    );
   }
   parts.push(cyl(0.07, 1.32, frame, 'x', 0, FLOOR_Y + 1.3, -0.78, 0.35, 8)); // roof cross hoop
   parts.push(cyl(0.07, 1.32, frame, 'x', 0, FLOOR_Y + 1.05, 0.62, 0.35, 8)); // windscreen hoop top
@@ -609,7 +701,11 @@ function buildBuggy(bodyColor?: number): THREE.Group {
   for (const s of [-1, 1] as const) {
     parts.push(cyl(0.14, 0.1, B.carTrim, 'z', s * 0.38, FLOOR_Y + 0.32, 1.66, 0.4, 10));
     lights.push(glowCyl(0.1, 0.06, B.carHeadlight, 'z', s * 0.38, FLOOR_Y + 0.32, 1.72, 10));
-    const guard = new THREE.TorusGeometry(0.13, 0.025, 6, 12).translate(s * 0.42, FLOOR_Y + 0.4, -1.74);
+    const guard = new THREE.TorusGeometry(0.13, 0.025, 6, 12).translate(
+      s * 0.42,
+      FLOOR_Y + 0.4,
+      -1.74,
+    );
     parts.push(paint(guard, B.carTrim, 0.4));
     lights.push(glowCyl(0.1, 0.07, B.carTaillight, 'z', s * 0.42, FLOOR_Y + 0.4, -1.79, 10));
     lights.push(glowCyl(0.045, 0.06, B.carReverse, 'z', s * 0.2, FLOOR_Y + 0.34, -1.78, 8));
@@ -618,7 +714,13 @@ function buildBuggy(bodyColor?: number): THREE.Group {
   // Steering wheel and dashboard console.
   parts.push(panel(1.0, 0.14, 0.22, B.buggyTub, 0, FLOOR_Y + 0.74, 0.25));
   parts.push(cyl(0.025, 0.32, B.carChrome, 'z', -0.3, FLOOR_Y + 0.62, 0.1, 0.4, 6));
-  parts.push(paint(new THREE.TorusGeometry(0.14, 0.025, 6, 12).translate(-0.3, FLOOR_Y + 0.74, -0.05), B.carTrim, 0.4));
+  parts.push(
+    paint(
+      new THREE.TorusGeometry(0.14, 0.025, 6, 12).translate(-0.3, FLOOR_Y + 0.74, -0.05),
+      B.carTrim,
+      0.4,
+    ),
+  );
 
   // Radiator and cooling fans.
   parts.push(panel(0.74, 0.46, 0.08, B.carGrille, 0, FLOOR_Y + 0.66, -1.02));
@@ -702,17 +804,22 @@ function buildCoupe(bodyColor?: number): THREE.Group {
     parts.push(panel(0.13, 0.11, 0.08, dark, s * 0.96, FLOOR_Y + 0.42, 0.55));
   }
   // Tall ducktail wing on twin uprights.
-  for (const s of [-1, 1] as const) parts.push(panel(0.08, 0.28, 0.14, dark, s * 0.62, FLOOR_Y + 0.36, -1.84));
+  for (const s of [-1, 1] as const)
+    parts.push(panel(0.08, 0.28, 0.14, dark, s * 0.62, FLOOR_Y + 0.36, -1.84));
   parts.push(wedge(1.74, 0.06, 0.4, dark, -0.12, 0, FLOOR_Y + 0.5, -1.86));
   // Round side exhaust pipes exiting ahead of the rear wheels.
-  for (const s of [-1, 1] as const) parts.push(cyl(0.07, 0.74, B.carChrome, 'z', s * 0.92, FLOOR_Y + 0.02, -0.5, 0.4, 8));
+  for (const s of [-1, 1] as const)
+    parts.push(cyl(0.07, 0.74, B.carChrome, 'z', s * 0.92, FLOOR_Y + 0.02, -0.5, 0.4, 8));
   // Rear fascia + a vented diffuser; round dual tailpipes poke out below.
   parts.push(panel(1.84, 0.34, 0.2, body, 0, FLOOR_Y + 0.2, -1.98));
   parts.push(panel(1.3, 0.2, 0.12, B.carGrille, 0, FLOOR_Y + 0.02, -2.04));
-  for (const fx of [-0.4, -0.13, 0.13, 0.4]) parts.push(panel(0.06, 0.18, 0.16, B.carChrome, fx, FLOOR_Y + 0.02, -2.07));
-  for (const s of [-1, 1] as const) parts.push(cone(0.1, 0.09, 0.2, B.carChrome, 'z', s * 0.5, FLOOR_Y - 0.06, -2.12, 0.4, 10));
+  for (const fx of [-0.4, -0.13, 0.13, 0.4])
+    parts.push(panel(0.06, 0.18, 0.16, B.carChrome, fx, FLOOR_Y + 0.02, -2.07));
+  for (const s of [-1, 1] as const)
+    parts.push(cone(0.1, 0.09, 0.2, B.carChrome, 'z', s * 0.5, FLOOR_Y - 0.06, -2.12, 0.4, 10));
   // Round arch eyebrows over the low-profile wheels.
-  for (const [sx, sz] of WHEELS) parts.push(arch(0.46, 0.07, dark, sx * 1.0, AXLE_Y + 0.02, sz, 0.5));
+  for (const [sx, sz] of WHEELS)
+    parts.push(arch(0.46, 0.07, dark, sx * 1.0, AXLE_Y + 0.02, sz, 0.5));
 
   // Lamps: slim swept headlights low in the nose; a full-width LED-look tail bar
   // proud of a gloss-black backing panel, under a thin chrome lip, notched into
@@ -720,7 +827,8 @@ function buildCoupe(bodyColor?: number): THREE.Group {
   parts.push(panel(1.78, 0.2, 0.06, B.coupeDark, 0, FLOOR_Y + 0.34, -2.07)); // gloss-black backing
   parts.push(panel(1.82, 0.04, 0.08, B.carChrome, 0, FLOOR_Y + 0.45, -2.08)); // chrome lip over the bar
   lights.push(glow(1.5, 0.11, 0.07, B.carTaillight, 0, FLOOR_Y + 0.34, -2.11));
-  for (const nx of [-0.5, -0.2, 0.2, 0.5]) parts.push(panel(0.05, 0.16, 0.1, B.coupeDark, nx, FLOOR_Y + 0.34, -2.13)); // segment notches
+  for (const nx of [-0.5, -0.2, 0.2, 0.5])
+    parts.push(panel(0.05, 0.16, 0.1, B.coupeDark, nx, FLOOR_Y + 0.34, -2.13)); // segment notches
   for (const s of [-1, 1] as const) {
     lights.push(glow(0.26, 0.11, 0.08, B.carIndicator, s * 0.66, FLOOR_Y + 0.34, -2.12)); // amber turn cap
     lights.push(glow(0.42, 0.09, 0.08, B.carHeadlight, s * 0.52, FLOOR_Y + 0.12, 2.0, 0.1));
@@ -766,12 +874,27 @@ export function createChassis(id: ChassisId, bodyColor?: number): THREE.Group {
   }
 }
 
-function ball(radius: number, color: number, x: number, y: number, z: number, ao = 0.4, seg = 12): THREE.BufferGeometry {
-  return paint(new THREE.SphereGeometry(radius, seg, Math.max(6, seg - 4)).translate(x, y, z), color, ao);
+function ball(
+  radius: number,
+  color: number,
+  x: number,
+  y: number,
+  z: number,
+  ao = 0.4,
+  seg = 12,
+): THREE.BufferGeometry {
+  return paint(
+    new THREE.SphereGeometry(radius, seg, Math.max(6, seg - 4)).translate(x, y, z),
+    color,
+    ao,
+  );
 }
 
 /** Build the custom bolt-on upgrade parts for any non-survivor chassis. */
-export function buildChassisUpgradeParts(owned: ReadonlySet<UpgradeId>, id: ChassisId): THREE.BufferGeometry[] {
+export function buildChassisUpgradeParts(
+  owned: ReadonlySet<UpgradeId>,
+  id: ChassisId,
+): THREE.BufferGeometry[] {
   const parts: THREE.BufferGeometry[] = [];
   const B = palette;
 
@@ -843,7 +966,9 @@ export function buildChassisUpgradeParts(owned: ReadonlySet<UpgradeId>, id: Chas
       }
       case 'stickyTires': {
         for (const [sx, sz] of wheels) {
-          parts.push(wheel(wheelRadius + 0.06, wheelWidth + 0.08, B.wheel).translate(sx, axleY, sz));
+          parts.push(
+            wheel(wheelRadius + 0.06, wheelWidth + 0.08, B.wheel).translate(sx, axleY, sz),
+          );
         }
         break;
       }
@@ -860,21 +985,87 @@ export function buildChassisUpgradeParts(owned: ReadonlySet<UpgradeId>, id: Chas
       }
       case 'liftTank': {
         if (tankAxis === 'x') {
-          parts.push(cyl(0.28, 1.2, B.liftToken, 'x', tankCenter.x, tankCenter.y, tankCenter.z, 0.42, 16));
-          parts.push(ball(0.28, B.liftTokenDark, tankCenter.x + 0.6, tankCenter.y, tankCenter.z, 0.4, 14));
-          parts.push(ball(0.28, B.liftTokenDark, tankCenter.x - 0.6, tankCenter.y, tankCenter.z, 0.4, 14));
-          parts.push(cyl(0.31, 0.08, B.carTrim, 'x', tankCenter.x + 0.3, tankCenter.y, tankCenter.z, 0.4, 16));
-          parts.push(cyl(0.31, 0.08, B.carTrim, 'x', tankCenter.x - 0.3, tankCenter.y, tankCenter.z, 0.4, 16));
+          parts.push(
+            cyl(0.28, 1.2, B.liftToken, 'x', tankCenter.x, tankCenter.y, tankCenter.z, 0.42, 16),
+          );
+          parts.push(
+            ball(0.28, B.liftTokenDark, tankCenter.x + 0.6, tankCenter.y, tankCenter.z, 0.4, 14),
+          );
+          parts.push(
+            ball(0.28, B.liftTokenDark, tankCenter.x - 0.6, tankCenter.y, tankCenter.z, 0.4, 14),
+          );
+          parts.push(
+            cyl(
+              0.31,
+              0.08,
+              B.carTrim,
+              'x',
+              tankCenter.x + 0.3,
+              tankCenter.y,
+              tankCenter.z,
+              0.4,
+              16,
+            ),
+          );
+          parts.push(
+            cyl(
+              0.31,
+              0.08,
+              B.carTrim,
+              'x',
+              tankCenter.x - 0.3,
+              tankCenter.y,
+              tankCenter.z,
+              0.4,
+              16,
+            ),
+          );
         } else if (tankAxis === 'y') {
-          parts.push(cyl(0.24, 0.88, B.liftToken, 'y', tankCenter.x, tankCenter.y, tankCenter.z, 0.42, 16));
-          parts.push(ball(0.24, B.liftTokenDark, tankCenter.x, tankCenter.y + 0.44, tankCenter.z, 0.4, 14));
-          parts.push(ball(0.24, B.liftTokenDark, tankCenter.x, tankCenter.y - 0.44, tankCenter.z, 0.4, 14));
-          parts.push(cyl(0.27, 0.08, B.carTrim, 'y', tankCenter.x, tankCenter.y + 0.12, tankCenter.z, 0.4, 16));
+          parts.push(
+            cyl(0.24, 0.88, B.liftToken, 'y', tankCenter.x, tankCenter.y, tankCenter.z, 0.42, 16),
+          );
+          parts.push(
+            ball(0.24, B.liftTokenDark, tankCenter.x, tankCenter.y + 0.44, tankCenter.z, 0.4, 14),
+          );
+          parts.push(
+            ball(0.24, B.liftTokenDark, tankCenter.x, tankCenter.y - 0.44, tankCenter.z, 0.4, 14),
+          );
+          parts.push(
+            cyl(
+              0.27,
+              0.08,
+              B.carTrim,
+              'y',
+              tankCenter.x,
+              tankCenter.y + 0.12,
+              tankCenter.z,
+              0.4,
+              16,
+            ),
+          );
         } else {
-          parts.push(cyl(0.24, 0.95, B.liftToken, 'z', tankCenter.x, tankCenter.y, tankCenter.z, 0.42, 16));
-          parts.push(ball(0.24, B.liftTokenDark, tankCenter.x, tankCenter.y, tankCenter.z + 0.48, 0.4, 14));
-          parts.push(ball(0.24, B.liftTokenDark, tankCenter.x, tankCenter.y, tankCenter.z - 0.48, 0.4, 14));
-          parts.push(cyl(0.27, 0.08, B.carTrim, 'z', tankCenter.x, tankCenter.y, tankCenter.z + 0.24, 0.4, 16));
+          parts.push(
+            cyl(0.24, 0.95, B.liftToken, 'z', tankCenter.x, tankCenter.y, tankCenter.z, 0.42, 16),
+          );
+          parts.push(
+            ball(0.24, B.liftTokenDark, tankCenter.x, tankCenter.y, tankCenter.z + 0.48, 0.4, 14),
+          );
+          parts.push(
+            ball(0.24, B.liftTokenDark, tankCenter.x, tankCenter.y, tankCenter.z - 0.48, 0.4, 14),
+          );
+          parts.push(
+            cyl(
+              0.27,
+              0.08,
+              B.carTrim,
+              'z',
+              tankCenter.x,
+              tankCenter.y,
+              tankCenter.z + 0.24,
+              0.4,
+              16,
+            ),
+          );
         }
         break;
       }
@@ -884,7 +1075,11 @@ export function buildChassisUpgradeParts(owned: ReadonlySet<UpgradeId>, id: Chas
         const my = magnetCenter.y;
         const mz = magnetCenter.z;
         parts.push(cyl(0.07, 0.42, B.carChrome, 'z', mx, my, mz - 0.2, 0.4, 10));
-        const horseshoe = new THREE.TorusGeometry(R, 0.09, 8, 18, Math.PI).translate(mx, my + 0.08, mz);
+        const horseshoe = new THREE.TorusGeometry(R, 0.09, 8, 18, Math.PI).translate(
+          mx,
+          my + 0.08,
+          mz,
+        );
         parts.push(paint(horseshoe, B.scrapPing, 0.4));
         parts.push(cyl(0.09, 0.26, B.scrapPing, 'y', mx - R, my - 0.06, mz, 0.4, 10));
         parts.push(cyl(0.09, 0.26, B.scrapPing, 'y', mx + R, my - 0.06, mz, 0.4, 10));
@@ -936,8 +1131,23 @@ export function buildChassisUpgradeParts(owned: ReadonlySet<UpgradeId>, id: Chas
     const offsets = gunLevel >= 4 ? ([-0.11, 0.11] as const) : ([0] as const);
     for (const ox of offsets) {
       parts.push(cyl(girth + 0.04, 0.22, B.carTrim, 'z', gx + ox, gy + 0.18, gz + 0.18, 0.4, 12));
-      parts.push(cyl(girth, len, B.carChrome, 'z', gx + ox, gy + 0.18, gz + 0.2 + len * 0.5, 0.4, 12));
-      parts.push(cone(girth + 0.06, girth + 0.02, 0.18, B.ammoBand, 'z', gx + ox, gy + 0.18, gz + 0.22 + len, 0.4, 12));
+      parts.push(
+        cyl(girth, len, B.carChrome, 'z', gx + ox, gy + 0.18, gz + 0.2 + len * 0.5, 0.4, 12),
+      );
+      parts.push(
+        cone(
+          girth + 0.06,
+          girth + 0.02,
+          0.18,
+          B.ammoBand,
+          'z',
+          gx + ox,
+          gy + 0.18,
+          gz + 0.22 + len,
+          0.4,
+          12,
+        ),
+      );
     }
   }
 
@@ -973,7 +1183,15 @@ export function buildChassisDamageParts(tier: number, id: ChassisId): THREE.Buff
     }
     if (tier >= 3) {
       parts.push(panel(1.2, 0.5, 0.08, B.wreckGlass, 0, FLOOR_Y + 0.92, 1.02));
-      parts.push(paint(new THREE.BoxGeometry(0.08, 0.84, 0.72).rotateY(0.3).translate(-1.02, FLOOR_Y + 0.86, 0.4), B.wreckRust, 0.4));
+      parts.push(
+        paint(
+          new THREE.BoxGeometry(0.08, 0.84, 0.72)
+            .rotateY(0.3)
+            .translate(-1.02, FLOOR_Y + 0.86, 0.4),
+          B.wreckRust,
+          0.4,
+        ),
+      );
     }
   } else if (id === 'buggy') {
     if (tier >= 1) {
@@ -985,8 +1203,24 @@ export function buildChassisDamageParts(tier: number, id: ChassisId): THREE.Buff
       parts.push(cyl(0.08, 1.18, B.wreckScorch, 'z', 0.62, FLOOR_Y + 1.22, -0.2));
     }
     if (tier >= 3) {
-      parts.push(paint(new THREE.CylinderGeometry(0.06, 0.06, 0.7, 8).rotateX(0.9).translate(-0.6, FLOOR_Y + 0.6, -1.05), B.wreckRust, 0.4));
-      parts.push(paint(new THREE.BoxGeometry(0.44, 0.16, 0.5).rotateY(0.25).translate(0.32, FLOOR_Y + 0.24, 0.05), B.wreckRust, 0.4));
+      parts.push(
+        paint(
+          new THREE.CylinderGeometry(0.06, 0.06, 0.7, 8)
+            .rotateX(0.9)
+            .translate(-0.6, FLOOR_Y + 0.6, -1.05),
+          B.wreckRust,
+          0.4,
+        ),
+      );
+      parts.push(
+        paint(
+          new THREE.BoxGeometry(0.44, 0.16, 0.5)
+            .rotateY(0.25)
+            .translate(0.32, FLOOR_Y + 0.24, 0.05),
+          B.wreckRust,
+          0.4,
+        ),
+      );
     }
   } else if (id === 'coupe') {
     if (tier >= 1) {
@@ -998,7 +1232,13 @@ export function buildChassisDamageParts(tier: number, id: ChassisId): THREE.Buff
       parts.push(panel(0.08, 0.28, 0.1, B.wreckScorch, 0.62, FLOOR_Y + 0.32, -1.84));
     }
     if (tier >= 3) {
-      parts.push(paint(new THREE.BoxGeometry(1.5, 0.38, 0.1).rotateX(0.5).translate(0, 1.05, -0.96), B.wreckGlass, 0.3));
+      parts.push(
+        paint(
+          new THREE.BoxGeometry(1.5, 0.38, 0.1).rotateX(0.5).translate(0, 1.05, -0.96),
+          B.wreckGlass,
+          0.3,
+        ),
+      );
       parts.push(wedge(1.6, 0.06, 1.0, B.wreckRust, -0.22, 0, FLOOR_Y + 0.65, 0.9, 0.4));
       parts.push(cone(0.1, 0.04, 0.2, B.wreckScorch, 'z', -0.5, FLOOR_Y - 0.06, -2.1));
     }

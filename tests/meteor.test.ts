@@ -13,7 +13,14 @@ import { FORMATIONS } from '../src/content/formations';
 describe('sky meteor', () => {
   it('is harmless while still falling (collisions skip an un-landed meteor)', () => {
     const s = createSim(1);
-    s.hazards.push({ kind: 'meteor', lane: 1, x: laneCenterX(1), forward: 8, hit: false, landed: false });
+    s.hazards.push({
+      kind: 'meteor',
+      lane: 1,
+      x: laneCenterX(1),
+      forward: 8,
+      hit: false,
+      landed: false,
+    });
     s.distance = 7; // overlapping in forward/lateral, but not landed yet
     s.car.speed = 40;
     resolveCollisions(s);
@@ -23,7 +30,14 @@ describe('sky meteor', () => {
 
   it('lands only once the gap closes to the impact distance, emitting the burst', () => {
     const s = createSim(1);
-    s.hazards.push({ kind: 'meteor', lane: 1, x: laneCenterX(1), forward: 100, hit: false, landed: false });
+    s.hazards.push({
+      kind: 'meteor',
+      lane: 1,
+      x: laneCenterX(1),
+      forward: 100,
+      hit: false,
+      landed: false,
+    });
 
     s.distance = 100 - METEOR_TUNING.impactGap - 5; // still falling
     updateMeteors(s);
@@ -38,7 +52,14 @@ describe('sky meteor', () => {
   it('a landed meteor is a lethal blocker and records itself as the death cause', () => {
     const s = createSim(1);
     s.car.health = 0.5;
-    s.hazards.push({ kind: 'meteor', lane: 1, x: laneCenterX(1), forward: 8, hit: false, landed: false });
+    s.hazards.push({
+      kind: 'meteor',
+      lane: 1,
+      x: laneCenterX(1),
+      forward: 8,
+      hit: false,
+      landed: false,
+    });
     s.distance = 7; // gap 1 < impactGap → lands; and overlaps the car
     s.car.speed = 60;
     updateMeteors(s);
@@ -50,7 +71,14 @@ describe('sky meteor', () => {
 
   it('cannot be jumped — a landed meteor hits even mid-air (unlike a boulder)', () => {
     const s = createSim(1);
-    s.hazards.push({ kind: 'meteor', lane: 1, x: laneCenterX(1), forward: 8, hit: false, landed: true });
+    s.hazards.push({
+      kind: 'meteor',
+      lane: 1,
+      x: laneCenterX(1),
+      forward: 8,
+      hit: false,
+      landed: true,
+    });
     s.distance = 7;
     s.car.height = 1.2; // airborne, well above the jump clearance
     s.car.speed = 40;

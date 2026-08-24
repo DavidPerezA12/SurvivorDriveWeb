@@ -24,21 +24,51 @@ export class ExplosionFx {
     this.core = new ParticlePool(
       scene,
       box(0.9, 0.9, 0.9, palette.blastCore, 0.04),
-      { count: 24, perBurst: 3, life: 0.16, gravity: 0, vyMin: 0.5, vyMax: 1.5, spread: 3, spin: 6, scale: 2.4 },
+      {
+        count: 24,
+        perBurst: 3,
+        life: 0.16,
+        gravity: 0,
+        vyMin: 0.5,
+        vyMax: 1.5,
+        spread: 3,
+        spin: 6,
+        scale: 2.4,
+      },
       reduced,
     );
     // The fireball — lifts and billows out (negative gravity = it rises).
     this.fire = new ParticlePool(
       scene,
       box(0.55, 0.55, 0.55, palette.blastFire, 0.1),
-      { count: 72, perBurst: 10, life: 0.42, gravity: -4, vyMin: 2, vyMax: 5, spread: 8, spin: 11, scale: 1.7 },
+      {
+        count: 72,
+        perBurst: 10,
+        life: 0.42,
+        gravity: -4,
+        vyMin: 2,
+        vyMax: 5,
+        spread: 8,
+        spin: 11,
+        scale: 1.7,
+      },
       reduced,
     );
     // Smoke — darker, slower, lingers as the fire dies.
     this.smoke = new ParticlePool(
       scene,
       box(0.65, 0.65, 0.65, palette.blastSmoke, 0.16),
-      { count: 48, perBurst: 6, life: 0.75, gravity: -2, vyMin: 1.4, vyMax: 3.4, spread: 6, spin: 5, scale: 1.9 },
+      {
+        count: 48,
+        perBurst: 6,
+        life: 0.75,
+        gravity: -2,
+        vyMin: 1.4,
+        vyMax: 3.4,
+        spread: 6,
+        spin: 5,
+        scale: 1.9,
+      },
       reduced,
     );
   }

@@ -97,8 +97,20 @@ function cone(
 }
 
 /** A faceted sphere for domed caps, magnet pole knobs, and bolt heads. */
-function ball(radius: number, color: number, x: number, y: number, z: number, ao = 0.4, seg = 12): THREE.BufferGeometry {
-  return paint(new THREE.SphereGeometry(radius, seg, Math.max(6, seg - 4)).translate(x, y, z), color, ao);
+function ball(
+  radius: number,
+  color: number,
+  x: number,
+  y: number,
+  z: number,
+  ao = 0.4,
+  seg = 12,
+): THREE.BufferGeometry {
+  return paint(
+    new THREE.SphereGeometry(radius, seg, Math.max(6, seg - 4)).translate(x, y, z),
+    color,
+    ao,
+  );
 }
 
 /** A round self-lit lamp. */
@@ -193,7 +205,13 @@ function crown(
  * Built outboard-facing for the
  * wheel at (x, z); the inboard side stays a simple tyre (never seen).
  */
-function wheelAssembly(x: number, z: number, axleY: number, radius: number, width = 0.32): THREE.BufferGeometry[] {
+function wheelAssembly(
+  x: number,
+  z: number,
+  axleY: number,
+  radius: number,
+  width = 0.32,
+): THREE.BufferGeometry[] {
   const P = palette;
   const out = x > 0 ? 1 : -1;
   const faceX = x + out * (width / 2);
@@ -221,7 +239,17 @@ function wheelAssembly(x: number, z: number, axleY: number, radius: number, widt
   for (let i = 0; i < 5; i += 1) {
     const a = (i / 5) * Math.PI * 2 + 0.3;
     parts.push(
-      cyl(0.022, 0.05, P.carChrome, 'x', faceX + out * 0.015, axleY + Math.cos(a) * radius * 0.13, z + Math.sin(a) * radius * 0.13, 0.45, 6),
+      cyl(
+        0.022,
+        0.05,
+        P.carChrome,
+        'x',
+        faceX + out * 0.015,
+        axleY + Math.cos(a) * radius * 0.13,
+        z + Math.sin(a) * radius * 0.13,
+        0.45,
+        6,
+      ),
     );
   }
   return parts;
@@ -404,7 +432,8 @@ export function createCar(bodyColor?: number): THREE.Group {
   for (const s of [-1, 1] as const) {
     const fx = s * 0.93;
     // Two door shut-lines splitting fender / door / quarter, plus a sill seam.
-    for (const dz of [0.62, -0.46]) body.push(cyl(0.012, 0.62, B.carGrille, 'y', fx, floorY + 0.42, dz, 0.4, 5));
+    for (const dz of [0.62, -0.46])
+      body.push(cyl(0.012, 0.62, B.carGrille, 'y', fx, floorY + 0.42, dz, 0.4, 5));
     body.push(cyl(0.012, 1.9, B.carGrille, 'z', fx, floorY + 0.22, 0.05, 0.4, 5));
     // Recessed door handle.
     body.push(part(0.16, 0.05, 0.05, B.carChrome, fx, floorY + 0.6, 0.08));
@@ -494,10 +523,13 @@ function upgradeParts(id: UpgradeId): THREE.BufferGeometry[] {
         cyl(0.09, 1.74, P.wheelHub, 'x', 0, FLOOR_Y + 0.18, 2.08, 0.42, 12), // lower guard tube
       ];
       for (const bz of [0.45, 0.85, 1.25]) {
-        for (const s of [-1, 1] as const) parts.push(ball(0.05, P.carTrim, s * 0.5, FLOOR_Y + 0.63, bz, 0.4, 8)); // bolts
+        for (const s of [-1, 1] as const)
+          parts.push(ball(0.05, P.carTrim, s * 0.5, FLOOR_Y + 0.63, bz, 0.4, 8)); // bolts
       }
       for (const s of [-1, 1] as const) {
-        parts.push(taper(0.15, 0.36, 2.7, 0.1, 2.4, P.wheelHub, s * 1.0, FLOOR_Y + 0.18, -0.1, 0.45)); // bevelled skirt
+        parts.push(
+          taper(0.15, 0.36, 2.7, 0.1, 2.4, P.wheelHub, s * 1.0, FLOOR_Y + 0.18, -0.1, 0.45),
+        ); // bevelled skirt
         parts.push(cyl(0.06, 0.46, P.wheelHub, 'y', s * 0.62, FLOOR_Y + 0.5, 2.06, 0.42, 8)); // guard upright
       }
       return parts;
@@ -533,7 +565,11 @@ function upgradeParts(id: UpgradeId): THREE.BufferGeometry[] {
     case 'scrapMagnet': {
       // A cyan horseshoe magnet on a round nose boom — the loot reach made literal.
       const R = 0.27;
-      const horseshoe = new THREE.TorusGeometry(R, 0.1, 8, 18, Math.PI).translate(0, FLOOR_Y + 0.42, 2.34);
+      const horseshoe = new THREE.TorusGeometry(R, 0.1, 8, 18, Math.PI).translate(
+        0,
+        FLOOR_Y + 0.42,
+        2.34,
+      );
       return [
         cyl(0.07, 0.5, P.carChrome, 'z', 0, FLOOR_Y + 0.34, 2.12, 0.4, 10), // boom
         paint(horseshoe, P.scrapPing, 0.4), // the U arch
@@ -615,9 +651,13 @@ function damageParts(tier: number): THREE.BufferGeometry[] {
  * so a worsening hull is one extra draw call that costs nothing in the steady
  * state. Returns `null` for a pristine hull (tier 0).
  */
-export function buildDamageLayer(tier: number, chassisId: ChassisId = 'survivor'): THREE.Mesh | null {
+export function buildDamageLayer(
+  tier: number,
+  chassisId: ChassisId = 'survivor',
+): THREE.Mesh | null {
   if (tier <= 0) return null;
-  const parts = chassisId === 'survivor' ? damageParts(tier) : buildChassisDamageParts(tier, chassisId);
+  const parts =
+    chassisId === 'survivor' ? damageParts(tier) : buildChassisDamageParts(tier, chassisId);
   if (parts.length === 0) return null;
   const geo = mergeGeometries(parts, false);
   for (const p of parts) p.dispose();
@@ -678,7 +718,10 @@ export function gunMuzzle(level: number): { readonly forward: number; readonly y
  * draw-call budget). The view disposes and replaces it whenever the loadout
  * changes between runs.
  */
-export function buildUpgradeLayer(owned: ReadonlySet<UpgradeId>, chassisId: ChassisId = 'survivor'): THREE.Mesh | null {
+export function buildUpgradeLayer(
+  owned: ReadonlySet<UpgradeId>,
+  chassisId: ChassisId = 'survivor',
+): THREE.Mesh | null {
   const parts: THREE.BufferGeometry[] = [];
   if (chassisId === 'survivor') {
     for (const id of owned) parts.push(...upgradeParts(id));

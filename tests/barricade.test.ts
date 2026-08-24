@@ -24,7 +24,14 @@ function putBarricade(s: SimState, lane: number, forward: number): void {
 }
 
 function putWreck(s: SimState, lane: number, forward: number): void {
-  s.hazards.push({ kind: 'wreck', lane, x: laneCenterX(lane), forward, hit: false, hp: WEAPON_TUNING.wreckHp });
+  s.hazards.push({
+    kind: 'wreck',
+    lane,
+    x: laneCenterX(lane),
+    forward,
+    hit: false,
+    hp: WEAPON_TUNING.wreckHp,
+  });
 }
 
 describe('ramming a light barricade', () => {

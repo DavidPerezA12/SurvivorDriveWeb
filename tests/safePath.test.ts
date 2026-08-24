@@ -183,21 +183,17 @@ function hasSteeringPath(seed: number, startChunk: number): boolean {
 }
 
 describe('conservative static steering path', () => {
-  it(
-    'finds a steering-only route through every act and deep biome band',
-    () => {
-      const failures: string[] = [];
-      // 8 seeds × 399 overlapping windows = 3,192 windows through 20.15 km. This
-      // reaches all six authored acts plus the late bridge/lava biome bands.
-      for (let seed = 1; seed <= 8; seed += 1) {
-        for (let startChunk = 2; startChunk <= 400; startChunk += 1) {
-          if (!hasSteeringPath(seed, startChunk)) failures.push(`seed ${seed}, chunk ${startChunk}`);
-          if (failures.length >= 12) break;
-        }
+  it('finds a steering-only route through every act and deep biome band', () => {
+    const failures: string[] = [];
+    // 8 seeds × 399 overlapping windows = 3,192 windows through 20.15 km. This
+    // reaches all six authored acts plus the late bridge/lava biome bands.
+    for (let seed = 1; seed <= 8; seed += 1) {
+      for (let startChunk = 2; startChunk <= 400; startChunk += 1) {
+        if (!hasSteeringPath(seed, startChunk)) failures.push(`seed ${seed}, chunk ${startChunk}`);
         if (failures.length >= 12) break;
       }
-      expect(failures).toEqual([]);
-    },
-    15_000,
-  );
+      if (failures.length >= 12) break;
+    }
+    expect(failures).toEqual([]);
+  }, 15_000);
 });

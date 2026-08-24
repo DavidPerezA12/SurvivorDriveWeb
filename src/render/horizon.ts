@@ -300,8 +300,25 @@ const ACT_SILHOUETTES: Record<Role, readonly SilKind[]>[] = [
   // and the first stalled cars and toppled drums litter the near band.
   {
     near: ['huskWreck', 'debris', 'barrels', 'container', 'scrub', 'gasstation'],
-    mid: ['house', 'house2', 'lowrise', 'billboard', 'container', 'storefront', 'rowhouses', 'gasstation'],
-    far: ['cityBlock', 'cityBlock2', 'lowrise', 'watertower', 'billboard', 'parkinggarage', 'storefront'],
+    mid: [
+      'house',
+      'house2',
+      'lowrise',
+      'billboard',
+      'container',
+      'storefront',
+      'rowhouses',
+      'gasstation',
+    ],
+    far: [
+      'cityBlock',
+      'cityBlock2',
+      'lowrise',
+      'watertower',
+      'billboard',
+      'parkinggarage',
+      'storefront',
+    ],
     accent: ['skyscraper', 'skyscraper2', 'cityBlock2', 'watertower', 'cranetower', 'billboard'],
   },
   // II Rust — wasteland suburbia: dead trees, abandoned houses, a water tower,
@@ -309,7 +326,17 @@ const ACT_SILHOUETTES: Record<Role, readonly SilKind[]>[] = [
   {
     near: ['scrub', 'debris', 'snag', 'huskWreck', 'barrels'],
     mid: ['snag', 'rubble', 'house', 'house2', 'huskWreck', 'barn', 'motel'],
-    far: ['mesa', 'mesa2', 'house', 'house2', 'mountain', 'watertower', 'barn', 'windmill', 'motel'],
+    far: [
+      'mesa',
+      'mesa2',
+      'house',
+      'house2',
+      'mountain',
+      'watertower',
+      'barn',
+      'windmill',
+      'motel',
+    ],
     accent: ['pylon', 'mountain', 'watertower', 'windmill'],
   },
   // III Swarm — city outskirts: warehouses, silos, low blocks, highway billboards,
@@ -317,7 +344,15 @@ const ACT_SILHOUETTES: Record<Role, readonly SilKind[]>[] = [
   {
     near: ['debris', 'rubble', 'huskWreck', 'barrels', 'container'],
     mid: ['snag', 'rubble', 'billboard', 'house2', 'container', 'storefront', 'gasstation'],
-    far: ['warehouse', 'warehouse2', 'lowrise', 'cityBlock', 'billboard', 'watertower', 'parkinggarage'],
+    far: [
+      'warehouse',
+      'warehouse2',
+      'lowrise',
+      'cityBlock',
+      'billboard',
+      'watertower',
+      'parkinggarage',
+    ],
     accent: ['pylon', 'cityBlock', 'cityBlock2', 'billboard'],
   },
   // IV Visitors — downtown canyons under an invasion sky, wrecks and alien
@@ -401,7 +436,14 @@ function plainCone(r: number, h: number, seg: number): THREE.BufferGeometry {
   return new THREE.ConeGeometry(r, h, seg);
 }
 
-function cyl(rTop: number, rBot: number, h: number, seg: number, hex: number, ao: number): THREE.BufferGeometry {
+function cyl(
+  rTop: number,
+  rBot: number,
+  h: number,
+  seg: number,
+  hex: number,
+  ao: number,
+): THREE.BufferGeometry {
   return paint(new THREE.CylinderGeometry(rTop, rBot, h, seg), hex, ao);
 }
 
@@ -449,7 +491,14 @@ function gradient(
  * tower reads as a building with floors. Kept to a few slits per mass to stay
  * inside the silhouette triangle budget.
  */
-function winSlits(w: number, h: number, x: number, y: number, z: number, count: number): THREE.BufferGeometry[] {
+function winSlits(
+  w: number,
+  h: number,
+  x: number,
+  y: number,
+  z: number,
+  count: number,
+): THREE.BufferGeometry[] {
   const out: THREE.BufferGeometry[] = [];
   const sw = Math.min(0.7, (w * 0.66) / (count * 1.7));
   for (let i = 0; i < count; i += 1) {
@@ -572,13 +621,7 @@ function cityBlockGeometry(): THREE.BufferGeometry {
     ...winSlits(7, 22, -8.5, 11, 4.55, 2),
   ];
 
-  return litBuilding(
-    body,
-    lights,
-    palette.structureBase,
-    palette.structureHaze,
-    43,
-  );
+  return litBuilding(body, lights, palette.structureBase, palette.structureHaze, 43);
 }
 
 function skyscraperGeometry(): THREE.BufferGeometry {
@@ -617,13 +660,7 @@ function skyscraperGeometry(): THREE.BufferGeometry {
     ...winSlits(5, 45, 8.5, 22.5, 4.55, 1),
   ];
 
-  return litBuilding(
-    body,
-    lights,
-    palette.structureBase,
-    palette.structureHaze,
-    92,
-  );
+  return litBuilding(body, lights, palette.structureBase, palette.structureHaze, 92);
 }
 
 function rubbleGeometry(): THREE.BufferGeometry {
@@ -735,15 +772,26 @@ function watertowerGeometry(): THREE.BufferGeometry {
     plainCyl(3.42, 3.42, 0.2, 12).translate(0, 11.6, 0),
     plainCyl(3.28, 3.28, 0.2, 12).translate(0, 13.9, 0),
   ];
-  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) {
-    parts.push(plainBox(0.5, 11, 0.5).rotateZ(sx * 0.07).rotateX(sz * 0.07).translate(sx * 2.2, 5.5, sz * 2.2));
+  for (const [sx, sz] of [
+    [-1, -1],
+    [1, -1],
+    [-1, 1],
+    [1, 1],
+  ] as const) {
+    parts.push(
+      plainBox(0.5, 11, 0.5)
+        .rotateZ(sx * 0.07)
+        .rotateX(sz * 0.07)
+        .translate(sx * 2.2, 5.5, sz * 2.2),
+    );
   }
   parts.push(plainBox(5.5, 0.3, 0.3).translate(0, 6, -2.2)); // cross braces
   parts.push(plainBox(5.5, 0.3, 0.3).translate(0, 6, 2.2));
   // The access ladder up a leg to the tank walk.
   parts.push(plainBox(0.12, 9.5, 0.12).translate(3.35, 6.2, 0.3));
   parts.push(plainBox(0.12, 9.5, 0.12).translate(3.35, 6.2, -0.3));
-  for (const py of [3, 5, 7, 9] as const) parts.push(plainBox(0.1, 0.1, 0.7).translate(3.35, py, 0));
+  for (const py of [3, 5, 7, 9] as const)
+    parts.push(plainBox(0.1, 0.1, 0.7).translate(3.35, py, 0));
   return gradient(parts, palette.ridgeBase, palette.ridgeHaze, 18);
 }
 
@@ -835,13 +883,7 @@ function brokenTowerGeometry(): THREE.BufferGeometry {
     ...winSlits(9, 48, -13, 24, 7.55, 3),
   ];
 
-  return litBuilding(
-    body,
-    lights,
-    palette.structureBase,
-    palette.structureHaze,
-    48,
-  );
+  return litBuilding(body, lights, palette.structureBase, palette.structureHaze, 48);
 }
 
 // Variants: a second silhouette per common kind, so an act never repeats one
@@ -924,13 +966,7 @@ function cityBlock2Geometry(): THREE.BufferGeometry {
     ...winSlits(5, 24, -4, 12, 7.05, 1),
   ];
 
-  return litBuilding(
-    body,
-    lights,
-    palette.structureBase,
-    palette.structureHaze,
-    56,
-  );
+  return litBuilding(body, lights, palette.structureBase, palette.structureHaze, 56);
 }
 
 /** A stepped, setback art-deco tower with a spire. */
@@ -962,13 +998,7 @@ function skyscraper2Geometry(): THREE.BufferGeometry {
     ...winSlits(5, 52, -13, 26, 1.55, 1),
   ];
 
-  return litBuilding(
-    body,
-    lights,
-    palette.structureBase,
-    palette.structureHaze,
-    82,
-  );
+  return litBuilding(body, lights, palette.structureBase, palette.structureHaze, 82);
 }
 
 /** A chunk of city torn loose and hanging in the air. */
@@ -1115,8 +1145,16 @@ function kaijuGeometry(): THREE.BufferGeometry {
   const parts: THREE.BufferGeometry[] = [];
   // Hind legs: haunch, shin, three-clawed feet.
   for (const s of [-1, 1] as const) {
-    parts.push(box(3.4, 5.5, 4.6, b, 0.5).rotateX(0.15).translate(s * 2.6, 6.5, -1.2)); // haunch
-    parts.push(box(2.4, 4.5, 2.8, b, 0.55).rotateX(-0.2).translate(s * 2.6, 2.8, 0.2)); // shin
+    parts.push(
+      box(3.4, 5.5, 4.6, b, 0.5)
+        .rotateX(0.15)
+        .translate(s * 2.6, 6.5, -1.2),
+    ); // haunch
+    parts.push(
+      box(2.4, 4.5, 2.8, b, 0.55)
+        .rotateX(-0.2)
+        .translate(s * 2.6, 2.8, 0.2),
+    ); // shin
     parts.push(box(3.2, 1.6, 4.4, b, 0.5).translate(s * 2.6, 0.8, 1.0)); // foot
     parts.push(box(0.8, 1.0, 1.4, bone, 0.35).translate(s * 2.6 - 1.0, 0.5, 3.2)); // claws
     parts.push(box(0.8, 1.0, 1.4, bone, 0.35).translate(s * 2.6, 0.5, 3.4));
@@ -1132,8 +1170,16 @@ function kaijuGeometry(): THREE.BufferGeometry {
   parts.push(box(0.5, 2.2, 0.7, b, 0.3).rotateZ(-0.25).translate(3.4, 11.5, -2.0));
   // Forearms: two segments each, cocked, ending in claws.
   for (const s of [-1, 1] as const) {
-    parts.push(box(1.3, 3.6, 1.3, b, 0.45).rotateX(0.55).translate(s * 3.2, 15.5, 4.6));
-    parts.push(box(1.1, 2.8, 1.1, b, 0.4).rotateX(1.1).translate(s * 3.3, 13.2, 6.0));
+    parts.push(
+      box(1.3, 3.6, 1.3, b, 0.45)
+        .rotateX(0.55)
+        .translate(s * 3.2, 15.5, 4.6),
+    );
+    parts.push(
+      box(1.1, 2.8, 1.1, b, 0.4)
+        .rotateX(1.1)
+        .translate(s * 3.3, 13.2, 6.0),
+    );
     parts.push(box(0.5, 0.5, 1.0, bone, 0.3).translate(s * 3.3, 12.2, 7.0)); // claw
   }
   // Neck in two segments, throat paler.
@@ -1147,7 +1193,12 @@ function kaijuGeometry(): THREE.BufferGeometry {
   parts.push(box(2.2, 1.0, 3.6, b, 0.5).rotateX(0.3).translate(0, 22.6, 11.6)); // jaw, dropped open
   parts.push(box(1.9, 0.9, 2.8, g, 0).rotateX(0.15).translate(0, 23.7, 11.8)); // the maw glow between
   // Teeth hanging below the lip line, placed outside the jaw flanks.
-  for (const [tx, tz] of [[-1.2, 12.9], [1.2, 12.9], [-1.15, 11.7], [1.15, 11.7]] as const) {
+  for (const [tx, tz] of [
+    [-1.2, 12.9],
+    [1.2, 12.9],
+    [-1.15, 11.7],
+    [1.15, 11.7],
+  ] as const) {
     parts.push(box(0.35, 0.8, 0.35, bone, 0.25).translate(tx, 23.4, tz));
   }
   parts.push(box(0.4, 0.4, 0.4, g, 0.3).translate(-1.5, 25.4, 11.4)); // eye embers
@@ -1206,13 +1257,27 @@ function tripodGeometry(): THREE.BufferGeometry {
     [0, 8],
   ];
   for (const [fx, fz] of feet) {
-    parts.push(box(1.3, 13, 1.3, b, 0.5).rotateZ(-fx * 0.045).rotateX(-fz * 0.045).translate(fx * 0.5, 10, fz * 0.5));
-    parts.push(box(1.0, 8, 1.0, b, 0.45).rotateZ(-fx * 0.08).rotateX(-fz * 0.08).translate(fx * 0.85, 3.5, fz * 0.85));
+    parts.push(
+      box(1.3, 13, 1.3, b, 0.5)
+        .rotateZ(-fx * 0.045)
+        .rotateX(-fz * 0.045)
+        .translate(fx * 0.5, 10, fz * 0.5),
+    );
+    parts.push(
+      box(1.0, 8, 1.0, b, 0.45)
+        .rotateZ(-fx * 0.08)
+        .rotateX(-fz * 0.08)
+        .translate(fx * 0.85, 3.5, fz * 0.85),
+    );
     parts.push(box(1.9, 0.9, 1.9, b, 0.5).translate(fx, 0.45, fz)); // foot pad
   }
   parts.push(box(4.6, 3.2, 5.6, b, 0.55).translate(0, 17.2, 0.4)); // head pod
   parts.push(cone(3.2, 2.4, 10, b, 0.5).rotateX(Math.PI).translate(0, 15.2, 0.4)); // cowl underside
-  parts.push(cyl(2.4, 2.4, 0.35, 12, g, 0).rotateX(Math.PI / 2).translate(0, 15.5, 0.4)); // underbelly glow ring
+  parts.push(
+    cyl(2.4, 2.4, 0.35, 12, g, 0)
+      .rotateX(Math.PI / 2)
+      .translate(0, 15.5, 0.4),
+  ); // underbelly glow ring
   parts.push(box(2.0, 1.5, 0.6, g, 0).translate(0, 17.3, 3.4)); // glowing eye
   parts.push(box(0.5, 6, 0.5, b, 0.4).rotateZ(0.3).translate(2.6, 12.8, 2.2)); // harvesting tentacle
   parts.push(box(0.4, 3, 0.4, b, 0.4).rotateZ(0.85).translate(3.7, 9.8, 2.6));
@@ -1319,7 +1384,9 @@ function glitchSlabGeometry(): THREE.BufferGeometry {
  */
 function voidRiftGeometry(): THREE.BufferGeometry {
   const parts: THREE.BufferGeometry[] = [];
-  parts.push(gradient([plainBox(2.2, 26, 1).rotateZ(0.05).translate(0, 13, -0.5)], 0x090a10, 0x14161f, 26)); // rift core
+  parts.push(
+    gradient([plainBox(2.2, 26, 1).rotateZ(0.05).translate(0, 13, -0.5)], 0x090a10, 0x14161f, 26),
+  ); // rift core
   parts.push(box(0.35, 25, 0.5, palette.voidGlow, 0).rotateZ(0.05).translate(-1.4, 13, 0.2)); // cold glow rims
   parts.push(box(0.35, 25, 0.5, palette.voidGlow, 0).rotateZ(0.05).translate(1.6, 13, 0.2));
   parts.push(
@@ -1390,7 +1457,11 @@ function tunnelRibGeometry(): THREE.BufferGeometry {
     // A dead sodium lamp bracket craned off the rib, and the rubble slump.
     box(0.9, 0.25, 0.35, palette.tunnelLampDead, 0.35).translate(1.3, 7.2, -4),
     box(0.3, 0.5, 0.3, palette.tunnelLampDead, 0.45).translate(1.7, 6.9, -4),
-    paint(new THREE.BoxGeometry(1.6, 1.4, 3.2).rotateZ(0.4).translate(1.1, 0.5, 1.6), palette.barrierCore, 0.55),
+    paint(
+      new THREE.BoxGeometry(1.6, 1.4, 3.2).rotateZ(0.4).translate(1.1, 0.5, 1.6),
+      palette.barrierCore,
+      0.55,
+    ),
   ]);
 }
 
@@ -1437,7 +1508,10 @@ function shipwreckGeometry(): THREE.BufferGeometry {
     hull,
     // Containers spilled across the heeled deck, one overboard.
     box(1.4, 1.3, 3.4, palette.containerBase, 0.4).rotateZ(0.3).translate(1.6, 6.2, 3),
-    box(1.4, 1.3, 3.4, palette.containerHaze, 0.45).rotateZ(0.2).rotateY(0.4).translate(-0.4, 6.0, 6.5),
+    box(1.4, 1.3, 3.4, palette.containerHaze, 0.45)
+      .rotateZ(0.2)
+      .rotateY(0.4)
+      .translate(-0.4, 6.0, 6.5),
     box(1.4, 1.3, 3.4, palette.containerBase, 0.5).rotateZ(1.2).translate(-4.2, 0.8, 8),
     // The dark bridge glazing strip.
     box(3.8, 0.9, 0.4, palette.huskGlass, 0.2).rotateZ(0.14).translate(1.5, 10.4, -5.8),
@@ -1461,11 +1535,19 @@ function volcanoGeometry(): THREE.BufferGeometry {
   return assemble([
     rock,
     // The crater rim, dim hot, and the flank streak bleeding from a notch.
-    paint(new THREE.CylinderGeometry(5.2, 6.4, 1.6, 9, 1, true), palette.emberVein, 0.2).translate(4, 31.5, -2),
+    paint(new THREE.CylinderGeometry(5.2, 6.4, 1.6, 9, 1, true), palette.emberVein, 0.2).translate(
+      4,
+      31.5,
+      -2,
+    ),
     box(1.6, 12, 1.2, palette.emberVein, 0.35).rotateZ(0.42).translate(11, 22, -1),
     box(1.1, 8, 1.0, palette.emberVein, 0.4).rotateZ(0.55).translate(16, 13, 0.5),
     // The vent's own small hot mouth.
-    paint(new THREE.CylinderGeometry(1.4, 1.9, 0.8, 7, 1, true), palette.emberVein, 0.35).translate(-14, 8.7, 8),
+    paint(new THREE.CylinderGeometry(1.4, 1.9, 0.8, 7, 1, true), palette.emberVein, 0.35).translate(
+      -14,
+      8.7,
+      8,
+    ),
   ]);
 }
 
@@ -1554,7 +1636,12 @@ function barnGeometry(): THREE.BufferGeometry {
 function windmillGeometry(): THREE.BufferGeometry {
   const parts: THREE.BufferGeometry[] = [];
   // Four legs pinching toward the head, with two girt rings.
-  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) {
+  for (const [sx, sz] of [
+    [-1, -1],
+    [1, -1],
+    [-1, 1],
+    [1, 1],
+  ] as const) {
     parts.push(
       plainBox(0.24, 12, 0.24)
         .rotateZ(-sx * 0.075)
@@ -1652,8 +1739,16 @@ function rowhousesGeometry(): THREE.BufferGeometry {
   const body: THREE.BufferGeometry[] = [];
   for (const px of [-5, 0, 5] as const) {
     body.push(plainBox(5, 7, 7).translate(px, 3.5, 0));
-    body.push(plainBox(2.9, 0.35, 7.4).rotateZ(0.55).translate(px - 1.25, 7.6, 0));
-    body.push(plainBox(2.9, 0.35, 7.4).rotateZ(-0.55).translate(px + 1.25, 7.6, 0));
+    body.push(
+      plainBox(2.9, 0.35, 7.4)
+        .rotateZ(0.55)
+        .translate(px - 1.25, 7.6, 0),
+    );
+    body.push(
+      plainBox(2.9, 0.35, 7.4)
+        .rotateZ(-0.55)
+        .translate(px + 1.25, 7.6, 0),
+    );
     body.push(plainBox(0.7, 1.8, 0.7).translate(px + 1.6, 8.3, -1.8)); // chimney
     body.push(plainBox(1.2, 2, 0.3).translate(px - 1, 1, 3.55)); // door
     body.push(plainBox(2, 0.5, 1.2).translate(px - 1, 0.25, 4.2)); // stoop
@@ -1888,7 +1983,8 @@ export class Horizon {
         const biomeSil = BIOME_SILHOUETTES[biomeForBand(this.seed, useBand).id];
         const choices = biomeSil ? biomeSil[role] : ACT_SILHOUETTES[act][role];
         if (choices.length === 0) continue;
-        const kind = choices[Math.min(choices.length - 1, Math.floor(this.rand(key, 8) * choices.length))];
+        const kind =
+          choices[Math.min(choices.length - 1, Math.floor(this.rand(key, 8) * choices.length))];
         const n = this.counts[kind];
         if (n >= CAP) continue;
 
@@ -1898,7 +1994,8 @@ export class Horizon {
         // the terrain rises out of and sinks under as the hills scroll past.
         let y = meta.elevation + elevation.yAt(worldZ, distance);
         if (meta.elevJitter > 0) y += this.rand(key, 9) * meta.elevJitter;
-        if (meta.bob > 0) y += Math.sin(this.time * BOB_SPEED + this.rand(key, 10) * TWO_PI) * meta.bob;
+        if (meta.bob > 0)
+          y += Math.sin(this.time * BOB_SPEED + this.rand(key, 10) * TWO_PI) * meta.bob;
 
         const x = side * (band.xMin + this.rand(key, 3) * (band.xMax - band.xMin));
         const base = band.scaleMin + this.rand(key, 4) * (band.scaleMax - band.scaleMin);

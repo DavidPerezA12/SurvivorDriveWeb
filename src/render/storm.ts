@@ -93,7 +93,7 @@ export class MeteorStreaks {
       this.y[i] = fy;
 
       const raw = renderDistance - this.zPhase[i];
-      const z = (((raw + Z_AHEAD) % SPAN) + SPAN) % SPAN - Z_AHEAD;
+      const z = ((((raw + Z_AHEAD) % SPAN) + SPAN) % SPAN) - Z_AHEAD;
       // The diagonal lean ties horizontal offset to how far it has fallen.
       const x = this.baseX[i] + (TOP_Y - fy) * this.driftX[i] * 0.05 * drift;
 

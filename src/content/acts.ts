@@ -250,7 +250,12 @@ export function intensityAt(distance: number): number {
   const d = Math.max(0, distance);
   const t = DIFFICULTY_TUNING;
   if (d < t.intensityWarmup) return ramp(d, t.intensityWarmup, t.intensityStart, 1);
-  return ramp(d - t.intensityWarmup, t.intensityRampDistance - t.intensityWarmup, 1, t.intensityMax);
+  return ramp(
+    d - t.intensityWarmup,
+    t.intensityRampDistance - t.intensityWarmup,
+    1,
+    t.intensityMax,
+  );
 }
 
 /** Pickup-frequency multiplier at a distance: generous early, scarce deep in. */

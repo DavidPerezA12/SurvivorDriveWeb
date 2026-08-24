@@ -48,9 +48,7 @@ function buildGeometry(): THREE.BufferGeometry {
     parts.push(box(width, 0.05, HALF_W * 2, palette.asphalt, 0.2).translate(sx * cx, 0.0, 0));
     // Curbs along its two long edges (running outward in x).
     for (const sz of [-1, 1]) {
-      parts.push(
-        box(width, 0.2, 0.4, palette.curb, 0.5).translate(sx * cx, 0.08, sz * HALF_W),
-      );
+      parts.push(box(width, 0.2, 0.4, palette.curb, 0.5).translate(sx * cx, 0.08, sz * HALF_W));
     }
     // A dashed centre line running out along the street.
     const dash = 1.6;
@@ -59,48 +57,128 @@ function buildGeometry(): THREE.BufferGeometry {
       parts.push(box(dash, 0.04, 0.16, palette.laneLine, 0).translate(sx * x, 0.04, 0));
     }
     // A solid stop line where the street meets the highway.
-    parts.push(box(0.3, 0.04, HALF_W * 1.5, palette.laneLine, 0).translate(sx * (inner + 0.4), 0.04, 0));
+    parts.push(
+      box(0.3, 0.04, HALF_W * 1.5, palette.laneLine, 0).translate(sx * (inner + 0.4), 0.04, 0),
+    );
 
     // Streetlights along both curbs of the cross-street.
     for (const sz of [-1, 1]) {
       for (const x of [inner + 2.0, inner + 18.0, inner + 34.0]) {
-        parts.push(box(0.12, 4.0, 0.12, palette.post, 0.5).translate(sx * x, 2.0, sz * (HALF_W + 0.35)));
+        parts.push(
+          box(0.12, 4.0, 0.12, palette.post, 0.5).translate(sx * x, 2.0, sz * (HALF_W + 0.35)),
+        );
         // Bracket arm (pointing inward toward side street center)
-        parts.push(box(0.1, 0.1, 1.2, palette.post, 0.5).translate(sx * x, 4.0, sz * (HALF_W - 0.2)));
+        parts.push(
+          box(0.1, 0.1, 1.2, palette.post, 0.5).translate(sx * x, 4.0, sz * (HALF_W - 0.2)),
+        );
         // Lantern head
-        parts.push(box(0.3, 0.15, 0.45, palette.postLamp, 0.4).translate(sx * x, 3.95, sz * (HALF_W - 0.7)));
+        parts.push(
+          box(0.3, 0.15, 0.45, palette.postLamp, 0.4).translate(sx * x, 3.95, sz * (HALF_W - 0.7)),
+        );
         // Glow (self-lit)
-        parts.push(box(0.24, 0.08, 0.36, palette.streetLightGlow, 0).translate(sx * x, 3.86, sz * (HALF_W - 0.7)));
+        parts.push(
+          box(0.24, 0.08, 0.36, palette.streetLightGlow, 0).translate(
+            sx * x,
+            3.86,
+            sz * (HALF_W - 0.7),
+          ),
+        );
       }
     }
 
     // Traffic light post at the front corner.
     {
       const sz = 1;
-      parts.push(box(0.18, 5.0, 0.18, palette.post, 0.5).translate(sx * (inner + 0.4), 2.5, sz * (HALF_W + 0.6)));
+      parts.push(
+        box(0.18, 5.0, 0.18, palette.post, 0.5).translate(
+          sx * (inner + 0.4),
+          2.5,
+          sz * (HALF_W + 0.6),
+        ),
+      );
       // Mast arm extending over the highway lanes
-      parts.push(box(2.8, 0.14, 0.14, palette.post, 0.5).translate(sx * (inner - 0.8), 4.9, sz * (HALF_W + 0.6)));
-      parts.push(box(0.4, 0.9, 0.4, palette.postCollar, 0.4).translate(sx * (inner - 1.8), 4.7, sz * (HALF_W + 0.6)));
+      parts.push(
+        box(2.8, 0.14, 0.14, palette.post, 0.5).translate(
+          sx * (inner - 0.8),
+          4.9,
+          sz * (HALF_W + 0.6),
+        ),
+      );
+      parts.push(
+        box(0.4, 0.9, 0.4, palette.postCollar, 0.4).translate(
+          sx * (inner - 1.8),
+          4.7,
+          sz * (HALF_W + 0.6),
+        ),
+      );
       // Red signal light (facing +z)
-      parts.push(box(0.24, 0.24, 0.08, palette.trafficRed, 0).translate(sx * (inner - 1.8), 4.95, sz * (HALF_W + 0.6) + 0.21));
+      parts.push(
+        box(0.24, 0.24, 0.08, palette.trafficRed, 0).translate(
+          sx * (inner - 1.8),
+          4.95,
+          sz * (HALF_W + 0.6) + 0.21,
+        ),
+      );
       // Green signal light (facing +z)
-      parts.push(box(0.24, 0.24, 0.08, palette.trafficGreen, 0).translate(sx * (inner - 1.8), 4.45, sz * (HALF_W + 0.6) + 0.21));
+      parts.push(
+        box(0.24, 0.24, 0.08, palette.trafficGreen, 0).translate(
+          sx * (inner - 1.8),
+          4.45,
+          sz * (HALF_W + 0.6) + 0.21,
+        ),
+      );
     }
 
     // Fire hydrant at the back corner.
     {
       const sz = -1;
-      parts.push(box(0.24, 0.5, 0.24, palette.drumBody, 0.4).translate(sx * (inner + 0.8), 0.25, sz * (HALF_W + 0.6)));
-      parts.push(box(0.3, 0.12, 0.3, palette.drumLid, 0.4).translate(sx * (inner + 0.8), 0.52, sz * (HALF_W + 0.6)));
-      parts.push(box(0.34, 0.12, 0.12, palette.postCollar, 0.4).translate(sx * (inner + 0.8), 0.32, sz * (HALF_W + 0.6)));
+      parts.push(
+        box(0.24, 0.5, 0.24, palette.drumBody, 0.4).translate(
+          sx * (inner + 0.8),
+          0.25,
+          sz * (HALF_W + 0.6),
+        ),
+      );
+      parts.push(
+        box(0.3, 0.12, 0.3, palette.drumLid, 0.4).translate(
+          sx * (inner + 0.8),
+          0.52,
+          sz * (HALF_W + 0.6),
+        ),
+      );
+      parts.push(
+        box(0.34, 0.12, 0.12, palette.postCollar, 0.4).translate(
+          sx * (inner + 0.8),
+          0.32,
+          sz * (HALF_W + 0.6),
+        ),
+      );
     }
 
     // Street sign post at the front corner.
     {
       const sz = 1;
-      parts.push(box(0.08, 2.5, 0.08, palette.post, 0.5).translate(sx * (inner + 0.9), 1.25, sz * (HALF_W + 0.6)));
-      parts.push(box(0.8, 0.16, 0.04, palette.healthTokenDark, 0).translate(sx * (inner + 0.9), 2.38, sz * (HALF_W + 0.6)));
-      parts.push(box(0.04, 0.16, 0.8, palette.healthTokenDark, 0).translate(sx * (inner + 0.9), 2.45, sz * (HALF_W + 0.6)));
+      parts.push(
+        box(0.08, 2.5, 0.08, palette.post, 0.5).translate(
+          sx * (inner + 0.9),
+          1.25,
+          sz * (HALF_W + 0.6),
+        ),
+      );
+      parts.push(
+        box(0.8, 0.16, 0.04, palette.healthTokenDark, 0).translate(
+          sx * (inner + 0.9),
+          2.38,
+          sz * (HALF_W + 0.6),
+        ),
+      );
+      parts.push(
+        box(0.04, 0.16, 0.8, palette.healthTokenDark, 0).translate(
+          sx * (inner + 0.9),
+          2.45,
+          sz * (HALF_W + 0.6),
+        ),
+      );
     }
   }
 

@@ -19,7 +19,17 @@ export class DamageSmoke {
     this.smoke = new ParticlePool(
       scene,
       box(0.44, 0.44, 0.44, palette.blastSmoke, 0.14),
-      { count: 40, perBurst: 1, life: 0.95, gravity: -1.4, vyMin: 1.2, vyMax: 2.6, spread: 1.8, spin: 3, scale: 1.35 },
+      {
+        count: 40,
+        perBurst: 1,
+        life: 0.95,
+        gravity: -1.4,
+        vyMin: 1.2,
+        vyMax: 2.6,
+        spread: 1.8,
+        spin: 3,
+        scale: 1.35,
+      },
       prefersReducedMotion(),
     );
   }

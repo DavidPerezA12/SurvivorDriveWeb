@@ -17,7 +17,14 @@ const LANE = 1;
 describe('quake split', () => {
   it('a crack is harmless while still closed (collisions skip an unopened gap)', () => {
     const s = createSim(1);
-    s.hazards.push({ kind: 'gap', lane: LANE, x: laneCenterX(LANE), forward: 8, hit: false, open: false });
+    s.hazards.push({
+      kind: 'gap',
+      lane: LANE,
+      x: laneCenterX(LANE),
+      forward: 8,
+      hit: false,
+      open: false,
+    });
     s.distance = 7; // overlapping in forward/lateral, grounded — but not open yet
     s.car.speed = 40;
     resolveCollisions(s);
@@ -28,7 +35,14 @@ describe('quake split', () => {
 
   it('tears open only once the gap closes to the open distance, emitting the burst', () => {
     const s = createSim(1);
-    s.hazards.push({ kind: 'gap', lane: LANE, x: laneCenterX(LANE), forward: 200, hit: false, open: false });
+    s.hazards.push({
+      kind: 'gap',
+      lane: LANE,
+      x: laneCenterX(LANE),
+      forward: 200,
+      hit: false,
+      open: false,
+    });
 
     s.distance = 200 - QUAKE_TUNING.openGap - 5; // still a crack
     updateQuakes(s);
@@ -42,7 +56,14 @@ describe('quake split', () => {
 
   it('an opened quake gap is a lethal hole and records the death as a gap', () => {
     const s = createSim(1);
-    s.hazards.push({ kind: 'gap', lane: LANE, x: laneCenterX(LANE), forward: 8, hit: false, open: false });
+    s.hazards.push({
+      kind: 'gap',
+      lane: LANE,
+      x: laneCenterX(LANE),
+      forward: 8,
+      hit: false,
+      open: false,
+    });
     s.distance = 7; // gap 1 < openGap → opens; and overlaps the car, grounded
     s.car.speed = 60;
     updateQuakes(s);
@@ -54,7 +75,14 @@ describe('quake split', () => {
 
   it('an opened quake gap can still be jumped (it is a hole, not a wall)', () => {
     const s = createSim(1);
-    s.hazards.push({ kind: 'gap', lane: LANE, x: laneCenterX(LANE), forward: 8, hit: false, open: true });
+    s.hazards.push({
+      kind: 'gap',
+      lane: LANE,
+      x: laneCenterX(LANE),
+      forward: 8,
+      hit: false,
+      open: true,
+    });
     s.distance = 7;
     s.car.height = 1.2; // airborne, clear over the hole
     s.car.speed = 40;
@@ -73,10 +101,12 @@ describe('quake split', () => {
     const actIIIStart = Math.floor((2 * ACT_SPAN_M) / CHUNK_LENGTH);
     for (const seed of [1, 7, 42, 123]) {
       for (let i = 0; i < actIIIStart; i += 1) {
-        for (const sp of chunkAt(seed, i).spawns) if (sp.kind === 'gap' && sp.opening) earlyQuake += 1;
+        for (const sp of chunkAt(seed, i).spawns)
+          if (sp.kind === 'gap' && sp.opening) earlyQuake += 1;
       }
       for (let i = actIIIStart; i < actIIIStart + 300; i += 1) {
-        for (const sp of chunkAt(seed, i).spawns) if (sp.kind === 'gap' && sp.opening) lateQuake += 1;
+        for (const sp of chunkAt(seed, i).spawns)
+          if (sp.kind === 'gap' && sp.opening) lateQuake += 1;
       }
     }
     expect(earlyQuake).toBe(0);

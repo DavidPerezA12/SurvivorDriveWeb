@@ -19,7 +19,12 @@ function cruising(lane = 1): SimState {
 }
 
 /** A live gas cloud over `lane` at `forward`. */
-function putGas(s: SimState, lane: number, forward: number, life: number = GAS_TUNING.lifeTicks): void {
+function putGas(
+  s: SimState,
+  lane: number,
+  forward: number,
+  life: number = GAS_TUNING.lifeTicks,
+): void {
   s.gas.push({ lane, x: laneCenterX(lane), forward, life, maxLife: GAS_TUNING.lifeTicks });
 }
 

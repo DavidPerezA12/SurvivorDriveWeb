@@ -54,8 +54,16 @@ export class MeteorField {
 
   constructor(scene: THREE.Scene) {
     this.rock = new THREE.InstancedMesh(meteorRockGeometry(), propMaterial, MAX_INSTANCES);
-    this.core = new THREE.InstancedMesh(box(0.7, 0.5, 0.7, palette.meteorCore, 0), lightMaterial, MAX_INSTANCES);
-    this.crater = new THREE.InstancedMesh(disc(1.35, palette.meteorCrater), propMaterial, MAX_INSTANCES);
+    this.core = new THREE.InstancedMesh(
+      box(0.7, 0.5, 0.7, palette.meteorCore, 0),
+      lightMaterial,
+      MAX_INSTANCES,
+    );
+    this.crater = new THREE.InstancedMesh(
+      disc(1.35, palette.meteorCrater),
+      propMaterial,
+      MAX_INSTANCES,
+    );
     this.meshes = [this.rock, this.core, this.crater];
     for (const mesh of this.meshes) {
       mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -113,7 +121,14 @@ export class MeteorField {
     }
   }
 
-  private place(mesh: THREE.InstancedMesh, i: number, x: number, y: number, z: number, spin: number): void {
+  private place(
+    mesh: THREE.InstancedMesh,
+    i: number,
+    x: number,
+    y: number,
+    z: number,
+    spin: number,
+  ): void {
     this.dummy.position.set(x, y, z);
     this.dummy.rotation.set(spin * 0.7, spin, spin * 0.4);
     this.dummy.scale.setScalar(1);

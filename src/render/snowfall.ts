@@ -97,8 +97,10 @@ export class SnowFall {
 
       // Stream with the world, wrapped into [-Z_AHEAD, +Z_BEHIND] like the dust.
       const raw = distance - this.zPhase[i];
-      const z = (((raw + Z_AHEAD) % SPAN) + SPAN) % SPAN - Z_AHEAD;
-      const x = this.baseX[i] + Math.sin(this.t * this.swayFreq[i] + this.phase[i]) * this.swayAmp[i] * sway;
+      const z = ((((raw + Z_AHEAD) % SPAN) + SPAN) % SPAN) - Z_AHEAD;
+      const x =
+        this.baseX[i] +
+        Math.sin(this.t * this.swayFreq[i] + this.phase[i]) * this.swayAmp[i] * sway;
 
       arr[i * 3] = x;
       arr[i * 3 + 1] = fy;

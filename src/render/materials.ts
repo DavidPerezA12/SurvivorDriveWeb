@@ -48,7 +48,11 @@ export const silhouetteMaterial = new THREE.MeshBasicMaterial({
  * lets a flat box read as a shaded form for the cost of one extra attribute and
  * zero extra triangles.
  */
-export function paint(geometry: THREE.BufferGeometry, color: THREE.ColorRepresentation, ao = 0.4): THREE.BufferGeometry {
+export function paint(
+  geometry: THREE.BufferGeometry,
+  color: THREE.ColorRepresentation,
+  ao = 0.4,
+): THREE.BufferGeometry {
   const position = geometry.getAttribute('position');
   const normal = geometry.getAttribute('normal');
   const base = new THREE.Color(color);
@@ -103,7 +107,11 @@ export function box(
  * A vertex-colored cylinder, laid on its side to roll along X (a wheel). 24
  * radial segments keep the tyre round under flat shading.
  */
-export function wheel(radius: number, width: number, color: THREE.ColorRepresentation): THREE.BufferGeometry {
+export function wheel(
+  radius: number,
+  width: number,
+  color: THREE.ColorRepresentation,
+): THREE.BufferGeometry {
   const geo = new THREE.CylinderGeometry(radius, radius, width, 24);
   geo.rotateZ(Math.PI / 2);
   return paint(geo, color, 0.5);

@@ -70,7 +70,9 @@ describe('car kinematics', () => {
   it('coasts to a stop when the wheel centers, without snapping back to a lane', () => {
     const startX = laneCenterX(startLane);
     // Hold left a good while (there is room toward the far edge), then release.
-    const intents: Intent[] = Array.from({ length: 80 }, (_, i) => (i < 18 ? intent(-1) : intent(0)));
+    const intents: Intent[] = Array.from({ length: 80 }, (_, i) =>
+      i < 18 ? intent(-1) : intent(0),
+    );
     const s = drive(0, intents, 80);
     // It stayed where it was steered (well left of where it started), not pulled
     // back to its start lane by any magnet.

@@ -60,9 +60,16 @@ function patchGeometry(): THREE.BufferGeometry {
 
 /** A pothole — a dark, irregular blown-out blob. */
 function potholeGeometry(): THREE.BufferGeometry {
-  const a = paint(new THREE.CylinderGeometry(0.75, 0.75, 0.04, 9), palette.roadPothole, 0).translate(0, Y, 0);
-  const b = paint(new THREE.CylinderGeometry(0.5, 0.5, 0.04, 8), palette.roadPothole, 0)
-    .translate(0.6, Y, 0.35);
+  const a = paint(
+    new THREE.CylinderGeometry(0.75, 0.75, 0.04, 9),
+    palette.roadPothole,
+    0,
+  ).translate(0, Y, 0);
+  const b = paint(new THREE.CylinderGeometry(0.5, 0.5, 0.04, 8), palette.roadPothole, 0).translate(
+    0.6,
+    Y,
+    0.35,
+  );
   return merged([a, b]);
 }
 
@@ -122,7 +129,8 @@ export class RoadWear {
       const r = this.rand(slot, 2);
       // Patches are the loudest mark, so make them the rarest — mostly cracks,
       // skids, and small potholes, the odd repair square.
-      const kind: WearKind = r < 0.46 ? 'crack' : r < 0.58 ? 'patch' : r < 0.82 ? 'pothole' : 'skid';
+      const kind: WearKind =
+        r < 0.46 ? 'crack' : r < 0.58 ? 'patch' : r < 0.82 ? 'pothole' : 'skid';
       const n = this.counts[kind];
       if (n >= CAP) continue;
 

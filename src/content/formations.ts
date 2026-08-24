@@ -1014,7 +1014,12 @@ export const FORMATIONS: readonly Formation[] = [
  * intensity) the harder formations are favored, in the eased-in opening (intensity
  * below 1) the gentle ones are. Returns 0 for formations absent from the act.
  */
-export function formationWeight(f: Formation, act: number, intensity: number, bias: number): number {
+export function formationWeight(
+  f: Formation,
+  act: number,
+  intensity: number,
+  bias: number,
+): number {
   const base = f.acts[act] ?? 0;
   if (base <= 0) return 0;
   // (2*hardness - 1) is +1 for the nastiest, -1 for the calmest. Scaled by how far

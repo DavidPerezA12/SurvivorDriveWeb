@@ -101,7 +101,18 @@ function generateSpawns(seed: number, index: number, rng: Rng): Spawn[] {
     // line stays clear and the formation simply thins at the road's edges.
     if (lane < 0 || lane >= LANE_COUNT || lane === safe) continue;
     const z = cell.z * CHUNK_LENGTH;
-    resolveCell(spawns, cell, lane, z, safe, w.clusterMin, w.clusterMax, pickupScale, lethality, rng);
+    resolveCell(
+      spawns,
+      cell,
+      lane,
+      z,
+      safe,
+      w.clusterMin,
+      w.clusterMax,
+      pickupScale,
+      lethality,
+      rng,
+    );
   }
   return spawns;
 }
@@ -112,7 +123,12 @@ function generateSpawns(seed: number, index: number, rng: Rng): Spawn[] {
  * eased-in opening (`formationWeight`). Returns null only if the act has no
  * formations at all (it never does).
  */
-function pickFormation(act: number, intensity: number, jumpBias: number, rng: Rng): Formation | null {
+function pickFormation(
+  act: number,
+  intensity: number,
+  jumpBias: number,
+  rng: Rng,
+): Formation | null {
   const bias = DIFFICULTY_TUNING.hardnessBias;
   const weightOf = (f: Formation): number => {
     const w = formationWeight(f, act, intensity, bias);
@@ -285,7 +301,13 @@ function laneInsetX(xf: number): number {
  * the lane racks a combo. Clamped to fit inside the chunk, then each zombie gets a
  * deterministic phase for render variety.
  */
-function addZombieCluster(spawns: Spawn[], lane: number, rng: Rng, baseZ: number, size: number): void {
+function addZombieCluster(
+  spawns: Spawn[],
+  lane: number,
+  rng: Rng,
+  baseZ: number,
+  size: number,
+): void {
   const span = (size - 1) * SPAWN_TUNING.clusterSpacing;
   const z0 = Math.max(0, Math.min(baseZ, CHUNK_LENGTH - span));
   for (let i = 0; i < size; i += 1) {
@@ -339,7 +361,8 @@ function generateProps(rng: Rng): Prop[] {
     const margin =
       kind === 'barrier'
         ? DECOR_TUNING.marginMin + nextFloat(rng) * 1.5
-        : DECOR_TUNING.marginMin + nextFloat(rng) * (DECOR_TUNING.marginMax - DECOR_TUNING.marginMin);
+        : DECOR_TUNING.marginMin +
+          nextFloat(rng) * (DECOR_TUNING.marginMax - DECOR_TUNING.marginMin);
     const scale = 0.85 + nextFloat(rng) * 0.4;
     // Posts stand upright; the rest get a little yaw variety.
     const rot = kind === 'post' ? 0 : (nextFloat(rng) - 0.5) * Math.PI;

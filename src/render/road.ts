@@ -81,7 +81,11 @@ function buildTileGeometry(): THREE.BufferGeometry {
   // Solid edge lines and a raised curb just outside them, both sides.
   for (const sx of [-1, 1]) {
     parts.push(
-      box(0.22, 0.05, TILE_LEN, palette.edgeLine, 0).translate(sx * (ROAD_WIDTH / 2 - 0.2), 0.02, 0),
+      box(0.22, 0.05, TILE_LEN, palette.edgeLine, 0).translate(
+        sx * (ROAD_WIDTH / 2 - 0.2),
+        0.02,
+        0,
+      ),
     );
     parts.push(
       box(0.5, 0.32, TILE_LEN, palette.curb, 0.5).translate(sx * (ROAD_WIDTH / 2 + 0.25), 0.14, 0),

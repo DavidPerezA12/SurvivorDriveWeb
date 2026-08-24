@@ -25,7 +25,11 @@ export interface Stage {
 export function disposeSceneGeometry(scene: THREE.Scene): void {
   const geometries = new Set<THREE.BufferGeometry>();
   scene.traverse((object) => {
-    if (object instanceof THREE.Mesh || object instanceof THREE.Points || object instanceof THREE.Line) {
+    if (
+      object instanceof THREE.Mesh ||
+      object instanceof THREE.Points ||
+      object instanceof THREE.Line
+    ) {
       geometries.add(object.geometry);
     }
   });
@@ -42,7 +46,10 @@ export function disposeSceneGeometry(scene: THREE.Scene): void {
  * graphics-quality setting. Fog tinted to the act color hides the spawn horizon.
  */
 export function createStage(): Stage {
-  const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+  const renderer = new THREE.WebGLRenderer({
+    antialias: true,
+    powerPreference: 'high-performance',
+  });
   let pixelCap = 2;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, pixelCap));
   renderer.setSize(window.innerWidth, window.innerHeight);

@@ -34,7 +34,9 @@ describe('horde surge', () => {
 
   it('floods every non-safe lane wherever the safe line wanders', () => {
     if (!surge) return;
-    const crowdOffsets = surge.cells.filter((c) => c.role === 'loot' || c.role === 'horde').map((c) => c.off);
+    const crowdOffsets = surge.cells
+      .filter((c) => c.role === 'loot' || c.role === 'horde')
+      .map((c) => c.off);
     // For every possible safe lane, the crowd offsets that land on the road and off
     // the safe lane must cover every non-safe lane — the whole point of a surge is
     // that the safe lane is the only gap.

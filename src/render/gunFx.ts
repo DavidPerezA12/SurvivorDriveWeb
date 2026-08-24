@@ -36,7 +36,15 @@ interface TierFx {
 const TIERS: readonly TierFx[] = [
   { style: 'pellets', color: 0xffb24a, flashBursts: 1, w: 0.07, len: 1.4, count: 7, spreadVel: 7 },
   { style: 'slug', color: 0xffd23a, flashBursts: 1, w: 0.11, len: 3.4 },
-  { style: 'pellets', color: 0xff9a2e, flashBursts: 2, w: 0.08, len: 1.8, count: 12, spreadVel: 13 },
+  {
+    style: 'pellets',
+    color: 0xff9a2e,
+    flashBursts: 2,
+    w: 0.08,
+    len: 1.8,
+    count: 12,
+    spreadVel: 13,
+  },
   { style: 'twin', color: 0xff7322, flashBursts: 2, w: 0.14, len: 4.0, gap: 0.5 },
   { style: 'arc', color: 0xf0f6ff, flashBursts: 2, w: 0.13 },
 ];
@@ -67,7 +75,10 @@ class TracerPool {
   private readonly age: Float32Array;
   private cursor = 0;
 
-  constructor(scene: THREE.Scene, private readonly count: number) {
+  constructor(
+    scene: THREE.Scene,
+    private readonly count: number,
+  ) {
     this.mesh = new THREE.InstancedMesh(box(1, 1, 1, 0xffffff, 0), lightMaterial, count);
     this.mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     this.mesh.frustumCulled = false;
@@ -93,7 +104,18 @@ class TracerPool {
     this.mesh.instanceMatrix.needsUpdate = true;
   }
 
-  spawn(x: number, forward: number, y: number, vx: number, vy: number, w: number, len: number, spd: number, life: number, color: number): void {
+  spawn(
+    x: number,
+    forward: number,
+    y: number,
+    vx: number,
+    vy: number,
+    w: number,
+    len: number,
+    spd: number,
+    life: number,
+    color: number,
+  ): void {
     const i = this.cursor;
     this.cursor = (this.cursor + 1) % this.count;
     this.x[i] = x;
@@ -126,7 +148,11 @@ class TracerPool {
       const fade = 1 - this.age[i] / this.life[i];
       const w = this.w[i] * (0.45 + fade * 0.55);
       // Point the streak along its travel (forward, with its fan/drop), then stretch.
-      this.to.set(this.x[i] + this.vx[i], this.y[i] + this.vy[i], distance - this.fwd[i] - this.spd[i]);
+      this.to.set(
+        this.x[i] + this.vx[i],
+        this.y[i] + this.vy[i],
+        distance - this.fwd[i] - this.spd[i],
+      );
       this.dummy.position.set(this.x[i], this.y[i], distance - this.fwd[i]);
       this.dummy.lookAt(this.to);
       this.dummy.scale.set(w, w, this.len[i] * (0.6 + fade * 0.6));
@@ -277,7 +303,17 @@ export class GunFx {
     this.flash = new ParticlePool(
       scene,
       box(0.16, 0.16, 0.16, FLASH, 0.1),
-      { count: 48, perBurst: 3, life: 0.08, gravity: 1, vyMin: 0.2, vyMax: 0.8, spread: 2.4, spin: 10, scale: 1 },
+      {
+        count: 48,
+        perBurst: 3,
+        life: 0.08,
+        gravity: 1,
+        vyMin: 0.2,
+        vyMax: 0.8,
+        spread: 2.4,
+        spin: 10,
+        scale: 1,
+      },
       reduced,
     );
     this.tracers = new TracerPool(scene, 96);

@@ -49,11 +49,7 @@ const SURVIVABLE = new Set<Spawn['kind']>([
 ]);
 
 /** Every spawn that can hurt, block, or pressure a driven line. */
-const THREATS: ReadonlySet<Spawn['kind']> = new Set([
-  ...LETHAL,
-  ...SURVIVABLE,
-  'zombie',
-]);
+const THREATS: ReadonlySet<Spawn['kind']> = new Set([...LETHAL, ...SURVIVABLE, 'zombie']);
 
 /** Count threat spawns over a window of chunks at a given starting distance. */
 function threatsOverWindow(seed: number, startMeters: number, chunks: number): number {
@@ -146,8 +142,12 @@ describe('lethality curve', () => {
 
 describe('pacing curve', () => {
   it('leaves more open road in the opening than deep in, within bounds', () => {
-    expect(openChanceAt(DIFFICULTY_TUNING.intensityStart)).toBeCloseTo(DIFFICULTY_TUNING.openChanceStart);
-    expect(openChanceAt(DIFFICULTY_TUNING.intensityMax)).toBeCloseTo(DIFFICULTY_TUNING.openChanceDeep);
+    expect(openChanceAt(DIFFICULTY_TUNING.intensityStart)).toBeCloseTo(
+      DIFFICULTY_TUNING.openChanceStart,
+    );
+    expect(openChanceAt(DIFFICULTY_TUNING.intensityMax)).toBeCloseTo(
+      DIFFICULTY_TUNING.openChanceDeep,
+    );
     // Clamped outside the intensity range.
     expect(openChanceAt(0)).toBeCloseTo(DIFFICULTY_TUNING.openChanceStart);
     expect(openChanceAt(10)).toBeCloseTo(DIFFICULTY_TUNING.openChanceDeep);

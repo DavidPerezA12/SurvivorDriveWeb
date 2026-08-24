@@ -36,13 +36,7 @@ export default tseslint.config(
                 'sim/ and content/ must stay renderer-agnostic and browser/Node independent (docs/ARCHITECTURE.md).',
             },
             {
-              group: [
-                '**/render/**',
-                '**/audio/**',
-                '**/ui/**',
-                '**/input/**',
-                '**/app/**',
-              ],
+              group: ['**/render/**', '**/audio/**', '**/ui/**', '**/input/**', '**/app/**'],
               message:
                 'sim/ and content/ are the pure core — they must not import from impure layers.',
             },

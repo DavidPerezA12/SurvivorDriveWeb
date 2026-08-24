@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  runTitle,
-  DEATH_CAUSES,
-  type DeathCause,
-  type RunStats,
-} from '../src/content/runTitles';
+import { runTitle, DEATH_CAUSES, type DeathCause, type RunStats } from '../src/content/runTitles';
 
 /**
  * The procedural run-title generator (docs/DESIGN.md → tone). It is a pure,

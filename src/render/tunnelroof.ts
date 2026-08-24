@@ -90,8 +90,20 @@ function portalGeometry(): THREE.BufferGeometry {
   parts.push(box(7.5, 1.7, 0.3, trim, 0.35).translate(0, CEIL_Y + 1.9, 1.35));
   parts.push(box(6.7, 1.1, 0.2, palette.tvDark, 0.2).translate(0, CEIL_Y + 1.9, 1.55));
   // Rubble slumped at both pier feet — the mountain is coming down on it.
-  parts.push(paint(new THREE.BoxGeometry(3.4, 1.6, 2.4).rotateY(0.4).rotateZ(0.15), palette.barrierCore, 0.5).translate(-13.2, 0.8, 1.8));
-  parts.push(paint(new THREE.BoxGeometry(2.6, 1.2, 2.0).rotateY(-0.5), palette.barrierCore, 0.55).translate(13.6, 0.6, 1.6));
+  parts.push(
+    paint(
+      new THREE.BoxGeometry(3.4, 1.6, 2.4).rotateY(0.4).rotateZ(0.15),
+      palette.barrierCore,
+      0.5,
+    ).translate(-13.2, 0.8, 1.8),
+  );
+  parts.push(
+    paint(new THREE.BoxGeometry(2.6, 1.2, 2.0).rotateY(-0.5), palette.barrierCore, 0.55).translate(
+      13.6,
+      0.6,
+      1.6,
+    ),
+  );
   return merged(parts);
 }
 

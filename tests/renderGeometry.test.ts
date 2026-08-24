@@ -76,8 +76,7 @@ describe('render geometry builders', () => {
     const matrix = new THREE.Matrix4();
     active?.getMatrixAt(0, matrix);
     const t =
-      (DRIFT_TUNING.startGap - (forward - 95)) /
-      (DRIFT_TUNING.startGap - DRIFT_TUNING.endGap);
+      (DRIFT_TUNING.startGap - (forward - 95)) / (DRIFT_TUNING.startGap - DRIFT_TUNING.endGap);
     const smooth = t * t * (3 - 2 * t);
     expect(new THREE.Vector3().setFromMatrixPosition(matrix).x).toBeCloseTo(-1 + 2 * smooth);
   });

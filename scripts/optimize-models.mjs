@@ -30,5 +30,7 @@ for (const name of (await readdir(MODELS_DIR)).filter((f) => f.endsWith('.glb'))
   );
   const output = await io.writeBinary(document);
   await writeFile(path, output);
-  console.log(`${name}: ${(before / 1024).toFixed(1)} kB -> ${(output.byteLength / 1024).toFixed(1)} kB`);
+  console.log(
+    `${name}: ${(before / 1024).toFixed(1)} kB -> ${(output.byteLength / 1024).toFixed(1)} kB`,
+  );
 }

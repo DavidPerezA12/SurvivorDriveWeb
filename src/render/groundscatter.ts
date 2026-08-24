@@ -233,8 +233,12 @@ function ashGeometry(): THREE.BufferGeometry {
   return merged([
     disc(2.0, palette.groundScorch, Y),
     disc(1.2, palette.wreckDark, Y + 0.004).translate(0.8, 0, 0.5),
-    box(0.3, 0.05, 0.3, fleck, 0).rotateY(0.5).translate(-0.7, Y + 0.008, -0.3),
-    box(0.22, 0.05, 0.22, fleck, 0).rotateY(1.1).translate(0.5, Y + 0.008, -0.8),
+    box(0.3, 0.05, 0.3, fleck, 0)
+      .rotateY(0.5)
+      .translate(-0.7, Y + 0.008, -0.3),
+    box(0.22, 0.05, 0.22, fleck, 0)
+      .rotateY(1.1)
+      .translate(0.5, Y + 0.008, -0.8),
   ]);
 }
 
@@ -246,8 +250,12 @@ function shardsGeometry(): THREE.BufferGeometry {
   const g = palette.ufoGlow;
   return merged([
     disc(0.95, palette.groundScorch, Y),
-    paint(new THREE.ConeGeometry(0.28, 1.4, 5), b, 0.4).rotateZ(0.16).translate(0, 0.65, 0),
-    paint(new THREE.ConeGeometry(0.2, 0.95, 5), b, 0.4).rotateZ(-0.45).translate(0.42, 0.42, 0.2),
+    paint(new THREE.ConeGeometry(0.28, 1.4, 5), b, 0.4)
+      .rotateZ(0.16)
+      .translate(0, 0.65, 0),
+    paint(new THREE.ConeGeometry(0.2, 0.95, 5), b, 0.4)
+      .rotateZ(-0.45)
+      .translate(0.42, 0.42, 0.2),
     paint(new THREE.ConeGeometry(0.13, 1.05, 5), g, 0).translate(0, 0.6, 0), // glowing core
   ]);
 }
@@ -287,12 +295,20 @@ function beamScarGeometry(): THREE.BufferGeometry {
   return merged([
     disc(1.9, palette.groundScorch, Y),
     // The rim ring, faintly lit where the beam's edge burned.
-    paint(new THREE.CylinderGeometry(1.45, 1.45, 0.03, 18, 1, true), g, 0.25).translate(0, Y + 0.005, 0),
+    paint(new THREE.CylinderGeometry(1.45, 1.45, 0.03, 18, 1, true), g, 0.25).translate(
+      0,
+      Y + 0.005,
+      0,
+    ),
     // Inside the ring: swept clean, a shade paler than the scorch.
     disc(1.3, palette.asphaltSeam, Y + 0.004),
     // Crystal nubs taking root along the rim.
-    paint(new THREE.ConeGeometry(0.12, 0.5, 5), b, 0.4).rotateZ(0.2).translate(1.35, 0.22, 0.4),
-    paint(new THREE.ConeGeometry(0.09, 0.35, 5), b, 0.4).rotateZ(-0.3).translate(-1.1, 0.16, -0.85),
+    paint(new THREE.ConeGeometry(0.12, 0.5, 5), b, 0.4)
+      .rotateZ(0.2)
+      .translate(1.35, 0.22, 0.4),
+    paint(new THREE.ConeGeometry(0.09, 0.35, 5), b, 0.4)
+      .rotateZ(-0.3)
+      .translate(-1.1, 0.16, -0.85),
     paint(new THREE.ConeGeometry(0.07, 0.3, 5), b, 0.4).translate(-0.3, 0.14, 1.4),
   ]);
 }
@@ -310,12 +326,22 @@ function dragMarkGeometry(): THREE.BufferGeometry {
   ] as const) {
     // The gouge floor, dark, and its kicked-out lips.
     parts.push(box(w, 0.04, len, palette.meteorCrater, 0).rotateY(0.12).translate(xo, Y, 0));
-    parts.push(box(0.12, 0.1, len * 0.8, lip, 0.35).rotateY(0.12).translate(xo - w * 0.62, Y + 0.03, 0.2));
-    parts.push(box(0.12, 0.09, len * 0.7, lip, 0.4).rotateY(0.12).translate(xo + w * 0.62, Y + 0.03, -0.3));
+    parts.push(
+      box(0.12, 0.1, len * 0.8, lip, 0.35)
+        .rotateY(0.12)
+        .translate(xo - w * 0.62, Y + 0.03, 0.2),
+    );
+    parts.push(
+      box(0.12, 0.09, len * 0.7, lip, 0.4)
+        .rotateY(0.12)
+        .translate(xo + w * 0.62, Y + 0.03, -0.3),
+    );
   }
   // The heap where whatever was dragged finally left the ground.
   parts.push(rockChunk(0.3, 0.7, 0.6, lip, 0.4).rotateY(0.5).translate(0.3, 0.08, 3.1));
-  parts.push(rockChunk(0.22, 0.75, 0.65, palette.structureBase, 0.4).rotateY(1.2).translate(-0.5, 0.07, 2.9));
+  parts.push(
+    rockChunk(0.22, 0.75, 0.65, palette.structureBase, 0.4).rotateY(1.2).translate(-0.5, 0.07, 2.9),
+  );
   return merged(parts);
 }
 
@@ -329,7 +355,9 @@ function voidMeltGeometry(): THREE.BufferGeometry {
     // The pane: near-black, dead flat — a hole that renders as a surface.
     box(1.7, 0.04, 1.3, palette.tvDark, 0).rotateY(0.25).translate(0, Y, 0),
     // The cold seam along its long edge.
-    box(1.5, 0.05, 0.07, palette.voidGlow, 0.2).rotateY(0.25).translate(-0.15, Y + 0.01, 0.62),
+    box(1.5, 0.05, 0.07, palette.voidGlow, 0.2)
+      .rotateY(0.25)
+      .translate(-0.15, Y + 0.01, 0.62),
     // The pavement around it sliced into clean lifted steps.
     box(0.8, 0.14, 0.5, a, 0.3).rotateY(0.25).translate(1.1, 0.04, -0.5),
     box(0.55, 0.22, 0.4, b, 0.3).rotateY(0.55).translate(-1.15, 0.07, 0.3),
@@ -351,9 +379,13 @@ function iceSheetGeometry(): THREE.BufferGeometry {
   const g = palette.iceGlaze;
   return merged([
     box(2.2, 0.04, 1.7, g, 0).rotateY(0.2).translate(0, Y, 0),
-    box(0.9, 0.05, 0.7, palette.snowLit, 0).rotateY(0.5).translate(0.6, Y + 0.004, 0.3),
+    box(0.9, 0.05, 0.7, palette.snowLit, 0)
+      .rotateY(0.5)
+      .translate(0.6, Y + 0.004, 0.3),
     // The crack seaming across the plate.
-    box(0.08, 0.06, 1.6, palette.groundScorch, 0).rotateY(-0.4).translate(-0.4, Y + 0.008, 0),
+    box(0.08, 0.06, 1.6, palette.groundScorch, 0)
+      .rotateY(-0.4)
+      .translate(-0.4, Y + 0.008, 0),
   ]);
 }
 
@@ -364,8 +396,12 @@ function dunePatchGeometry(): THREE.BufferGeometry {
     disc(2.4, sand, Y),
     disc(1.5, sand, Y + 0.004).translate(1.9, 0, 0.9),
     // Ripple crests picked out by the shadowed shade tone.
-    box(1.8, 0.04, 0.14, palette.sandShade, 0).rotateY(0.3).translate(0, Y + 0.008, 0.4),
-    box(1.4, 0.04, 0.12, palette.sandShade, 0).rotateY(0.3).translate(0.3, Y + 0.008, -0.5),
+    box(1.8, 0.04, 0.14, palette.sandShade, 0)
+      .rotateY(0.3)
+      .translate(0, Y + 0.008, 0.4),
+    box(1.4, 0.04, 0.12, palette.sandShade, 0)
+      .rotateY(0.3)
+      .translate(0.3, Y + 0.008, -0.5),
   ]);
 }
 
@@ -373,9 +409,15 @@ function dunePatchGeometry(): THREE.BufferGeometry {
 function cableGeometry(): THREE.BufferGeometry {
   const c = palette.bridgeCable;
   return merged([
-    box(0.12, 0.05, 2.6, c, 0.2).rotateY(0.2).translate(0, Y + 0.06, 0),
-    box(0.1, 0.05, 1.8, c, 0.2).rotateY(-0.5).translate(0.5, Y + 0.06, 1.6),
-    box(0.1, 0.05, 1.4, c, 0.2).rotateY(0.7).translate(-0.4, Y + 0.06, -1.7),
+    box(0.12, 0.05, 2.6, c, 0.2)
+      .rotateY(0.2)
+      .translate(0, Y + 0.06, 0),
+    box(0.1, 0.05, 1.8, c, 0.2)
+      .rotateY(-0.5)
+      .translate(0.5, Y + 0.06, 1.6),
+    box(0.1, 0.05, 1.4, c, 0.2)
+      .rotateY(0.7)
+      .translate(-0.4, Y + 0.06, -1.7),
     box(0.4, 0.24, 0.3, palette.postCollar, 0.45).rotateY(0.4).translate(0.1, 0.08, 0.3),
   ]);
 }
@@ -422,8 +464,12 @@ function litterGeometry(): THREE.BufferGeometry {
   const pale = palette.coupeStripe;
   return merged([
     box(0.5, 0.02, 0.7, pale, 0).rotateY(0.3).translate(0, Y, 0),
-    box(0.44, 0.02, 0.62, sheet, 0).rotateY(-0.6).translate(0.8, Y + 0.004, 0.5),
-    box(0.4, 0.02, 0.56, sheet, 0).rotateY(1.1).translate(-0.7, Y + 0.004, -0.4),
+    box(0.44, 0.02, 0.62, sheet, 0)
+      .rotateY(-0.6)
+      .translate(0.8, Y + 0.004, 0.5),
+    box(0.4, 0.02, 0.56, sheet, 0)
+      .rotateY(1.1)
+      .translate(-0.7, Y + 0.004, -0.4),
     // One sheet folded mid-tumble, caught on the ground.
     box(0.36, 0.02, 0.3, pale, 0).rotateX(0.5).rotateY(0.8).translate(0.2, 0.06, -0.7),
   ]);
@@ -433,14 +479,18 @@ function litterGeometry(): THREE.BufferGeometry {
  *  grey route plate. The stop red is dim and weathered — never a threat read. */
 function signGeometry(): THREE.BufferGeometry {
   return merged([
-    box(0.08, 0.06, 2.0, palette.railPost, 0.35).rotateY(0.3).translate(0, Y + 0.05, 0),
+    box(0.08, 0.06, 2.0, palette.railPost, 0.35)
+      .rotateY(0.3)
+      .translate(0, Y + 0.05, 0),
     // The octagonal stop plate lying flat, and its pale mounting plate.
     paint(new THREE.CylinderGeometry(0.42, 0.42, 0.04, 8), palette.signStop, 0.15).translate(
       0.75,
       Y + 0.03,
       0.75,
     ),
-    box(0.5, 0.03, 0.68, palette.signPlate, 0.15).rotateY(-0.5).translate(-0.7, Y + 0.03, -0.6),
+    box(0.5, 0.03, 0.68, palette.signPlate, 0.15)
+      .rotateY(-0.5)
+      .translate(-0.7, Y + 0.03, -0.6),
     // A snapped bracket still bolted to the pole.
     box(0.14, 0.08, 0.14, palette.railBeam, 0.3).translate(0.15, Y + 0.07, 0.85),
   ]);
@@ -453,10 +503,18 @@ function glassGeometry(): THREE.BufferGeometry {
     disc(0.9, g, Y),
     disc(0.5, g, Y + 0.004).translate(0.8, 0, 0.4),
     // Larger shards standing proud of the pool.
-    box(0.2, 0.03, 0.14, palette.coupeStripe, 0.1).rotateY(0.4).translate(0.3, Y + 0.02, 0.1),
-    box(0.16, 0.03, 0.12, g, 0.1).rotateY(-0.8).translate(-0.35, Y + 0.02, -0.25),
-    box(0.14, 0.03, 0.1, palette.coupeStripe, 0.1).rotateY(1.2).translate(0.05, Y + 0.02, -0.5),
-    box(0.12, 0.03, 0.1, g, 0.1).rotateY(0.9).translate(0.75, Y + 0.02, 0.55),
+    box(0.2, 0.03, 0.14, palette.coupeStripe, 0.1)
+      .rotateY(0.4)
+      .translate(0.3, Y + 0.02, 0.1),
+    box(0.16, 0.03, 0.12, g, 0.1)
+      .rotateY(-0.8)
+      .translate(-0.35, Y + 0.02, -0.25),
+    box(0.14, 0.03, 0.1, palette.coupeStripe, 0.1)
+      .rotateY(1.2)
+      .translate(0.05, Y + 0.02, -0.5),
+    box(0.12, 0.03, 0.1, g, 0.1)
+      .rotateY(0.9)
+      .translate(0.75, Y + 0.02, 0.55),
   ]);
 }
 
@@ -470,14 +528,23 @@ function luggageGeometry(): THREE.BufferGeometry {
     // The second burst open: two halves hinged apart.
     box(0.46, 0.1, 0.34, palette.suitcaseBlue, 0.4).rotateY(-0.6).translate(0.75, 0.05, 0.5),
     paint(
-      new THREE.BoxGeometry(0.46, 0.08, 0.34).rotateX(-0.9).rotateY(-0.6).translate(0.95, 0.16, 0.75),
+      new THREE.BoxGeometry(0.46, 0.08, 0.34)
+        .rotateX(-0.9)
+        .rotateY(-0.6)
+        .translate(0.95, 0.16, 0.75),
       palette.suitcaseBlue,
       0.35,
     ),
     // Clothes strewn out of it — flat pale patches fanned downwind.
-    box(0.3, 0.02, 0.24, palette.barrierPaint, 0.2).rotateY(0.7).translate(0.45, Y + 0.02, 0.15),
-    box(0.26, 0.02, 0.2, palette.coupeStripe, 0.2).rotateY(-0.3).translate(-0.4, Y + 0.02, 0.4),
-    box(0.22, 0.02, 0.18, palette.barrierPaint, 0.2).rotateY(1.1).translate(-0.15, Y + 0.02, -0.4),
+    box(0.3, 0.02, 0.24, palette.barrierPaint, 0.2)
+      .rotateY(0.7)
+      .translate(0.45, Y + 0.02, 0.15),
+    box(0.26, 0.02, 0.2, palette.coupeStripe, 0.2)
+      .rotateY(-0.3)
+      .translate(-0.4, Y + 0.02, 0.4),
+    box(0.22, 0.02, 0.18, palette.barrierPaint, 0.2)
+      .rotateY(1.1)
+      .translate(-0.15, Y + 0.02, -0.4),
   ]);
 }
 
@@ -502,12 +569,22 @@ function bonesGeometry(): THREE.BufferGeometry {
 function planksGeometry(): THREE.BufferGeometry {
   const w = palette.postCollar;
   return merged([
-    box(0.16, 0.03, 1.3, w, 0.25).rotateY(0.3).translate(0, Y + 0.05, 0),
-    box(0.14, 0.03, 1.0, palette.husk, 0.25).rotateY(-0.4).translate(0.4, Y + 0.08, 0.3),
-    box(0.15, 0.03, 1.1, w, 0.25).rotateY(0.9).translate(-0.5, Y + 0.05, -0.3),
+    box(0.16, 0.03, 1.3, w, 0.25)
+      .rotateY(0.3)
+      .translate(0, Y + 0.05, 0),
+    box(0.14, 0.03, 1.0, palette.husk, 0.25)
+      .rotateY(-0.4)
+      .translate(0.4, Y + 0.08, 0.3),
+    box(0.15, 0.03, 1.1, w, 0.25)
+      .rotateY(0.9)
+      .translate(-0.5, Y + 0.05, -0.3),
     // The pair still nailed to a rail stub.
-    box(0.5, 0.04, 0.14, palette.husk, 0.25).rotateY(0.3).translate(0.15, Y + 0.1, -0.55),
-    box(0.14, 0.03, 0.9, w, 0.25).rotateY(0.32).translate(0.05, Y + 0.12, -0.5),
+    box(0.5, 0.04, 0.14, palette.husk, 0.25)
+      .rotateY(0.3)
+      .translate(0.15, Y + 0.1, -0.55),
+    box(0.14, 0.03, 0.9, w, 0.25)
+      .rotateY(0.32)
+      .translate(0.05, Y + 0.12, -0.5),
   ]);
 }
 
@@ -519,9 +596,15 @@ function rutsGeometry(): THREE.BufferGeometry {
   return merged([
     box(0.22, 0.02, 2.6, dark, 0).rotateY(0.12).translate(-0.45, Y, 0),
     box(0.22, 0.02, 2.6, dark, 0).rotateY(0.12).translate(0.45, Y, 0),
-    box(0.08, 0.03, 2.2, lip, 0).rotateY(0.12).translate(-0.64, Y + 0.003, 0),
-    box(0.08, 0.03, 2.2, lip, 0).rotateY(0.12).translate(0.64, Y + 0.003, 0),
-    box(0.08, 0.03, 2.0, lip, 0).rotateY(0.12).translate(-0.26, Y + 0.003, 0.1),
+    box(0.08, 0.03, 2.2, lip, 0)
+      .rotateY(0.12)
+      .translate(-0.64, Y + 0.003, 0),
+    box(0.08, 0.03, 2.2, lip, 0)
+      .rotateY(0.12)
+      .translate(0.64, Y + 0.003, 0),
+    box(0.08, 0.03, 2.0, lip, 0)
+      .rotateY(0.12)
+      .translate(-0.26, Y + 0.003, 0.1),
   ]);
 }
 

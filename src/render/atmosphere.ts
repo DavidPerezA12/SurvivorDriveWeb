@@ -157,9 +157,12 @@ export class Dust {
       // into the window [-Z_AHEAD, +Z_BEHIND): motes drift toward the camera and
       // recycle far ahead. Forward is -z, so "ahead" is the negative end.
       const raw = distance - this.zPhase[i];
-      const z = ((raw + Z_AHEAD) % SPAN + SPAN) % SPAN - Z_AHEAD;
-      const x = this.baseX[i] + Math.sin(this.t * this.freqX[i] + this.phase[i]) * this.ampX[i] * drift;
-      const y = this.baseY[i] + Math.sin(this.t * this.freqY[i] + this.phase[i] * 1.7) * this.ampY[i] * drift;
+      const z = ((((raw + Z_AHEAD) % SPAN) + SPAN) % SPAN) - Z_AHEAD;
+      const x =
+        this.baseX[i] + Math.sin(this.t * this.freqX[i] + this.phase[i]) * this.ampX[i] * drift;
+      const y =
+        this.baseY[i] +
+        Math.sin(this.t * this.freqY[i] + this.phase[i] * 1.7) * this.ampY[i] * drift;
 
       arr[i * 3] = x;
       arr[i * 3 + 1] = y;

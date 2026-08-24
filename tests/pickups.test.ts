@@ -77,7 +77,14 @@ describe('health and ammo pickups', () => {
     s.car.lateralX = laneCenterX(1);
     s.distance = 10;
     s.car.health = 0.5;
-    s.pickups.push({ kind: 'health', lane: 1, x: laneCenterX(1), forward: 8, phase: 0, taken: false });
+    s.pickups.push({
+      kind: 'health',
+      lane: 1,
+      x: laneCenterX(1),
+      forward: 8,
+      phase: 0,
+      taken: false,
+    });
     resolvePickups(s);
     expect(s.car.health).toBeCloseTo(
       Math.min(0.5 + PICKUP_TUNING.healthRestore, CAR_TUNING.maxHealth),
@@ -91,7 +98,14 @@ describe('health and ammo pickups', () => {
     s.car.lateralX = laneCenterX(1);
     s.distance = 10;
     s.car.health = CAR_TUNING.maxHealth;
-    s.pickups.push({ kind: 'health', lane: 1, x: laneCenterX(1), forward: 8, phase: 0, taken: false });
+    s.pickups.push({
+      kind: 'health',
+      lane: 1,
+      x: laneCenterX(1),
+      forward: 8,
+      phase: 0,
+      taken: false,
+    });
     resolvePickups(s);
     expect(s.car.health).toBe(CAR_TUNING.maxHealth);
     expect(s.pickups[0].taken).toBe(true);
@@ -102,7 +116,14 @@ describe('health and ammo pickups', () => {
     s.car.lateralX = laneCenterX(1);
     s.distance = 10;
     s.car.ammo = 0;
-    s.pickups.push({ kind: 'ammo', lane: 1, x: laneCenterX(1), forward: 8, phase: 0, taken: false });
+    s.pickups.push({
+      kind: 'ammo',
+      lane: 1,
+      x: laneCenterX(1),
+      forward: 8,
+      phase: 0,
+      taken: false,
+    });
     resolvePickups(s);
     expect(s.car.ammo).toBe(PICKUP_TUNING.ammoRestore);
     expect(s.pickups[0].taken).toBe(true);
@@ -116,7 +137,14 @@ describe('scrap caches', () => {
     s.car.lateralX = laneCenterX(1);
     s.distance = 10;
     const before = s.scrap;
-    s.pickups.push({ kind: 'scrap', lane: 1, x: laneCenterX(1), forward: 8, phase: 0, taken: false });
+    s.pickups.push({
+      kind: 'scrap',
+      lane: 1,
+      x: laneCenterX(1),
+      forward: 8,
+      phase: 0,
+      taken: false,
+    });
     resolvePickups(s);
     expect(s.scrap).toBe(before + PICKUP_TUNING.scrapValue);
     expect(s.pickups[0].taken).toBe(true);
@@ -129,7 +157,14 @@ describe('scrap caches', () => {
     s.distance = 10;
     s.car.height = 1.0; // airborne
     const before = s.scrap;
-    s.pickups.push({ kind: 'scrap', lane: 1, x: laneCenterX(1), forward: 8, phase: 0, taken: false });
+    s.pickups.push({
+      kind: 'scrap',
+      lane: 1,
+      x: laneCenterX(1),
+      forward: 8,
+      phase: 0,
+      taken: false,
+    });
     resolvePickups(s);
     expect(s.pickups[0].taken).toBe(false);
     expect(s.scrap).toBe(before);
@@ -142,7 +177,14 @@ describe('coins', () => {
     s.car.lateralX = laneCenterX(1);
     s.distance = 10;
     const before = s.scrap;
-    s.pickups.push({ kind: 'coin', lane: 1, x: laneCenterX(1), forward: 8, phase: 0, taken: false });
+    s.pickups.push({
+      kind: 'coin',
+      lane: 1,
+      x: laneCenterX(1),
+      forward: 8,
+      phase: 0,
+      taken: false,
+    });
     resolvePickups(s);
     expect(s.scrap).toBe(before + PICKUP_TUNING.coinValue);
     expect(s.pickups[0].taken).toBe(true);
@@ -159,7 +201,14 @@ describe('coins', () => {
     const before = s.scrap;
     // A short trail down the lane; sweep the car forward over each so it scoops them.
     for (let i = 0; i < 4; i += 1) {
-      s.pickups.push({ kind: 'coin', lane: 1, x: laneCenterX(1), forward: i * 2.6, phase: 0, taken: false });
+      s.pickups.push({
+        kind: 'coin',
+        lane: 1,
+        x: laneCenterX(1),
+        forward: i * 2.6,
+        phase: 0,
+        taken: false,
+      });
     }
     for (let d = 0; d <= 8; d += 0.4) {
       s.distance = d;
@@ -175,7 +224,14 @@ describe('coins', () => {
     s.distance = 10;
     s.car.height = 1.0; // airborne
     const before = s.scrap;
-    s.pickups.push({ kind: 'coin', lane: 1, x: laneCenterX(1), forward: 8, phase: 0, taken: false });
+    s.pickups.push({
+      kind: 'coin',
+      lane: 1,
+      x: laneCenterX(1),
+      forward: 8,
+      phase: 0,
+      taken: false,
+    });
     resolvePickups(s);
     expect(s.pickups[0].taken).toBe(false);
     expect(s.scrap).toBe(before);

@@ -18,14 +18,22 @@ function footGeometry(): THREE.BufferGeometry {
     // what falls on the lane is a LEG, not a floating boot.
     box(1.05, 4.5, 1.15, p.trexSkinDark, 0.4).translate(0, 3.2, -0.5),
     // The ankle haunch flexing forward over the sole.
-    paint(new THREE.BoxGeometry(1.25, 1.5, 1.4).rotateX(0.15).translate(0, 1.3, -0.3), p.trexSkin, 0.4),
+    paint(
+      new THREE.BoxGeometry(1.25, 1.5, 1.4).rotateX(0.15).translate(0, 1.3, -0.3),
+      p.trexSkin,
+      0.4,
+    ),
     // Scale plates ridging the shin front, proud of the hide.
     box(0.32, 0.5, 0.2, p.trexSkin, 0.3).translate(0, 2.3, 0.14),
     box(0.28, 0.45, 0.2, p.trexSkin, 0.3).translate(0.06, 3.1, 0.14),
     box(0.26, 0.4, 0.2, p.trexSkin, 0.3).translate(-0.07, 3.9, 0.14),
     // The broad sole and the dew claw hooked off the heel.
     box(1.5, 0.5, 2.0, p.trexSkin, 0.4).translate(0, 0.26, 0.2),
-    paint(new THREE.BoxGeometry(0.24, 0.32, 0.44).rotateX(-0.5).translate(0, 0.34, -0.92), p.trexClaw, 0.25),
+    paint(
+      new THREE.BoxGeometry(0.24, 0.32, 0.44).rotateX(-0.5).translate(0, 0.34, -0.92),
+      p.trexClaw,
+      0.25,
+    ),
   ];
   // Three splayed toes: knuckle bulge, toe, and a big claw angled into the ground.
   for (const tx of [-0.55, 0, 0.55]) {
@@ -209,7 +217,11 @@ function trexBodyGeometry(): THREE.BufferGeometry {
     [-4.4, 4.7, 0.38],
     [-6.2, 4.05, 0.3],
   ] as const) {
-    parts.push(box(0.18, s, s * 0.9, p.trexSkin, 0.22).rotateX(0.2).translate(0, py, pz));
+    parts.push(
+      box(0.18, s, s * 0.9, p.trexSkin, 0.22)
+        .rotateX(0.2)
+        .translate(0, py, pz),
+    );
   }
   const geo = mergeGeometries(parts, false);
   for (const part of parts) part.dispose();

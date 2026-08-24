@@ -108,7 +108,9 @@ function intactGeometry(): THREE.BufferGeometry {
   ] as const) {
     parts.push(
       paint(
-        new THREE.CylinderGeometry(0.09, 0.13, 3.4, 6).rotateZ(lean).translate(mx, DECK_Y + 3.3, -3.15),
+        new THREE.CylinderGeometry(0.09, 0.13, 3.4, 6)
+          .rotateZ(lean)
+          .translate(mx, DECK_Y + 3.3, -3.15),
         CONCRETE_DARK,
         0.4,
       ),
@@ -158,13 +160,25 @@ function collapsedGeometry(): THREE.BufferGeometry {
   pier(parts, 20);
   // Sheared girder stubs jutting past the stub's broken face, rebar hooked under.
   for (const gz of [-2.55, -0.85, 0.85, 2.55]) {
-    parts.push(box(1.6, 0.75, 0.42, CONCRETE_DARK, 0.6).rotateZ(-0.08).translate(11.9, DECK_Y - 0.38, gz));
+    parts.push(
+      box(1.6, 0.75, 0.42, CONCRETE_DARK, 0.6)
+        .rotateZ(-0.08)
+        .translate(11.9, DECK_Y - 0.38, gz),
+    );
   }
   parts.push(
-    paint(new THREE.BoxGeometry(0.12, 2.2, 0.12).rotateZ(0.4).translate(11.6, DECK_Y - 1.8, 1.4), REBAR, 0.4),
+    paint(
+      new THREE.BoxGeometry(0.12, 2.2, 0.12).rotateZ(0.4).translate(11.6, DECK_Y - 1.8, 1.4),
+      REBAR,
+      0.4,
+    ),
   );
   parts.push(
-    paint(new THREE.BoxGeometry(0.1, 1.6, 0.1).rotateZ(-0.5).translate(12.1, DECK_Y - 1.5, -1.8), REBAR, 0.4),
+    paint(
+      new THREE.BoxGeometry(0.1, 1.6, 0.1).rotateZ(-0.5).translate(12.1, DECK_Y - 1.5, -1.8),
+      REBAR,
+      0.4,
+    ),
   );
   // The near span drooping down over the left shoulder, still high at the road
   // edge so nothing dips into the driving corridor. Girders ride the tilt.
@@ -177,14 +191,44 @@ function collapsedGeometry(): THREE.BufferGeometry {
   // Its parapet run, snapped short with a leaning post.
   parts.push(droop(box(21, 0.9, 0.4, CONCRETE, 0.4).translate(-1, 1.2, 3.15)));
   parts.push(droop(box(21, 0.9, 0.4, CONCRETE, 0.4).translate(-1, 1.2, -3.15)));
-  parts.push(droop(paint(new THREE.BoxGeometry(0.35, 1.3, 0.56).rotateX(0.5).translate(9.6, 1.1, 3.15), CONCRETE_DARK, 0.45)));
+  parts.push(
+    droop(
+      paint(
+        new THREE.BoxGeometry(0.35, 1.3, 0.56).rotateX(0.5).translate(9.6, 1.1, 3.15),
+        CONCRETE_DARK,
+        0.45,
+      ),
+    ),
+  );
   // The fractured edge near the road, sheared and slightly dropped.
-  parts.push(box(6, 1.4, 7, CONCRETE, 0.5).rotateZ(0.12).translate(-6, DECK_Y - 1.2, 0));
+  parts.push(
+    box(6, 1.4, 7, CONCRETE, 0.5)
+      .rotateZ(0.12)
+      .translate(-6, DECK_Y - 1.2, 0),
+  );
   // A slab hanging off the broken edge, out over the shoulder, rebar streaming.
   parts.push(box(7, 1.2, 6, CONCRETE, 0.45).rotateZ(1.05).translate(-10.5, 5, 0.5));
-  parts.push(paint(new THREE.BoxGeometry(0.14, 3, 0.14).rotateZ(0.3).translate(-8, DECK_Y - 3, 1.2), REBAR, 0.4));
-  parts.push(paint(new THREE.BoxGeometry(0.12, 2.4, 0.12).rotateZ(-0.35).translate(-9.2, DECK_Y - 3.4, -0.8), REBAR, 0.4));
-  parts.push(paint(new THREE.BoxGeometry(0.1, 1.8, 0.1).rotateZ(0.55).translate(-6.8, DECK_Y - 2.4, -1.6), REBAR, 0.4));
+  parts.push(
+    paint(
+      new THREE.BoxGeometry(0.14, 3, 0.14).rotateZ(0.3).translate(-8, DECK_Y - 3, 1.2),
+      REBAR,
+      0.4,
+    ),
+  );
+  parts.push(
+    paint(
+      new THREE.BoxGeometry(0.12, 2.4, 0.12).rotateZ(-0.35).translate(-9.2, DECK_Y - 3.4, -0.8),
+      REBAR,
+      0.4,
+    ),
+  );
+  parts.push(
+    paint(
+      new THREE.BoxGeometry(0.1, 1.8, 0.1).rotateZ(0.55).translate(-6.8, DECK_Y - 2.4, -1.6),
+      REBAR,
+      0.4,
+    ),
+  );
   // Left pier standing (portal), its toppled neighbour lying across the shoulder
   // as two round column drums, snapped at the joint.
   pier(parts, -20);
@@ -199,12 +243,20 @@ function collapsedGeometry(): THREE.BufferGeometry {
       .rotateY(0.3)
       .translate(-9.8, 3.6, 0.9),
   );
-  parts.push(paint(new THREE.BoxGeometry(0.12, 1.4, 0.12).rotateZ(1.5).translate(-11.2, 2.6, -0.5), REBAR, 0.4));
+  parts.push(
+    paint(
+      new THREE.BoxGeometry(0.12, 1.4, 0.12).rotateZ(1.5).translate(-11.2, 2.6, -0.5),
+      REBAR,
+      0.4,
+    ),
+  );
   // Craggy rubble heaped on the shoulders under the break — broken concrete,
   // never clean crates.
   parts.push(rockChunk(2.6, 0.55, 0.6, CONCRETE_DARK, 0.55).rotateY(0.4).translate(-14, 1.1, 0.5));
   parts.push(rockChunk(1.9, 0.6, 0.7, CONCRETE, 0.5).rotateY(1.1).translate(-11.5, 0.9, 2.2));
-  parts.push(rockChunk(1.5, 0.65, 0.7, CONCRETE_DARK, 0.5).rotateY(0.8).translate(-16.8, 0.7, -1.8));
+  parts.push(
+    rockChunk(1.5, 0.65, 0.7, CONCRETE_DARK, 0.5).rotateY(0.8).translate(-16.8, 0.7, -1.8),
+  );
   parts.push(rockChunk(1.7, 0.6, 0.65, CONCRETE_DARK, 0.5).rotateY(0.2).translate(13, 0.8, 1.5));
   parts.push(rockChunk(1.2, 0.6, 0.7, CONCRETE, 0.45).rotateY(1.4).translate(15.2, 0.6, -1.2));
   return merged(parts);
