@@ -9,7 +9,9 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // WebGL budget checks need an uncontended renderer. Parallel browser workers
+  // can throttle requestAnimationFrame and leave the overlay in its warmup phase.
+  workers: 1,
   reporter: process.env.CI ? 'github' : 'list',
   outputDir: '/tmp/survivor-drive-playwright-results',
   use: {
