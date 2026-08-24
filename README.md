@@ -16,19 +16,20 @@ but it runs on charges you scavenge off the road, so every hop spends something.
 
 Zombies are the free fun: mowing or shooting them is safe, loud, and pays scrap.
 Everything worth having sits on the dangerous lines. Health, ammo, loot, and the
-score multiplier all live where the hazards are. The safe lane always exists, and
+actions that build the score multiplier all live near hazards. Kills, close clears,
+and ramp launches raise it. A hull hit wipes it. The safe lane always exists, and
 it always pays worst. Risk is something you choose.
 
-Runs move through named acts (Rust, Swarm, Visitors, Colossus, Static), each with
-its own sky, its own catastrophe, and its own music. A lone radio host narrates
-the end of the world. Every death prints a shareable card: a procedural run title
-(*"Crushed by Falling Real Estate"*), your stats, what cracked the hull, and the
-seed, so anyone can drive the same apocalypse.
+Runs move through named acts (Outbreak, Rust, Swarm, Visitors, Colossus, Static),
+each with its own sky and catastrophe. Every death opens a shareable recap with a
+procedural run title (_"Crushed by Falling Real Estate"_), stats, the act,
+multiplier peak, personal best, and seed. Retry the same apocalypse or roll a new
+one. Radio text adds flavor; music and voice stay disabled with the built audio layer.
 
-Between runs, scrap buys upgrades that change how the car feels, not just its
-numbers. A cowcatcher turns barricades into confetti. A plow blade lets you drive
-through hordes. The damage shows on the car too: a few acts in, the wreck you are
-driving is the story of the run.
+Between runs, scrap buys distinct chassis, stronger jumps, sharper tires, armor,
+pickup reach, extra jump charges, and gun tiers. The gun grows from a focused Mk I
+into a two-lane cannon that can punch through destroyed blockers. The damage shows
+on the car too: a few acts in, the wreck you are driving is the story of the run.
 
 ## The loop
 
@@ -45,31 +46,32 @@ car down a streaming road, cross biomes that change visibility and grip, survive
 telegraphed set pieces and boss barrages, shoot or ram zombies for scrap, and die
 into a garage that carries permanent upgrades across runs.
 
-Still to come: the final browser tuning passes, landmark act transitions, the full
-multiplier, and the Radio.
+Still to come: the final browser tuning passes and the audio layer when it is
+explicitly re-enabled.
 
-| Milestone | Goal |
-| --- | --- |
-| M0 | Scaffold: a box-car on a road, in a browser, from a clean clone |
-| M1 | Driving alone feels good |
-| M2 | The loop closes: hull and gun, zombies, garage, persistence, first death card |
-| M3 | The road becomes the boss: first set pieces, acts I and II, multiplier, the Radio |
-| M4 | Escalation: UFO strafe, The Big One, acts III to V, compound events |
+| Milestone | Goal                                                                              |
+| --------- | --------------------------------------------------------------------------------- |
+| M0        | Scaffold: a box-car on a road, in a browser, from a clean clone                   |
+| M1        | Driving alone feels good                                                          |
+| M2        | The loop closes: hull and gun, zombies, garage, persistence, first death card     |
+| M3        | The road becomes the boss: first set pieces, acts I and II, multiplier, the Radio |
+| M4        | Escalation: UFO strafe, The Big One, acts III to V, compound events               |
 
 ## Running it
 
 ```sh
 npm install      # install dependencies
+npx playwright install chromium # once, for browser E2E
 npm run dev      # dev server at http://localhost:5173 (add ?seed=123 for a fixed run)
 npm test         # headless Vitest suite
 npm run build    # typecheck and production build to dist/
 ```
 
 Other scripts: `npm run typecheck`, `npm run lint`, `npm run preview`,
-`npm run format`. After exporting authored Blender models, run
+`npm run format`, and `npm run test:e2e`. After exporting authored Blender models, run
 `npm run models:optimize` to quantize the runtime GLBs. The full pre-push gate,
 the same one CI runs, is
-`npm run typecheck && npm run lint && npm test && npm run build`.
+`npm run typecheck && npm run lint && npm run format:check && npm test && npm run build && npm run test:e2e`.
 
 ## Controls
 

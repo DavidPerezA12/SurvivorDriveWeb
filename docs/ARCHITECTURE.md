@@ -6,16 +6,16 @@ changes here with rationale.
 
 ## Stack
 
-| Layer | Choice | Why |
-| --- | --- | --- |
-| Build/dev | **Vite** | Instant HMR, trivial TS setup, static output |
-| Language | **TypeScript, strict** | The sim is data-heavy; types are the first test suite |
-| Rendering | **Three.js** (WebGL2) | Mature, tree-shakeable, instancing for hordes |
-| Audio | **Web Audio API**, no wrapper | We need a mixer graph; wrappers hide the part we use |
-| Persistence | **localStorage**, versioned | Save data is tiny; IndexedDB is unjustified here |
-| Tests | **Vitest** | Headless sim tests on the Vite pipeline |
-| Lint/format | **ESLint + Prettier** | Enforced in CI |
-| Deploy | Static hosting (Vercel), preview per PR | The game is a static bundle |
+| Layer       | Choice                                  | Why                                                   |
+| ----------- | --------------------------------------- | ----------------------------------------------------- |
+| Build/dev   | **Vite**                                | Instant HMR, trivial TS setup, static output          |
+| Language    | **TypeScript, strict**                  | The sim is data-heavy; types are the first test suite |
+| Rendering   | **Three.js** (WebGL2)                   | Mature, tree-shakeable, instancing for hordes         |
+| Audio       | **Web Audio API**, no wrapper           | We need a mixer graph; wrappers hide the part we use  |
+| Persistence | **localStorage**, versioned             | Save data is tiny; IndexedDB is unjustified here      |
+| Tests       | **Vitest**                              | Headless sim tests on the Vite pipeline               |
+| Lint/format | **ESLint + Prettier**                   | Enforced in CI                                        |
+| Deploy      | Static hosting (Vercel), preview per PR | The game is a static bundle                           |
 
 Zero production dependencies beyond `three`. Every added package defends itself in
 its PR.
@@ -55,6 +55,11 @@ Fixed-timestep simulation with interpolated rendering:
   active rAF callback is cancelled, so an open overlay does not keep simulating or
   rendering the road. The garage preview owns its own loop only while it is visible.
   Menu and HUD are DOM, built once and toggled by `display`.
+- The first visit has a ready gate before the opening cinematic. The simulation
+  stays frozen until a steer, jump, or fire input arrives, so reading controls does
+  not consume grace distance. Losing focus or hiding the tab pauses an active run.
+- Death freezes on the exact lethal tick. A short render-only camera beat shows the
+  wreck before the main loop stops and the garage recap opens.
 
 ## World model
 
@@ -75,10 +80,10 @@ stored after a chunk scrolls behind.
 
 ```ts
 interface Chunk {
-  id: ChunkId;            // stable hash of (seed, index)
+  id: ChunkId; // stable hash of (seed, index)
   index: number;
-  variant: ChunkVariant;  // flat | crack | collapsed | ramp | trench…
-  spawns: Spawn[];        // { class, lane, t (0..1), params }
+  variant: ChunkVariant; // flat | crack | collapsed | ramp | trench…
+  spawns: Spawn[]; // { class, lane, t (0..1), params }
   eventSlot?: EventInstance;
 }
 ```
@@ -127,12 +132,14 @@ multi-chunk compound scheduling remains future work.
 
 - **One hull bar.** `CarState.health` is `0..1`. A crash scales loss by impact
   speed and squareness, with armor scaling only the loss. At 0 the run ends. The
-  other cost is a momentum *frenazo* on `car.speed`, never handling. Health pickups
+  other cost is a momentum _frenazo_ on `car.speed`, never handling. Health pickups
   refill the bar.
 - **The gun is hitscan, tiered by level.** Holding `Intent.fire` runs an
   allocation-free nearest-scan down the lane column, dropping `killsPerShot`
   within `range`, no projectiles. `Loadout.weaponLevel` indexes a flat stats table;
-  levels are bought as ordered garage tiers. Ammo is finite; run dry and you ram.
+  levels are bought as ordered garage tiers. Mk III reaches both road lanes. Mk IV
+  and V can continue through one or two blockers they destroy. Ammo is finite; run
+  dry and you ram.
   Rammed and shot kills route through one payout path, so scrap and streak are
   identical either way.
 
@@ -180,6 +187,9 @@ frustum culling); no rendering middleware.
 
 ## Audio
 
+This layer is implemented but intentionally not wired into the application. It
+must remain disabled until explicitly requested. The graph below is its design.
+
 One `AudioContext`, one mixer graph built once:
 
 ```
@@ -194,31 +204,34 @@ assets are short loops/one-shots, lazily decoded after first input, ≤ 3 MB tot
 
 ## Persistence
 
-- `localStorage` key `sdw.save.v{N}` holding
-  `{ schemaVersion, scrap, upgrades, stats, settings, bestRuns }`.
-- Live slices: **settings** (graphics quality, reduced-motion, screen-shake,
-  debug-overlay) and the **garage slice** (scrap wallet + owned `UpgradeId[]`).
-  `stats`/`bestRuns` are reserved for the death card.
+- `localStorage` key `sdw.save.v{N}` holds settings, the scrap wallet, selected and
+  owned chassis, paint, global upgrades, per-chassis upgrades, the onboarding flag,
+  and last/best run records.
+- A run record stores distance, kills, scrap, seed, title, act, and peak multiplier.
+  The garage exposes the seed as a copyable URL and distinguishes retrying the same
+  road from starting a new apocalypse.
 - Reads run through a normalizer that clamps ranges and rejects unknown enums, so a
   partial or tampered blob can never crash the game; writes are debounced and
   try/catch-wrapped (a quota error degrades to an in-memory session).
 - Settings are presentation (read in `app/`, never reach a tick). The owned-upgrade
   set is sim input, entering a run only through the typed loadout fed to
   `createSim(seed, loadout)`, never mid-tick.
-- Migrations are pure `(vN) → (vN+1)` functions; unknown future versions load
-  read-only. Death-card seeds encode `(seed, schemaVersion, loadout hash)`.
+- Backward-compatible fields are normalized on load. Old flat upgrade arrays are
+  routed into global and Survivor chassis buckets. Unknown or malformed fields fall
+  back safely.
 
 ## Testing strategy
 
-| What | How | Gate |
-| --- | --- | --- |
-| Determinism | Same `(seed, intents)` twice → deep-equal state | CI |
-| Safe-line invariant | Greedy pathing over generated windows | CI |
-| Event contracts | Warning time at max speed, named data, safe line open | CI |
-| Hull & gun | Hull-loss scales with impact and armor; shots drop fodder by tier | CI |
-| Economy | Headless smoke runs catch payout and spawn regressions | CI, advisory |
-| Render budget | Browser overlay: ≤ 150 draws, ≤ 200k tris | PR review |
-| Feel & frame stability | Human, in browser, on the preview, with the overlay | PR review |
+| What                   | How                                                                                | Gate         |
+| ---------------------- | ---------------------------------------------------------------------------------- | ------------ |
+| Determinism            | Same `(seed, intents)` twice → deep-equal state                                    | CI           |
+| Safe-line invariant    | Greedy pathing over generated windows                                              | CI           |
+| Event contracts        | Warning time at max speed, named data, safe line open                              | CI           |
+| Hull & gun             | Hull-loss scales with impact and armor; shots drop fodder by tier                  | CI           |
+| Economy                | Headless smoke runs catch payout and spawn regressions                             | CI, advisory |
+| App lifecycle          | Playwright checks boot, ready/death flows, pause, garage focus, and touch controls | CI           |
+| Render budget          | Playwright reads the warmed overlay: ≤ 150 draws, ≤ 200k tris                      | CI           |
+| Feel & frame stability | Human, in browser, on the preview, with the overlay                                | PR review    |
 
 The safe-line gate searches 3,192 overlapping three-chunk windows through 20.15 km,
 covering every act and the late biome bands. It uses the stock car's acceleration,

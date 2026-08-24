@@ -15,7 +15,7 @@ bumper clear the way, and you drive as far as a dying machine will carry you.
 
 Absurdist maximalism. The world ended several times at once and nobody cleaned up.
 The game never explains; it escalates. The feeling to chase, taken from its
-inspiration (*The Last Driver*, 2012): it is impossible not to grin while mowing
+inspiration (_The Last Driver_, 2012): it is impossible not to grin while mowing
 zombies in the shadow of something huge.
 
 The humor lives in the events, the Radio, and the writing, never in the controls.
@@ -28,13 +28,13 @@ The car handles seriously. The world is ridiculous.
 The road is reshaped in real time by scripted spectacle events that double as
 gameplay:
 
-| Event | Spectacle | Gameplay |
-| --- | --- | --- |
-| Building collapse | A tower falls across the road | Its rubble forms a ramp; the new line goes over it |
-| UFO strafe | A beam sweeps across a lane, telegraphed by a ground glow | Carves a trench: jump it, or be in the safe lane |
-| The Big One | The sky tears open under a meteor storm | Falling impacts crater alternating lines; read the descent and hold the opening |
-| Horde surge | A zombie wave floods the flanking lanes | Mow through (hull/ammo cost) or thread the gap |
-| Quake split | The road shears lengthwise | One side ramps up, the other crumbles; pick fast |
+| Event             | Spectacle                                                 | Gameplay                                                                        |
+| ----------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Building collapse | A tower falls across the road                             | Its rubble forms a ramp; the new line goes over it                              |
+| UFO strafe        | A beam sweeps across a lane, telegraphed by a ground glow | Carves a trench: jump it, or be in the safe lane                                |
+| The Big One       | The sky tears open under a meteor storm                   | Falling impacts crater alternating lines; read the descent and hold the opening |
+| Horde surge       | A zombie wave floods the flanking lanes                   | Mow through (hull/ammo cost) or thread the gap                                  |
+| Quake split       | The road shears lengthwise                                | One side ramps up, the other crumbles; pick fast                                |
 
 Rules that keep events fun instead of cheap:
 
@@ -52,21 +52,22 @@ Rules that keep events fun instead of cheap:
 The car is one machine, not a stack of breakable systems: a single **hull** bar, a
 **mounted gun**, and a finite bank of **jumps**.
 
-| System | What it is | What it does |
-| --- | --- | --- |
-| Hull | One health bar | Crashes chew into it; at zero the run ends, the only death |
-| Gun | Held, finite ammo | Drops fodder at range before it reaches the bumper |
-| Jumps | A bank of charges | One per jump, arc never changes, refilled by lift pickups |
+| System | What it is        | What it does                                               |
+| ------ | ----------------- | ---------------------------------------------------------- |
+| Hull   | One health bar    | Crashes chew into it; at zero the run ends, the only death |
+| Gun    | Held, finite ammo | Drops fodder at range before it reaches the bumper         |
+| Jumps  | A bank of charges | One per jump, arc never changes, refilled by lift pickups  |
 
 - **Damage never touches the controls.** A battered car steers, accelerates, and
   jumps exactly like a pristine one, until the hull gives out. This is a deliberate
   pivot away from the earlier engine/steering/tires model, toward arcade feel. The
-  cost of a crash is hull and momentum (a *frenazo* you claw back by accelerating),
+  cost of a crash is hull and momentum (a _frenazo_ you claw back by accelerating),
   scaled by impact, never mushy handling.
 - **The gun is the ranged answer; ramming is the fallback.** Ammo is finite,
   refilled off the safe lane. Run dry and you go back to mowing, which still pays.
   The gun has tiers (Mk I to V, bought with scrap) that raise destruction, range,
-  cadence, and lanes shredded, and it grows visibly on the car.
+  cadence, two-lane coverage, and penetration through destroyed blockers. It grows
+  visibly on the car.
 - **Armor and repair are buffers, not stat screens.** Plating reduces hull lost per
   hit; health pickups top the bar up. Both read as "one more greedy line".
 - **Jump is a charge resource.** The arc never weakens; what is finite is the
@@ -83,9 +84,10 @@ No fuel timer, no clock. Risk is opt-in.
 
 - Scrap, ammo, and health cluster on **dangerous lines** (the horde's lane, the
   collapse ramp, the shoulder by the barrels).
-- A **multiplier** climbs with near-misses, horde kills, and ramp launches, and
-  resets on a hull hit. (Full multiplier is M3; the M2 kill streak is its first
-  narrow piece.)
+- A **multiplier** climbs from 1 to 5 with close hazard clears, zombie kills, and
+  ramp launches. It multiplies kill scrap, expires after five idle seconds, and
+  resets immediately on a hull hit. The shorter kill streak remains a separate
+  source of escalating base payout and arcade callouts.
 - The **safe line always exists and always pays worst.** Threats and scrap only
   ever spawn on the non-safe lanes, so to get paid you leave safety. Death is
   always attributable to greed or panic, never to RNG.
@@ -95,17 +97,18 @@ No fuel timer, no clock. Risk is opt-in.
 A run moves through named acts, each a distance band with its own sky, dominant
 event, and music layer. Acts give runs shape and deaths an address.
 
-| Act | Name | Sky / mood | What's new |
-| --- | --- | --- | --- |
-| I | Outbreak | Dusk over a living, lit city | Stalled cars, first stray infected, open road. Teaches the controls |
-| II | Rust | Sick orange haze, suburbia | Static hazards, lone zombies, first scripted collapse |
-| III | Swarm | Dust-brown outskirts | Horde surges, barrels, denser ruins. The spectacle starts here: the first quake splits, the first meteors, a rampaging tyrannosaur |
-| IV | Visitors | Green aurora, downtown canyons | UFO strafes, the walking war machine, compound events begin |
-| V | Colossus | Deep red, skyline silhouettes | The Big One rains down, everything overlaps |
-| VI+ | Static | Reality fraying, desaturating | All events, max frequency, leaderboard land |
+| Act | Name     | Sky / mood                     | What's new                                                                                                                         |
+| --- | -------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| I   | Outbreak | Dusk over a living, lit city   | Stalled cars, first stray infected, open road. Teaches the controls                                                                |
+| II  | Rust     | Sick orange haze, suburbia     | Static hazards, lone zombies, first scripted collapse                                                                              |
+| III | Swarm    | Dust-brown outskirts           | Horde surges, barrels, denser ruins. The spectacle starts here: the first quake splits, the first meteors, a rampaging tyrannosaur |
+| IV  | Visitors | Green aurora, downtown canyons | UFO strafes, the walking war machine, compound events begin                                                                        |
+| V   | Colossus | Deep red, skyline silhouettes  | The Big One rains down, everything overlaps                                                                                        |
+| VI+ | Static   | Reality fraying, desaturating  | All events, max frequency, leaderboard land                                                                                        |
 
-- Transitions are landmark moments: a sky shift, a Radio line, a music
-  gear-change. The player should sense "I have crossed into somewhere worse".
+- Transitions are landmark moments: a named HUD banner and a sky shift, with Radio
+  and music flavor when those layers are enabled. The player should sense "I have
+  crossed into somewhere worse".
 - Act event mix and spawn weights are data tables, so balancing is editing numbers.
 - The visual half of acts (mood and scenery crossfading sky, fog, light, and
   horizon silhouettes by distance) is already in as art direction only. It reads
@@ -126,18 +129,18 @@ bark lines first (subtitle strip plus crackle), voice-over far later.
 "Cool" is mostly feedback. These are commitments, each landing in the milestone
 noted:
 
-| Moment | Feedback | Milestone |
-| --- | --- | --- |
-| Mowing a zombie | Ragdoll launch, scrap ping, tiny speed boost, combo SFX | M2 |
-| Firing the gun | Muzzle flash, tracer to the kill, dry click on empty | M2 |
-| Hull takes a hit | Hitstop ~80 ms, directional camera punch, panel deforms | M2 |
-| Hull critical / death | Slow-mo ~250 ms, low-hull alarm, screen edges redden | M2 |
-| Jump launch / landing | Camera lift and FOV widen; suspension squash, dust ring | M1 to M2 |
-| Set-piece telegraph | Bass rumble, ground glow, camera drifts toward the event | M3 |
-| Set-piece impact | Clamped screenshake, occluding dust, music stinger | M3 |
-| Multiplier milestone | Speed lines thicken, music layer adds, HUD pulses | M3 |
-| Near-miss | Whoosh pan, chromatic flick at the screen edge | M3 |
-| Death | Time crawls, camera orbits the wreck, death card slides in | M2 |
+| Moment                | Feedback                                                   | Milestone |
+| --------------------- | ---------------------------------------------------------- | --------- |
+| Mowing a zombie       | Ragdoll launch, scrap ping, tiny speed boost, combo SFX    | M2        |
+| Firing the gun        | Muzzle flash, tracer to the kill, dry click on empty       | M2        |
+| Hull takes a hit      | Hitstop ~80 ms, directional camera punch, panel deforms    | M2        |
+| Hull critical / death | Slow-mo ~250 ms, low-hull alarm, screen edges redden       | M2        |
+| Jump launch / landing | Camera lift and FOV widen; suspension squash, dust ring    | M1 to M2  |
+| Set-piece telegraph   | Bass rumble, ground glow, camera drifts toward the event   | M3        |
+| Set-piece impact      | Clamped screenshake, occluding dust, music stinger         | M3        |
+| Multiplier milestone  | Speed lines thicken, music layer adds, HUD pulses          | M3        |
+| Near-miss             | Whoosh pan, chromatic flick at the screen edge             | M3        |
+| Death                 | Time crawls, camera orbits the wreck, death card slides in | M2        |
 
 Hard rules: screenshake clamped and never obscuring the road; hitstop never
 stacks; every effect has a reduced-motion setting. **Juice must read as
@@ -177,9 +180,10 @@ is not done.**
 
 ## Death card
 
-Every run ends with a shareable summary card (an image):
+Every run ends with a shareable summary card. The first version is text and a
+copyable seed URL; a rendered image is later polish:
 
-- Procedural run title (*"Crushed by Falling Real Estate"*).
+- Procedural run title (_"Crushed by Falling Real Estate"_).
 - Distance, act reached, multiplier peak, zombies mowed, what cracked the hull.
 - A diorama snapshot of the wreck, and the seed, so anyone can drive the same
   apocalypse.
@@ -205,19 +209,18 @@ worth watching.
 
 ## Upgrades: feel first, numbers second
 
-Every upgrade passes the blindfold test: *a player notices it within 10 seconds.*
+Every upgrade passes the blindfold test: _a player notices it within 10 seconds._
 All earned with in-run scrap; no purchase shortcuts, no soft paywall.
 
-| Upgrade | What changes in the hands |
-| --- | --- |
-| Cowcatcher | Light barricades and lone zombies shatter at no cost |
-| Hydraulic jump | Higher, longer arc; rooftop and trench lines open |
-| Off-road suspension | Shoulders and rubble stop slowing you; the map widens |
-| Sticky tires | Sharper steering; the wheel cuts and settles faster |
-| Gun tiers (Mk I to V) | More fodder per shot, farther, faster, wider |
-| Scrap magnet | Pickup radius grows |
-| Plow blade | Horde mass barely slows you; drive through surges |
-| Nitro canister | One burst per run |
+| Upgrade               | What changes in the hands                                          |
+| --------------------- | ------------------------------------------------------------------ |
+| Reinforced plating    | A crash removes visibly less of the single hull bar                |
+| Hydraulic jump        | A higher arc opens cleaner lines over road hazards                 |
+| Sticky tires          | Sharper steering; the wheel cuts and settles faster                |
+| Lift tank             | More jump charges are available before a refill                    |
+| Gun tiers (Mk I to V) | More damage, range, cadence, two-lane coverage, and penetration    |
+| Scrap magnet          | Pickup radius grows; the bumper's zombie reach does not            |
+| Chassis               | Each body starts with a distinct armor, handling, and jump profile |
 
 Numeric-only upgrades (+armor, +ammo cap) are cheap filler, never the spine of a
 tier. Upgrades render on the car, so the build is legible at a glance.
@@ -247,28 +250,28 @@ tier. Upgrades render on the car, so the build is legible at a glance.
 
 ## Object roster (MVP)
 
-| Object | Role | Counterplay |
-| --- | --- | --- |
-| Zombie (lone/cluster) | Fodder; mowing pays scrap | Drive through them, on purpose |
-| Brute zombie | Heavy fodder that bites back | Shoot it down or dodge it; ramming it is a crash |
-| Horde surge | Mass threat | Plow (hull/ammo cost) or thread the gap |
-| Abandoned car | Survivable lane blocker | Steer, jump, or ram for a hull hit |
-| Toppled big rig | Lethal wall, too tall to jump | Steer only; never on the safe lane |
-| Concrete barrier | Lethal wall | Steer only; the safe lane is always open |
-| Crashed bus | Long blocker with a low hitbox; lethal but jumpable | Jump it (the hitbox is low), or steer; a square hit ends the run |
-| Boulder / rubble | Low obstacle; makes the jump load-bearing | Jump, or steer; ramming costs hull |
-| Downed pole | Low blocker as wide as its lane; no dodge within the lane | Jump it or change lane; ramming is a heavy timber hit |
-| Light barricade | Soft blocker | Shoot, ram, or steer |
-| Explosive barrel | Trap and tool | Shoot to detonate (clears lanes, chains); ramming is a big hit; a jump clears it |
-| Spike strip | Lethal ground trap | Jump it or change lane; on it grounded ends the run |
-| Live wire | Lethal ground trap as wide as its lane; the arcing sparks are the telegraph | Jump it or change lane; touching it grounded ends the run |
-| Sky meteor | Falling killer | Change lanes; the descending rock is the telegraph |
-| Drifting wreck | Moving threat that slides across its lane | Read its telegraphed slide, then steer clear |
-| Road crack / gap | Gap in the surface | Jump, or be in another lane; falling in ends the run |
-| Collapsed section | Wide gap | Jump, or detour to a standing lane |
-| Collapse ramp | Rubble route over the debris | Drive onto it to vault the wreckage; a free launch, no charge |
-| Scrap / lift / ammo / health | Pickups | Grab; clustered off the safe lane |
-| Shield bubble | Timed power-up: hull costs are absorbed for a few seconds | Grab it on a risky lane. Crashes and even walls cost no hull while it lasts, though they still kill your momentum. Holes, spikes and live wires still kill: a bubble does not fill a hole |
+| Object                       | Role                                                                        | Counterplay                                                                                                                                                                               |
+| ---------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Zombie (lone/cluster)        | Fodder; mowing pays scrap                                                   | Drive through them, on purpose                                                                                                                                                            |
+| Brute zombie                 | Heavy fodder that bites back                                                | Shoot it down or dodge it; ramming it is a crash                                                                                                                                          |
+| Horde surge                  | Mass threat                                                                 | Plow (hull/ammo cost) or thread the gap                                                                                                                                                   |
+| Abandoned car                | Survivable lane blocker                                                     | Steer, jump, or ram for a hull hit                                                                                                                                                        |
+| Toppled big rig              | Lethal wall, too tall to jump                                               | Steer only; never on the safe lane                                                                                                                                                        |
+| Concrete barrier             | Lethal wall                                                                 | Steer only; the safe lane is always open                                                                                                                                                  |
+| Crashed bus                  | Long blocker with a low hitbox; lethal but jumpable                         | Jump it (the hitbox is low), or steer; a square hit ends the run                                                                                                                          |
+| Boulder / rubble             | Low obstacle; makes the jump load-bearing                                   | Jump, or steer; ramming costs hull                                                                                                                                                        |
+| Downed pole                  | Low blocker as wide as its lane; no dodge within the lane                   | Jump it or change lane; ramming is a heavy timber hit                                                                                                                                     |
+| Light barricade              | Soft blocker                                                                | Shoot, ram, or steer                                                                                                                                                                      |
+| Explosive barrel             | Trap and tool                                                               | Shoot to detonate (clears lanes, chains); ramming is a big hit; a jump clears it                                                                                                          |
+| Spike strip                  | Lethal ground trap                                                          | Jump it or change lane; on it grounded ends the run                                                                                                                                       |
+| Live wire                    | Lethal ground trap as wide as its lane; the arcing sparks are the telegraph | Jump it or change lane; touching it grounded ends the run                                                                                                                                 |
+| Sky meteor                   | Falling killer                                                              | Change lanes; the descending rock is the telegraph                                                                                                                                        |
+| Drifting wreck               | Moving threat that slides across its lane                                   | Read its telegraphed slide, then steer clear                                                                                                                                              |
+| Road crack / gap             | Gap in the surface                                                          | Jump, or be in another lane; falling in ends the run                                                                                                                                      |
+| Collapsed section            | Wide gap                                                                    | Jump, or detour to a standing lane                                                                                                                                                        |
+| Collapse ramp                | Rubble route over the debris                                                | Drive onto it to vault the wreckage; a free launch, no charge                                                                                                                             |
+| Scrap / lift / ammo / health | Pickups                                                                     | Grab; clustered off the safe lane                                                                                                                                                         |
+| Shield bubble                | Timed power-up: hull costs are absorbed for a few seconds                   | Grab it on a risky lane. Crashes and even walls cost no hull while it lasts, though they still kill your momentum. Holes, spikes and live wires still kill: a bubble does not fill a hole |
 
 Lethal walls (rig, barrier, landed meteor) all share the same read: a tall
 solid mass you steer around, never jump. The crashed bus is the one exception: it
@@ -310,26 +313,26 @@ now part of the plan, each kept honest rather than copied wholesale:
    stretches. The player learns the trip and progresses against it; the seed still
    decides everything laid on the road inside each stretch.
 
-Raiders, mines, and chassis variety remain post-MVP.
+Raiders and mines remain post-MVP. Chassis variety is part of the garage loop.
 
 ## Roadmap
 
 - **M0: Scaffold.** Vite + TS + Three.js, CI, deploy preview. A box-car on a road
-  with lane steering. *Done when it runs from a clean clone.*
+  with lane steering. _Done when it runs from a clean clone._
 - **M1: The drive feels good.** Lane tuning, jump arc, camera, speed ramp, chunk
-  streaming, engine audio. *Done when driving with zero content is mildly pleasant
-  for 60 seconds.* This gates everything.
+  streaming, engine audio. _Done when driving with zero content is mildly pleasant
+  for 60 seconds._ This gates everything.
 - **M2: The loop closes.** Single-hull damage with visible wear, gun and ammo,
   zombies and scrap, pickups, static hazards, M2 juice, death to garage to upgrades
-  to new run, localStorage, first text death card. *Done when a playtester starts a
-  third run.*
+  to new run, localStorage, first text death card. _Done when a playtester starts a
+  third run._
 - **M3: The road becomes the boss.** Building collapse and horde surge with full
   telegraph rules, acts I and II, multiplier, barrels, weapon upgrades, Radio
-  barks, layered music base. *Done when a playtester retells a run as a story.*
+  barks, layered music base. _Done when a playtester retells a run as a story._
 - **M4: Escalation.** UFO strafe, The Big One, quake split, acts III to V, compound
-  events, image death card. *Done when minute four is reliably more chaotic than
-  minute one and still fair.*
-- **Post-MVP.** Daily Apocalypse, leaderboard, raiders, mines, chassis classes,
+  events, image death card. _Done when minute four is reliably more chaotic than
+  minute one and still fair._
+- **Post-MVP.** Daily Apocalypse, leaderboard, raiders, mines,
   weather, night acts, more events, Radio voice-over, weapon variety.
 
 ## Technical decisions (summary)
@@ -341,7 +344,7 @@ chunk variants). The sim is renderer-agnostic and deterministic per seed; conten
 (acts, events, upgrades, barks, run titles) is typed data. Fixed 60 Hz timestep
 with interpolated rendering.
 
-## Lessons from *The Last Driver* (2012)
+## Lessons from _The Last Driver_ (2012)
 
 What we steal: the everything-at-once apocalypse, mowing as free fun, buildings
 collapsing into ramps, the grin. What we fix, per its reviews: hazards that killed
