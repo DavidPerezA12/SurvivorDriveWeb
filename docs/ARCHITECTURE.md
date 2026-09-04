@@ -195,8 +195,7 @@ One `AudioContext`, one mixer graph built once:
 ```
 engine(osc+noise, pitch←speed) ─┐
 music layers (gain←multiplier) ─┤→ compressor → master
-SFX pool (round-robin, jittered) ─┤
-radio (bandpass + crackle) ─┘
+SFX pool (round-robin, jittered) ─┘
 ```
 
 Frame events drive one-shot SFX; continuous params lerp toward sim state. All

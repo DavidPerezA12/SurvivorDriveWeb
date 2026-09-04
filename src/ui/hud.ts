@@ -2,7 +2,6 @@ import type { FrameEvent, ReadonlyState } from '../sim';
 import { CAR_TUNING, ECONOMY_TUNING } from '../content/tuning';
 import { biomeAt } from '../content/biomes';
 import { ACT_NAMES, actAt } from '../content/acts';
-import { RadioDeck, type RadioTrigger } from '../content/radio';
 
 /**
  * Arcade kill-streak callouts (the inspiration's "DOUBLE KILL" / "MEGA KILL"). Each
@@ -60,25 +59,6 @@ export function readyControlHints(coarsePointer: boolean): readonly ReadyControl
   ];
 }
 
-export type RadioPriority = 0 | 1 | 2 | 3;
-
-const RADIO_MINOR_TICKS = 180;
-const RADIO_PRIORITY_TICKS = 216;
-
-export function radioDurationTicks(priority: RadioPriority): number {
-  return priority >= 2 ? RADIO_PRIORITY_TICKS : RADIO_MINOR_TICKS;
-}
-
-/** Minor flavor waits; act and death lines may preempt lower-priority speech. */
-export function radioCanSpeakAt(
-  tick: number,
-  busyUntilTick: number,
-  active: RadioPriority,
-  incoming: RadioPriority,
-): boolean {
-  return tick >= busyUntilTick || active === 0 || incoming > active;
-}
-
 /** Green → amber → red as the hull bar drains (mirrors the pickup palette). */
 function hullColor(c: number): string {
   if (c <= 0) return '#5a3a36';
@@ -90,7 +70,7 @@ function hullColor(c: number): string {
 /**
  * Player-facing readout (the `ui/` layer): distance, speed, the single hull bar,
  * the gun's ammo, jump charges, scrap, and the live kill streak, plus the
- * wrecked panel and flavor-only Radio subtitle. Reads sim state and frame events,
+ * wrecked panel and streak callouts. Reads sim state and frame events,
  * and sends nothing back (docs/ARCHITECTURE.md → the prime directive).
  */
 export class Hud {
@@ -115,12 +95,6 @@ export class Hud {
   private lastComboTier = 0;
   private readonly biomeBanner: HTMLDivElement;
   private readonly actBanner: HTMLDivElement;
-  private readonly radioDeck: RadioDeck;
-  private readonly radioSubtitle: HTMLDivElement;
-  private readonly radioText: HTMLSpanElement;
-  private radioAnimation: Animation | null = null;
-  private radioPriority: RadioPriority = 0;
-  private radioBusyUntilTick = 0;
   /** The run-opening intro card (location title + DRIVE), shown while the app holds the sim. */
   private readonly introCard: HTMLDivElement;
   /** Whether the card is up (or fading out): makes `hideIntroCard` safe per frame. */
@@ -132,8 +106,7 @@ export class Hud {
   private accum = 0;
   private destroyed = false;
 
-  constructor(seed: number) {
-    this.radioDeck = new RadioDeck(seed);
+  constructor() {
     this.stats = document.createElement('div');
     this.stats.className = 'sdw-hud sdw-hud--stats';
     this.stats.style.cssText = panelCss('left:12px;bottom:12px');
@@ -288,47 +261,6 @@ export class Hud {
     ].join(';');
     document.body.appendChild(this.actBanner);
 
-    // Flavor-only Radio subtitle. It remains mounted and empty so its polite
-    // live region can announce a new transmission without owning any gameplay cue.
-    this.radioSubtitle = document.createElement('div');
-    this.radioSubtitle.className = 'sdw-radio-subtitle';
-    this.radioSubtitle.setAttribute('role', 'status');
-    this.radioSubtitle.setAttribute('aria-live', 'polite');
-    this.radioSubtitle.setAttribute('aria-atomic', 'true');
-    this.radioSubtitle.setAttribute('aria-label', 'Radio transmission');
-    this.radioSubtitle.style.cssText = [
-      'position:fixed',
-      'left:50%',
-      'bottom:calc(env(safe-area-inset-bottom) + 126px)',
-      'transform:translateX(-50%)',
-      'display:flex',
-      'align-items:baseline',
-      'justify-content:center',
-      'gap:8px',
-      'width:max-content',
-      'max-width:calc(100vw - 32px)',
-      'box-sizing:border-box',
-      'padding:8px 12px',
-      'opacity:0',
-      'font:700 13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace',
-      'color:#e8d9c4',
-      'text-align:center',
-      'text-wrap:balance',
-      'background:rgba(8,11,10,0.82)',
-      'border:1px solid rgba(143,230,207,0.48)',
-      'border-radius:5px',
-      'box-shadow:0 4px 18px rgba(0,0,0,0.5)',
-      'pointer-events:none',
-      'z-index:21',
-    ].join(';');
-    const radioTag = document.createElement('span');
-    radioTag.textContent = 'RADIO //';
-    radioTag.style.cssText = 'flex:0 0 auto;color:#8fe6cf;letter-spacing:1px';
-    this.radioText = document.createElement('span');
-    this.radioText.style.cssText = 'min-width:0';
-    this.radioSubtitle.append(radioTag, this.radioText);
-    document.body.appendChild(this.radioSubtitle);
-
     // The run-opening intro card: the current location title with a DRIVE prompt
     // under it, centred while the cinematic camera sweeps in. The app shows it when
     // a run begins and hides it when the sweep hands off to gameplay.
@@ -451,16 +383,13 @@ export class Hud {
   setReducedMotion(reduced: boolean): void {
     if (this.reducedMotion === reduced) return;
     this.reducedMotion = reduced;
-    // Accessibility changes must stop movement immediately, but the Radio's
-    // deterministic tick cooldown remains intact.
+    // Accessibility changes must stop movement immediately.
     this.clearTransientCallouts();
-    this.clearRadioPresentation();
   }
 
   /** Reset every run-scoped HUD latch and transient before a fresh intro. */
   resetRun(): void {
     this.clearTransientCallouts();
-    this.clearRadio();
     for (const animation of this.introCard.getAnimations()) animation.cancel();
     this.introCard.style.display = 'none';
     this.introCardShown = false;
@@ -484,16 +413,12 @@ export class Hud {
       this.comboCallout,
       this.biomeBanner,
       this.actBanner,
-      this.radioSubtitle,
       this.introCard,
     ]) {
       for (const animation of element.getAnimations()) animation.cancel();
       element.remove();
     }
     this.calloutAnimation = null;
-    this.radioAnimation = null;
-    this.radioPriority = 0;
-    this.radioBusyUntilTick = 0;
   }
 
   /**
@@ -501,19 +426,13 @@ export class Hud {
    * renderer's). Only the kill streak banner lives here; everything else the HUD
    * shows is read from state each frame.
    */
-  handleEvent(event: FrameEvent, tick: number): void {
+  handleEvent(event: FrameEvent): void {
     if (event.type === 'nearMiss') {
       this.fireCallout('CLOSE CALL', '#8fe6cf');
-      this.offerRadio('closeCall', 1, tick);
       return;
     }
     if (event.type === 'multiplierChanged') {
       if (event.multiplier > 1) this.fireCallout(`MULTIPLIER ×${event.multiplier}`, '#f0d28a');
-      if (event.multiplier >= 3) this.offerRadio('highMultiplier', 1, tick);
-      return;
-    }
-    if (event.type === 'ramped') {
-      this.offerRadio('stunt', 1, tick);
       return;
     }
     if (event.type !== 'zombieMowed') return;
@@ -571,64 +490,6 @@ export class Hud {
     this.lastComboTier = 0;
   }
 
-  /** Offer one subtitle under the Radio's anti-spam and priority policy. */
-  private offerRadio(trigger: RadioTrigger, priority: RadioPriority, tick: number): boolean {
-    this.expireRadioChannel(tick);
-    if (!radioCanSpeakAt(tick, this.radioBusyUntilTick, this.radioPriority, priority)) return false;
-    const bark = this.radioDeck.next(trigger);
-    this.clearRadioPresentation();
-    this.radioPriority = priority;
-    this.radioBusyUntilTick = tick + radioDurationTicks(priority);
-    this.radioText.textContent = bark.text;
-    this.radioSubtitle.style.zIndex = priority === 3 ? '26' : '21';
-
-    const durationMs = (radioDurationTicks(priority) * 1000) / 60;
-    const animation = this.reducedMotion
-      ? this.radioSubtitle.animate([{ opacity: 1 }, { opacity: 1, offset: 0.82 }, { opacity: 0 }], {
-          duration: durationMs,
-          easing: 'linear',
-        })
-      : this.radioSubtitle.animate(
-          [
-            { opacity: 0, transform: 'translateX(-50%) translateY(8px)' },
-            { opacity: 1, transform: 'translateX(-50%) translateY(0)', offset: 0.12 },
-            { opacity: 1, transform: 'translateX(-50%) translateY(0)', offset: 0.82 },
-            { opacity: 0, transform: 'translateX(-50%) translateY(-3px)' },
-          ],
-          { duration: durationMs, easing: 'ease-out' },
-        );
-    this.radioAnimation = animation;
-    animation.onfinish = () => {
-      if (this.radioAnimation !== animation) return;
-      this.radioAnimation = null;
-      this.radioText.textContent = '';
-      this.radioSubtitle.style.opacity = '0';
-      this.radioSubtitle.style.zIndex = '21';
-    };
-    return true;
-  }
-
-  private clearRadioPresentation(): void {
-    const animation = this.radioAnimation;
-    this.radioAnimation = null;
-    animation?.cancel();
-    this.radioText.textContent = '';
-    this.radioSubtitle.style.opacity = '0';
-    this.radioSubtitle.style.zIndex = '21';
-  }
-
-  private clearRadio(): void {
-    this.clearRadioPresentation();
-    this.radioPriority = 0;
-    this.radioBusyUntilTick = 0;
-  }
-
-  private expireRadioChannel(tick: number): void {
-    if (this.radioPriority === 0 || tick < this.radioBusyUntilTick) return;
-    this.radioPriority = 0;
-    this.radioBusyUntilTick = 0;
-  }
-
   /** Slide the biome location title in, hold, then fade — a quiet scene-change cue. */
   private fireBiomeBanner(name: string): void {
     const el = this.biomeBanner;
@@ -671,14 +532,10 @@ export class Hud {
   }
 
   update(state: ReadonlyState): void {
-    this.expireRadioChannel(state.tick);
     const enteredDeath = state.dead && !this.deadShown;
-    const leftDeath = !state.dead && this.deadShown;
     this.deadShown = state.dead;
-    if (leftDeath) this.clearRadio();
     if (enteredDeath) {
       this.clearTransientCallouts();
-      this.offerRadio('death', 3, state.tick);
     }
     this.dead.style.display = state.dead ? 'flex' : 'none';
     this.econ.style.display = state.dead ? 'none' : 'block';
@@ -708,7 +565,6 @@ export class Hud {
     else if (act !== this.lastAct) {
       this.lastAct = act;
       this.fireActBanner(act);
-      this.offerRadio('actTransition', 2, state.tick);
     }
 
     const kmh = Math.round(state.car.speed * 3.6);

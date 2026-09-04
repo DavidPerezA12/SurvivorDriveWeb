@@ -147,7 +147,7 @@ export class Game {
     this.state = createSim(seed, runLoadout(this.selectedChassis, this.effectiveOwned()));
     this.view = new GameView(seed, renderAssets);
     this.input = new PlayerInput({ onPause: () => this.pause() });
-    this.hud = new Hud(seed);
+    this.hud = new Hud();
     this.overlay = new DebugOverlay();
     this.menu = new Menu(this.save.settings, {
       onResume: () => this.resume(),
@@ -568,7 +568,7 @@ export class Game {
         step(this.state, NO_INTENT);
         for (const event of this.state.events) {
           this.view.handleEvent(event);
-          this.hud.handleEvent(event, this.state.tick);
+          this.hud.handleEvent(event);
         }
         this.accumulator -= FIXED_DT;
         this.introTicks += 1;
@@ -601,7 +601,7 @@ export class Game {
       step(this.state, this.input.takeIntent());
       for (const event of this.state.events) {
         this.view.handleEvent(event);
-        this.hud.handleEvent(event, this.state.tick);
+        this.hud.handleEvent(event);
       }
 
       this.accumulator -= FIXED_DT;

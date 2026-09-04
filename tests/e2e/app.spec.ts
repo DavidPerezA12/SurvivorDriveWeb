@@ -184,11 +184,6 @@ test.describe('desktop smoke and menus', () => {
 
     const garage = page.getByRole('dialog', { name: 'Garage' });
     await expect(garage.getByText('WRECKED', { exact: true })).toBeVisible({ timeout: 45_000 });
-    const radio = page.locator('.sdw-radio-subtitle');
-    const radioText = radio.locator('span').last();
-    await expect(radio).toBeVisible();
-    await expect(radio).toHaveCSS('z-index', '26');
-    await expect(radioText).not.toHaveText('');
 
     const status = garage.locator('.sdw-garage__status');
     await expect(resultValue(status, 'ACT')).toHaveText('OUTBREAK');
@@ -206,12 +201,6 @@ test.describe('desktop smoke and menus', () => {
     await garage.getByRole('button', { name: 'Play again with the selected build' }).click();
     await expect(garage).toBeHidden();
     expect(new URL(page.url()).searchParams.get('seed')).toBe('424242');
-    await expect
-      .poll(async () => ({
-        text: (await radioText.textContent())?.trim() ?? '',
-        zIndex: await radio.evaluate((element) => getComputedStyle(element).zIndex),
-      }))
-      .toEqual({ text: '', zIndex: '21' });
   });
 });
 

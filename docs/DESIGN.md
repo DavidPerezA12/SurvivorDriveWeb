@@ -18,7 +18,7 @@ The game never explains; it escalates. The feeling to chase, taken from its
 inspiration (_The Last Driver_, 2012): it is impossible not to grin while mowing
 zombies in the shadow of something huge.
 
-The humor lives in the events, the Radio, and the writing, never in the controls.
+The humor lives in the events and the writing, never in the controls.
 The car handles seriously. The world is ridiculous.
 
 ## Design pillars
@@ -106,23 +106,13 @@ event, and music layer. Acts give runs shape and deaths an address.
 | V   | Colossus | Deep red, skyline silhouettes  | The Big One rains down, everything overlaps                                                                                        |
 | VI+ | Static   | Reality fraying, desaturating  | All events, max frequency, leaderboard land                                                                                        |
 
-- Transitions are landmark moments: a named HUD banner and a sky shift, with Radio
-  and music flavor when those layers are enabled. The player should sense "I have
+- Transitions are landmark moments: a named HUD banner and a sky shift, with music
+  flavor when that layer is enabled. The player should sense "I have
   crossed into somewhere worse".
 - Act event mix and spawn weights are data tables, so balancing is editing numbers.
 - The visual half of acts (mood and scenery crossfading sky, fog, light, and
   horizon silhouettes by distance) is already in as art direction only. It reads
   `distance` and pulls no gameplay forward.
-
-## The Radio
-
-A lone surviving radio host, equal parts traffic reporter and unhinged poet. Text
-bark lines first (subtitle strip plus crackle), voice-over far later.
-
-- **Reactive** to events, near-misses, big multipliers, act transitions, deaths.
-- **Anti-repetition:** deep pools, drawn without replacement per session.
-- **Never load-bearing:** it never conveys information the telegraphs do not
-  already give. Muting loses flavor, not fairness.
 
 ## Juice: the feedback spec
 
@@ -156,8 +146,7 @@ palette; fog hides the spawn horizon. One post stack: vignette, act-tinted fog,
 speed-scaled FOV. No PBR.
 
 **Sound: diegetic chaos over music, music over silence.** Engine pitch tracks
-speed. Music is a layered loop per act, intensity gated by the multiplier. The
-Radio sits in its own crackly band.
+speed. Music is a layered loop per act, intensity gated by the multiplier.
 
 ### Object craft: low-poly is a budget, not an alibi
 
@@ -327,13 +316,13 @@ Raiders and mines remain post-MVP. Chassis variety is part of the garage loop.
   to new run, localStorage, first text death card. _Done when a playtester starts a
   third run._
 - **M3: The road becomes the boss.** Building collapse and horde surge with full
-  telegraph rules, acts I and II, multiplier, barrels, weapon upgrades, Radio
-  barks, layered music base. _Done when a playtester retells a run as a story._
+  telegraph rules, acts I and II, multiplier, barrels, weapon upgrades,
+  layered music base. _Done when a playtester retells a run as a story._
 - **M4: Escalation.** UFO strafe, The Big One, quake split, acts III to V, compound
   events, image death card. _Done when minute four is reliably more chaotic than
   minute one and still fair._
 - **Post-MVP.** Daily Apocalypse, leaderboard, raiders, mines,
-  weather, night acts, more events, Radio voice-over, weapon variety.
+  weather, night acts, more events, weapon variety.
 
 ## Technical decisions (summary)
 
